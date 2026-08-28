@@ -248,7 +248,7 @@ declared is the only honest presentation.
 **Reversed if:** riders turn out to experience meaningful waiting at loops, which would
 make loops ordinary segments rather than turnarounds.
 
-## D-13 — Build a forecast, not a router `ACCEPTED`
+## D-13 — Build a forecast, not a router `SUPERSEDED by D-14`
 **Cites:** P-06, P-07, P-01 · **Problems:** PR-01, PR-04 · **Evidence:** E-L12, E-L13
 
 The product's primary job is to tell a rider **whether their trip is viable, when to
@@ -280,6 +280,46 @@ router does not.
 
 **Reversed if:** the Ontario Line opens and gives downtown genuine parallel capacity, or GO
 coverage expands enough that most riders have a real second option.
+
+> **Superseded 2026-08-28 by D-14, on the product owner's direction.** The redundancy
+> evidence (E-L12) stands and still shapes *how* routing should behave. What was wrong was
+> the conclusion drawn from it: I read "Toronto has few alternatives" as "do not build a
+> router", when the brief had twice asked for A-to-B. Low redundancy is an argument about
+> what a router should *say*, not a reason to withhold one. Recorded rather than rewritten,
+> because the reasoning error is worth keeping visible.
+
+## D-14 — A map-first trip planner, with reliability as the differentiator `ACCEPTED`
+**Cites:** P-01, P-06, P-09 · **Problems:** PR-01, PR-02, PR-03, PR-04 · **Evidence:** E-L12, E-D15
+**Supersedes:** D-13
+
+The product is **a transit app you pull out to get from A to B with fewer surprises** —
+map-first, in the shape people already know from Google Maps. Reliability is not the
+product; it is the layer underneath that makes the answers better than everyone else's.
+
+Three things it must do that mainstream planners do not:
+
+1. **Route on reliability, not just schedule.** Rank itineraries by what actually happens,
+   using the segment exposure model. Mainstream planners route on the timetable (E-L02).
+2. **Forecast rather than promise.** Departure advice with a confidence, not a single ETA
+   (P-01). The forecast is a *feature the app depends on*, not the app.
+3. **Absorb today.** Detours, bypasses, elevator outages, planned closures and shuttles,
+   and event crowding change the answer on the day, and the feed already carries most of it
+   (E-D15).
+
+*Why this framing and not the earlier one:* "fewer surprises" is the promise, and a
+surprise is only avoidable if the app is in your hand at the moment you choose a route. A
+forecast screen nobody opens prevents nothing. The map is not decoration — it is the
+retrieval mechanism.
+
+**What low redundancy still changes.** E-L12 is not discarded. Where there is no real
+alternative, the honest output is not a ranked list of three similar itineraries; it is one
+route plus *when to leave* and *when to give up*. Where there is choice — downtown,
+GO corridors — comparison is genuine. **The router adapts its answer to how much choice
+actually exists**, rather than pretending every trip is a menu.
+
+**Reversed if:** riders turn out to open the app only at the stop, in which case the
+at-stop view (J-02) becomes the product and routing is secondary.
+
 
 ---
 

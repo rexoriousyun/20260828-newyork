@@ -341,3 +341,32 @@ where "which option should I take" is a real question — so comparison is a **d
 feature, not a citywide one**. It also gives U-05 its defining behaviour: the walk is
 usually the decisive alternative, and a transit app willing to say "walk" earns more trust
 than one that never does.
+
+### E-D15 — The alerts feed already carries day-of disruptions, including elevator status
+The GTFS-Realtime alerts feed (verified 2026-08-28, unauthenticated) carries ~34 live
+alerts with full description text and affected route ids. Sampled content:
+
+- **Detours:** "506 Carlton: Detour via Ossington Ave, Dundas St W and Bay St due to a
+  blocked track."
+- **Stop bypasses:** "16 Mccowan: Bypass near Scarborough Centre Station at Bus Bay 9 while
+  we respond to a security incident." — the same incident appeared across **9 routes**,
+  so alerts can be clustered into one rider-facing event.
+- **Elevator outages:** "Cedarvale: Elevator 06-ELV-B out of service between platform and
+  upper concourse while we perform maintenance."
+
+*Why it matters, twice over:*
+
+1. It is the data source for day-of routing — detours and bypasses change which segments a
+   trip actually uses, today.
+2. **It closes the U-04 data gap.** `D-07` committed to accessibility as a hard routing
+   constraint and was recorded as blocked for want of a source. Elevator status is in a
+   feed we already fetch. The gap was never data availability; it was that nobody looked.
+
+*Caveats:* every alert reports `UNKNOWN_EFFECT` — the TTC does not populate the effect
+enum, so severity must be classified from description text. `active_period` is empty, so
+alerts carry no start or end. Header text is truncated around 30 characters; the
+description is complete and is the field to use.
+
+Planned subway closures and their shuttle buses are published as **web pages**, not as a
+feed ([TTC closures](https://www.ttc.ca/service-advisories/subway-service)), so they need
+scraping or manual entry — the one day-of input without a clean machine source.

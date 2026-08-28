@@ -184,7 +184,7 @@ a **different design need**, evidenced. These do not, yet.
 |---|---|---|
 | **U-02** captive rider | partially — segments exist and rank | 86% unknown (E-D12); no at-stop view; nothing seasonal; no "leave by" (M7) |
 | **U-05** downtown rider | partially — streetcar segments rank | no walk comparison, no realtime |
-| **U-04** access-constrained | **not at all** | `D-07` decided, nothing implemented, no elevator data |
+| **U-04** access-constrained | **not at all** | `D-07` unimplemented — but elevator data exists in the alerts feed (E-D15), so this is now buildable |
 
 U-04 is the uncomfortable one: a decision recorded that the build has not honoured.
 
@@ -199,8 +199,10 @@ geography, trip purpose, or deadline:
 | **U-05** downtown | yes, in the moment | a **comparison** — transit or walk |
 | **U-04** access-constrained | rarely, and failure is binary | a **constraint** — routes that are certainly usable |
 
-That axis is `D-13`. It is why this is a forecast product with a downtown comparison
-feature, rather than a router.
+That axis is now `D-14`. It does not decide *whether* to build a router — it decides what
+the router should say. For U-02 the honest answer is one route plus when to leave and when
+to give up; for U-05 it is a genuine comparison; for U-04 it is a filter applied before
+anything is ranked.
 
 All three ride a network with no redundancy, in a city where waiting outside is seasonally
 dangerous, using an app that assumes a data plan. Those three facts constrain the product
