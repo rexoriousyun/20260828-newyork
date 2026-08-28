@@ -51,3 +51,39 @@ export function fetchRouteReliability(
   const suffix = q.toString() === "" ? "" : `?${q.toString()}`;
   return get(`/routes/${encodeURIComponent(routeId)}/${direction}/reliability${suffix}`);
 }
+
+export interface SegmentFeature {
+  type: "Feature";
+  id: number;
+  geometry: { type: "LineString"; coordinates: Array<[number, number]> };
+  properties: {
+    segmentId: string;
+    from: string;
+    to: string;
+    confidence: Confidence;
+    gapMinutesPerMonth: number | null;
+    incidentsPerMonth: number | null;
+    incidents: number;
+    isTerminalApproach: boolean;
+    drawnOnStreets: boolean;
+  };
+}
+
+export interface RouteMap {
+  type: "FeatureCollection";
+  bbox: [number, number, number, number] | null;
+  coverage: { segments: number; scored: number; approximated: number };
+  features: SegmentFeature[];
+}
+
+export function fetchRouteMap(
+  routeId: string,
+  direction: string,
+  filters: { dayOfWeek?: string; hour?: number },
+): Promise<RouteMap> {
+  const q = new URLSearchParams();
+  if (filters.dayOfWeek !== undefined) q.set("dayOfWeek", filters.dayOfWeek);
+  if (filters.hour !== undefined) q.set("hour", String(filters.hour));
+  const suffix = q.toString() === "" ? "" : `?${q.toString()}`;
+  return get(`/routes/${encodeURIComponent(routeId)}/${direction}/map${suffix}`);
+}

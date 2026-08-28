@@ -370,3 +370,19 @@ description is complete and is the field to use.
 Planned subway closures and their shuttle buses are published as **web pages**, not as a
 feed ([TTC closures](https://www.ttc.ca/service-advisories/subway-service)), so they need
 scraping or manual entry — the one day-of input without a clean machine source.
+
+### E-D16 — Segment geometry can be drawn on real streets for 99.6% of segments
+GTFS publishes a `shapes.txt` polyline per trip that follows actual roads, but TTC leaves
+`stop_times.shape_dist_traveled` empty, so there is no published link between a stop and
+its position along that polyline. Projecting each stop onto the shape and slicing between
+consecutive stops yields real street geometry for **18,897 of 18,982 segments (99.6%)**.
+
+A first attempt reached only 50.4%, because it picked one representative shape per route.
+A route publishes at least one shape per direction plus short-turn variants, so every
+segment travelling the other way projected out of order and could not be sliced — almost
+exactly the half that failed. Trying every shape the route uses, and keeping the tightest
+successful slice, fixed it.
+
+*Why it matters:* it is the difference between a map and a diagram. Straight lines between
+stops cut through buildings and read as unfinished, and `D-14` commits to a map people
+recognise.

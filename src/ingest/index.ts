@@ -3,6 +3,7 @@ import { ingestGtfs } from "./gtfs.js";
 import { buildSegments } from "./segments.js";
 import { attributeSubwayIncidents, attributeSurfaceIncidents } from "../domain/attribute.js";
 import { buildSurfaceSegments } from "./surface-segments.js";
+import { buildGeometry } from "./geometry.js";
 import { disconnect } from "../db/client.js";
 
 const MODES: Mode[] = ["subway", "bus", "streetcar"];
@@ -41,6 +42,11 @@ async function main(): Promise<void> {
   console.log(`    location unresolved:            ${sattr.unresolvedStation.toLocaleString()}`);
   console.log(`    no direction recorded:          ${sattr.unknownDirection.toLocaleString()}`);
   console.log(`    no matching segment:            ${sattr.noMatchingSegment.toLocaleString()}`);
+
+  const geo = await buildGeometry();
+  const pct = ((geo.drawn / geo.total) * 100).toFixed(1);
+  console.log(`
+  geometry: ${geo.drawn.toLocaleString()}/${geo.total.toLocaleString()} segments drawn on streets (${pct}%)`);
 }
 
 main()

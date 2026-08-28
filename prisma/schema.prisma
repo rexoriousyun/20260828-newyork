@@ -122,6 +122,11 @@ model Segment {
   toLat   Float?
   toLon   Float?
 
+  /// The segment drawn on real streets: a JSON array of [lon, lat] pairs sliced
+  /// from the route's GTFS shape. Null means we fell back to a straight line,
+  /// which is a visible approximation and is reported as such.
+  geometry String?
+
   /// True when `toStation` is a line terminal. Terminal approaches accumulate
   /// turnaround incidents that never affect through-riders (E-D03, D-06).
   isTerminalApproach Boolean @default(false)
