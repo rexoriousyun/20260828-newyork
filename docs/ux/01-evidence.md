@@ -252,3 +252,71 @@ Pooled wait once an incident occurs, terminal approaches excluded:
 rider percentiles drawn mostly from buses. It also sharpens E-D05 and PR-01: the network
 carrying most of the delay is also the one where each incident hurts about three times as
 much. Strong support for U-02 as the primary persona rather than U-01.
+
+---
+
+## Added 2026-08-28 (Toronto rider context)
+
+### E-L10 — Two thirds of TTC riders are equity-deserving, and the inner suburbs are underserved
+**66.6% of Toronto transit riders are equity-deserving**, and 71.9% of them live outside
+the city's designated Neighbourhood Improvement Areas — concentrated in north Scarborough.
+Scarborough's average transit access and connectivity score is **20.97 against 102.8** in
+affluent neighbourhoods. Riders in these areas are disproportionately newcomers, racialized,
+in precarious employment, and without access to a car.
+
+Lower-income riders also **pay more per ride**, because they cannot front the cost of a
+monthly pass. Cashless payment and app-based service isolate people who are unbanked or
+have low digital literacy — including newcomers and older adults.
+[Wellesley Institute](https://www.wellesleyinstitute.com/ttc/transit-access-and-affordability-an-equity-based-approach/) ·
+[pointA](https://pointa.ca/2020/11/04/transit-inequity-who-gets-left-behind-when-neighbourhoods-arent-well-connected/) ·
+[Scarborough Transit Action](https://www.scarboroughtransitaction.ca/transit-equity)
+
+*Why it matters:* our modal rider is not a downtown professional choosing between transit
+and Uber. It reorders the personas — and it puts a constraint on the product itself, which
+currently assumes a smartphone, a data plan, and comfort with an analytics interface.
+
+### E-L11 — Waiting is a physical risk for a third of the year
+Toronto winters make an unexplained wait dangerous, not merely annoying. The city plans
+**100 heated shelter kits over seven years**, targeted at high-ridership stops with *low
+frequency*. During storms riders have been **stranded at stops for hours** with no service
+and no communication. TTC staff see **30–60 unhoused people a day** sheltering in stations
+in cold months, against 8–10 the rest of the year.
+
+Our own data agrees on severity: ice and snow incidents average **68.8 minutes** against a
+7.8-minute overall mean (E-D02).
+[TTCriders snow plan](https://www.ttcriders.ca/snowplan) ·
+[CTV](https://www.ctvnews.ca/toronto/video/2026/01/23/cold-weather-impacting-commute-for-ttc-transit-riders/) ·
+[Global](https://globalnews.ca/news/10232210/ttc-rise-shelter-cold-snaps/amp/)
+
+*Why it matters:* "your bus is 26 minutes away" is information in July and a safety
+decision in January. The same number carries different stakes by season, and the interface
+currently treats them identically.
+
+### E-L12 — Toronto has almost no network redundancy
+The TTC's own CEO describes the system as **"binary"**: if Line 1 or Line 2 goes down,
+"pretty much you only have one option — shuttle buses." Shuttle buses cannot carry subway
+volume, and there is no parallel downtown line. Weekend closures sometimes run with **no
+shuttle service at all**.
+[CBC](https://www.cbc.ca/news/canada/toronto/downtown-relief-line-would-have-made-difference-wednesday-morning-ttc-ceo-1.3610202) ·
+[TorontoToday](https://www.torontotoday.ca/local/transportation-infrastructure/portion-line-1-subway-closed-weekend-no-shuttle-bus-service-11451891)
+
+*Why it matters — this is the finding that most changes the product.* Toronto resembles
+New York in density, commute length and transit dependence. It does **not** resemble it in
+redundancy: New York has express and local tracks, parallel lines, and 24-hour service, so
+a reliability tool there answers *"which of my options is best?"* Toronto usually has no
+second option, so the same tool must answer a different question: **"is this trip viable,
+when should I leave, and should I give up?"**
+
+A reliability-aware *router* is a New York product. Toronto needs a reliability-aware
+*forecast*. See D-13.
+
+### E-L13 — One Fare removed the penalty for using GO as an alternative
+Since February 2024 the **One Fare** program eliminated double fares between the TTC, GO
+Transit and other GTA agencies, saving $3.30 per transfer and an estimated $1,600 a year
+per rider.
+[TTC](https://www.ttc.ca/riding-the-ttc/Updates/One-Fare-Program) ·
+[Global](https://globalnews.ca/news/10316270/toronto-gta-transit-one-fare-monday)
+
+*Why it matters:* in corridors GO actually serves, riders now have a genuine alternative
+that used to cost extra. It is the one place where Toronto has meaningful redundancy — and
+the one place where "go another way" is honest advice rather than a downtown assumption.

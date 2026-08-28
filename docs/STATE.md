@@ -63,8 +63,11 @@ would reverse it.
 | Subway records that are zero-minute | **65%** | E-D04 |
 | Delay attributed to terminals/yards | **20.7%** | E-D03 |
 | Bus segments at high confidence | **3.1%** | E-D12 |
+| TTC riders who are equity-deserving | **66.6%** | E-L10 |
+| Scarborough transit access score | **20.97** vs 102.8 affluent | E-L10 |
+| Ice/snow incident average duration | **68.8 min** | E-D02 |
 
-## The two findings that reshaped the product
+## The three findings that reshaped the product
 
 1. **Exposure persists; severity does not** (E-D10). How *often* a segment costs you time
    is predictable (rho 0.68). How *long* you wait once it happens is not (rho 0.10, with
@@ -72,7 +75,13 @@ would reverse it.
    formatted as precision, so severity is pooled per mode and labelled. This **revised the
    engine contract written the same day** — see `D-11`.
 
-2. **Delay data points at terminals and yards, not at rider risk** (E-D03). 20.7% of
+2. **Toronto has no redundancy, so this is a forecast and not a router** (E-L12). The
+   TTC's own CEO calls the system "binary" — when a line goes down there is one option.
+   New York has parallel lines and express tracks, so a reliability tool there picks
+   between options; Toronto usually has no second option, so the product must say whether
+   the trip is viable and when to leave. See `D-13`.
+
+3. **Delay data points at terminals and yards, not at rider risk** (E-D03). 20.7% of
    subway delay-minutes land on 12 of ~70 stations, because that is where the log entry is
    written. Shipping the obvious map would have been confidently wrong. See `D-06`, `D-12`.
 

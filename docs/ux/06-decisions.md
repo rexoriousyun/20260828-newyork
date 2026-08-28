@@ -243,6 +243,33 @@ declared is the only honest presentation.
 **Reversed if:** riders turn out to experience meaningful waiting at loops, which would
 make loops ordinary segments rather than turnarounds.
 
+## D-13 — Build a forecast, not a router `ACCEPTED`
+**Cites:** P-06, P-07, P-01 · **Problems:** PR-01, PR-04 · **Evidence:** E-L12, E-L13
+
+The product's primary job is to tell a rider **whether their trip is viable, when to
+leave, and when to give up** — not to choose between alternatives. Routing is a later,
+narrower feature, most useful in the GO corridors where alternatives actually exist.
+
+*Why:* Toronto has almost no network redundancy. The TTC's own CEO calls the system
+"binary": when a line goes down there is one option, shuttle buses, and sometimes not even
+those. New York has express and local tracks, parallel lines and 24-hour service, so a
+reliability tool there answers *"which of my options is best?"*. Asking that question in
+Toronto usually has no answer.
+
+This is the sharpest way the two cities differ, and it changes what the product *is*.
+A reliability-aware router is a New York product. Toronto needs a reliability-aware
+forecast — which is also, conveniently, what our data can actually support: exposure
+persists, severity does not (E-D10), and a forecast tolerates that asymmetry where a
+router does not.
+
+> **Reframes the original brief**, which asked for a route map showing the fastest and most
+> reliable way from A to B. The A-to-B framing imports an assumption from cities with
+> redundancy. The underlying goal — expose which lanes are unreliable — is unchanged and is
+> better served by a forecast.
+
+**Reversed if:** the Ontario Line opens and gives downtown genuine parallel capacity, or GO
+coverage expands enough that most riders have a real second option.
+
 ---
 
 ## Open questions

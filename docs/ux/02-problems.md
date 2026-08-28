@@ -119,6 +119,30 @@ Weather and ice/snow are 7.6% of subway delay-minutes, but with the worst severi
 profile in the dataset — ice/snow incidents average **68.8 minutes** versus a 7.8-minute
 overall mean. Rare, catastrophic, and forecastable a day ahead.
 
+## PR-13 — In winter, an unexplained wait is a safety problem `INFORM`
+**Evidence:** E-L11, E-D02
+
+Toronto plans 100 heated shelter kits over seven years, aimed at high-ridership stops with
+*low* frequency. Riders have been stranded at stops for hours during storms. Ice and snow
+incidents average **68.8 minutes** against a 7.8-minute overall mean — rare, catastrophic,
+and forecastable a day ahead.
+
+"Your bus is 26 minutes away" is information in July and a decision about physical safety
+in January. The product currently treats those identically.
+
+*Supersedes and absorbs PR-12, which framed weather only as a delay cause.*
+
+## PR-14 — Our own product excludes part of our audience `OUT`
+**Evidence:** E-L10
+
+66.6% of TTC riders are equity-deserving. Lower-income riders pay more per trip because
+they cannot front a monthly pass, and app-based, cashless service isolates people who are
+unbanked or have low digital literacy — newcomers and older adults among them.
+
+We are building a smartphone app with an analytics interface. That is a barrier for part of
+the audience we claim to serve most. We cannot solve it, but designing as though it were
+not true would be dishonest.
+
 ---
 
 ## Ranking for v1
