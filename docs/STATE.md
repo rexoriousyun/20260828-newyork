@@ -71,6 +71,8 @@ would reverse it.
 | Subway records that are zero-minute | **65%** | E-D04 |
 | Delay attributed to terminals/yards | **20.7%** | E-D03 |
 | Bus segments at high confidence | **3.1%** | E-D12 |
+| Best predictor of the next 2 months | **3-month half-life decay** | E-D18 |
+| Segments that shifted 2x between halves | **35.9%** | E-D18 |
 | TTC riders who are equity-deserving | **66.6%** | E-L10 |
 | Scarborough transit access score | **20.97** vs 102.8 affluent | E-L10 |
 | Ice/snow incident average duration | **68.8 min** | E-D02 |

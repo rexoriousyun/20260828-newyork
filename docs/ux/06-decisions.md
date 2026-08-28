@@ -381,6 +381,34 @@ reveal" (E-L06). A playful interface spends credibility the product has not earn
 **Reversed if:** never, while rebuilding trust is the product's central problem. Dropping this
 means dropping PR-08, which would itself require an entry here.
 
+## D-19 — Weight evidence by recency; decay, don't truncate `ACCEPTED`
+**Cites:** P-08, P-01 · **Evidence:** E-D18 · **Revises:** D-11
+
+Exposure is computed from **recency-weighted** incidents with a **three-month half-life**,
+normalised by the integral of the decay curve so the published figure stays an honest
+per-month rate. Confidence is judged on the weighted sample, not a raw count.
+
+*Why:* the network is not stationary. 35.9% of segments changed by 2x or more between the
+archive's halves, and seventeen months of history predicts the near future *worse* than six
+(E-D18). Decay beat every flat window in a holdout test.
+
+**Decay rather than truncation.** A hard cutoff throws away the only evidence thin segments
+have; decay keeps it and discounts it. That matters when 86% of bus segments are already
+short of data.
+
+**Recency is measured from the data's edge, not the wall clock.** The delay feed refreshes
+monthly, so "now" is up to a month stale, and using the clock would silently discount the
+newest month we actually have.
+
+> **This made the product claim less, not more.** Scorable segments fell from 2,703 to
+> 1,167 and 52 Lawrence West from 25 stretches to 7 — after recalibrating the confidence
+> bar, not before. The evidence was always this thin; the flat average was hiding it. It
+> sharpens Q-A considerably: the map is now emptier than the one that question was written
+> about.
+
+**Reversed if:** a longer holdout shows the three-month half-life is overfit to this
+particular two-month window, which is worth re-testing as the archive grows.
+
 ---
 
 ## Open questions
@@ -391,6 +419,7 @@ means dropping PR-08, which would itself require an entry here.
 | ~~Q-2~~ | ~~Can surface geocoding beat 66%?~~ | — | **Closed 2026-08-28: yes, 76.6%** |
 | Q-3 | Do riders want a verdict or the evidence? | D-05 | D-08 |
 | Q-5 | Does per-segment severity persist over a longer window? | D-11 | data, later |
+| Q-7 | Is a 3-month half-life overfit to one holdout window? | D-19 | data, later |
 | Q-4 | Is J-02 (at-stop) the only moment people open an app? | D-03 | D-08 |
 | Q-A | Does a mostly-unknown map build trust or read as broken? | P-03, D-05 | D-08 |
 | Q-B | Is the segment or the corridor the rider's unit? | D-01 | D-08 |

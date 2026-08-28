@@ -403,3 +403,36 @@ deciding whether to travel needs to know which they are looking at.
 
 **Known limit:** absence of an alert is not evidence an elevator works. The feed reports
 outages it knows about, so `unknown` is treated as *not usable* rather than as fine (P-03).
+
+### E-D18 — Long history predicts worse than recent history, and a third of the network has shifted
+Two measurements, prompted by the observation that a transit network is not stationary —
+service changes, reassignment, construction and nearby roadworks all move a segment's
+behaviour.
+
+**Predictive power peaks and then declines.** Holding out the last two months and testing
+each lookback window on an identical segment set (n = 962):
+
+| lookback | rho | | decay half-life | rho |
+|---|---|---|---|---|
+| 1 month | 0.375 | | 1 month | 0.503 |
+| 3 months | 0.512 | | 2 months | 0.538 |
+| 6 months | **0.530** | | **3 months** | **0.543** |
+| 12 months | 0.519 | | 6 months | 0.535 |
+| 17 months | 0.512 | | none (flat) | 0.512 |
+
+Seventeen months of history predicts **worse** than six. Exponential decay beats every flat
+window, peaking at a three-month half-life.
+
+**The churn is large.** Comparing the archive's two halves on 3,210 comparable segments:
+**35.9% changed by 2x or more, 18.5% by 3x.** The extremes are dramatic — one Sherbourne
+segment 51x worse, one Exhibition-area segment 55x better.
+
+*Why it matters:* it invalidated the flat all-history average the scoring engine used, and
+the confidence thresholds built on raw counts. Thirty incidents from eighteen months ago is
+not thirty incidents of evidence about next Tuesday, and calling that "high confidence" is
+exactly the failure `P-08` exists to prevent.
+
+**The honest cost:** taking recency seriously *reduces* what we can claim. Scorable segments
+fall from 2,703 to 1,167 even after recalibrating the bar. 52 Lawrence West drops from 25
+scored stretches to 7. We do not have as much recent evidence as raw counts implied — that
+was always true; it was just hidden.

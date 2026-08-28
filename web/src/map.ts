@@ -10,11 +10,15 @@
 
 /**
  * Minutes of rider waiting caused per month, above which a stretch is called
- * unreliable. 45 is the 75th percentile of scorable segments — "the worst
+ * unreliable. 90 is the 75th percentile of scorable segments — "the worst
  * quarter of what we can measure" — chosen so colour stays reserved rather than
  * covering most of the map.
+ *
+ * Recalibrated when recency weighting landed: the figure is now a
+ * decay-weighted rate over ~4.3 effective months rather than a flat average
+ * over 19, which roughly doubled the distribution.
  */
-export const UNRELIABLE_THRESHOLD = 45;
+export const UNRELIABLE_THRESHOLD = 90;
 
 /**
  * Top of the gradient, in rider-wait minutes per month.

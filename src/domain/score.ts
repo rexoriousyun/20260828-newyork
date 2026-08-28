@@ -18,11 +18,59 @@ import { prisma } from "../db/client.js";
  * Sample sizes below which we decline to state a distribution.
  * Pre-registered so a thin segment cannot be talked into looking confident.
  */
+/**
+ * Half-life for recency weighting, in months.
+ *
+ * The network is not stationary: **35.9% of segments changed by 2x or more**
+ * between the first and second halves of the archive, and 18.5% by 3x
+ * (`E-D18`). Route changes, construction, signal work and reassignment all move
+ * a segment's behaviour, so an incident from eighteen months ago is weak
+ * evidence about next Tuesday.
+ *
+ * Tested against a two-month holdout on a fixed segment set. Flat windows peak
+ * at six months (rho 0.530) and *decline* with more history (0.512 at
+ * seventeen). Exponential decay beats every flat window, peaking here at a
+ * three-month half-life (rho 0.543).
+ *
+ * Decay rather than truncation: a hard cutoff throws away the only evidence
+ * thin segments have, while decay keeps it and merely discounts it.
+ */
+export const HALF_LIFE_MONTHS = 3;
+
+const MS_PER_MONTH = 1000 * 60 * 60 * 24 * 30.44;
+
+/** Weight for an incident by age, halving every `HALF_LIFE_MONTHS`. */
+export function recencyWeight(occurredAt: Date, now: Date): number {
+  const ageMonths = Math.max(0, (now.getTime() - occurredAt.getTime()) / MS_PER_MONTH);
+  return Math.pow(0.5, ageMonths / HALF_LIFE_MONTHS);
+}
+
+/**
+ * Months of observation the weighting is equivalent to.
+ *
+ * The integral of the decay curve over the window. Dividing weighted minutes by
+ * this keeps the published figure an honest per-month rate rather than an
+ * uninterpretable weighted sum.
+ */
+export function effectiveMonths(windowMonths: number): number {
+  const k = HALF_LIFE_MONTHS / Math.LN2;
+  return k * (1 - Math.pow(0.5, windowMonths / HALF_LIFE_MONTHS));
+}
+
+/**
+ * Thresholds on the **recency-weighted** sample, not on a raw count.
+ *
+ * A weighted sample of N is roughly N incidents within the last three months.
+ * Three (about 11-17 raw incidents) is the bar for saying anything; twelve
+ * (roughly 45-65 raw) for saying it with confidence.
+ *
+ * Recalibrated when decay landed. The old 5/30 bar was set on raw counts and is
+ * far stricter once weighted — it left only 40 high-confidence segments in the
+ * whole city. These are the same epistemic standard expressed in the new unit.
+ */
 export const CONFIDENCE = {
-  /** Enough incidents for the tail (p95) to mean something. */
-  high: 30,
-  /** Enough to say something, not enough to be precise about the tail. */
-  low: 5,
+  high: 12,
+  low: 3,
 } as const;
 
 export type Confidence = "high" | "low" | "unknown";
@@ -86,6 +134,24 @@ export function confidenceFor(n: number): Confidence {
   if (n >= CONFIDENCE.high) return "high";
   if (n >= CONFIDENCE.low) return "low";
   return "unknown";
+}
+
+/**
+ * The most recent observation in the archive.
+ *
+ * Recency is measured from the data's own edge, not from wall-clock time: the
+ * delay feed refreshes monthly, so "now" is up to a month behind, and using the
+ * clock would silently discount the newest month we actually have.
+ */
+let latestCache: Date | null = null;
+async function latestObservation(): Promise<Date> {
+  if (latestCache !== null) return latestCache;
+  const row = await prisma.delayIncident.findFirst({
+    where: { minDelay: { gt: 0 } },
+    orderBy: { occurredAt: "desc" },
+    select: { occurredAt: true },
+  });
+  return (latestCache = row?.occurredAt ?? new Date());
 }
 
 /** Length of the observation window in months, so rates are comparable. */
@@ -169,7 +235,15 @@ export async function scoreSegment(
     select: { minGap: true, code: true, occurredAt: true },
   });
 
-  const confidence = confidenceFor(incidents.length);
+  const now = await latestObservation();
+  const weights = incidents.map((i) => recencyWeight(i.occurredAt, now));
+  const effectiveSample = weights.reduce((t, w) => t + w, 0);
+
+  // Confidence is judged on the *weighted* sample. Thirty incidents that all
+  // happened eighteen months ago are not thirty incidents' worth of evidence
+  // about next week, and calling that "high confidence" would be the precise
+  // failure P-08 exists to prevent.
+  const confidence = confidenceFor(effectiveSample);
 
   const times = incidents.map((i) => i.occurredAt.getTime());
   const window =
@@ -183,14 +257,15 @@ export async function scoreSegment(
   // A thin sample gets no numbers at all. Publishing off four observations is
   // the kind of precise-looking lie P-08 exists to prevent.
   const months = await observationMonths();
+  const denominator = effectiveMonths(months);
   const exposure =
     confidence === "unknown"
       ? null
       : {
           gapMinutesPerMonth: Number(
-            (incidents.reduce((t, i) => t + i.minGap, 0) / months).toFixed(1),
+            (incidents.reduce((t, i, idx) => t + i.minGap * weights[idx]!, 0) / denominator).toFixed(1),
           ),
-          incidentsPerMonth: Number((incidents.length / months).toFixed(2)),
+          incidentsPerMonth: Number((effectiveSample / denominator).toFixed(2)),
         };
 
   const severity = confidence === "unknown" ? null : await pooledSeverity(segment.mode);
