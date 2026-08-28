@@ -144,8 +144,6 @@ Named so they are not silently carried:
   implemented.** Elevator status *is* available in the GTFS-RT alerts feed (`E-D15`), so
   this is buildable, not blocked. U-04 is currently served by nothing.
 - **GTFS-Realtime is verified live and unconsumed.** J-02 and J-03 need it.
-- **The four design rules are not in the decision log** with IDs and kill conditions, which
-  makes them orphans under rule 1.
 - **`D-08` is open.** Every persona is provisional — derived from research and data, never
   from talking to a Toronto rider. Q-A is the highest-value question: does a mostly-unknown
   map read as honest or as broken?

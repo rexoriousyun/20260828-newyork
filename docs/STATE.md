@@ -122,6 +122,7 @@ a hypothesis; the gaps are deliberate, so existing citations stay valid.
 | Q-D | Is compass direction the right handle, or headsigns? | polish |
 | Q-3 | Do riders want a verdict or the evidence? | D-05 |
 | Q-5 | Does per-segment severity persist over a longer window? | D-11 |
+| Q-6 | Is the segment or the corridor the rider's unit? | D-01 |
 
 **Known gap:** `D-07` commits to accessibility as a hard routing constraint for U-04, and
 **nothing is implemented** — no elevator data is ingested. The decision stands; the build
