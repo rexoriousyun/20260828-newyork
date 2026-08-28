@@ -3,6 +3,7 @@ import { z } from "zod";
 import { scoreSegment, scoreRoute } from "../domain/score.js";
 import { prisma } from "../db/client.js";
 import { registerTiles } from "./tiles.js";
+import { stationAccessMap, endpointState, isUsable } from "../domain/accessibility.js";
 
 const app = Fastify({ logger: true });
 
@@ -10,6 +11,33 @@ const query = z.object({
   dayOfWeek: z.string().optional(),
   hour: z.coerce.number().int().min(0).max(23).optional(),
   includeTerminalApproach: z.coerce.boolean().optional(),
+  /** Step-free routing. A filter, never a scoring weight (P-05, D-07). */
+  stepFree: z.coerce.boolean().optional(),
+});
+
+/**
+ * Step-free access for every station, plus the live outages behind it.
+ *
+ * Baseline and outage stay separate in the response: one is permanent, the
+ * other may clear within the hour, and a rider deciding whether to travel needs
+ * to know which they are looking at.
+ */
+app.get("/accessibility", async () => {
+  const { states, unmatchedOutages } = await stationAccessMap();
+  const all = [...states.values()];
+  return {
+    counts: {
+      accessible: all.filter((s) => s.state === "accessible").length,
+      outage: all.filter((s) => s.state === "outage").length,
+      notAccessible: all.filter((s) => s.state === "not-accessible").length,
+      unknown: all.filter((s) => s.state === "unknown").length,
+    },
+    outages: all.filter((s) => s.state === "outage"),
+    notAccessible: all.filter((s) => s.state === "not-accessible").map((s) => s.station),
+    /** Stations the TTC reported an outage for that we could not match. */
+    unmatchedOutages,
+    note: "Absence of an alert is not evidence an elevator works; the feed reports known outages only.",
+  };
 });
 
 registerTiles(app);
@@ -127,6 +155,20 @@ app.get("/routes/:routeId/:direction/map", async (req, reply) => {
 
   const byId = new Map(scored.map((s) => [s.segment.id, s]));
 
+  // Accessibility is resolved once per request and applied as a filter, not
+  // folded into any score (P-05).
+  const stepFree = parsed.data.stepFree ?? false;
+  const { states } = stepFree
+    ? await stationAccessMap()
+    : { states: new Map<string, never>() as never };
+
+  const segmentsById = new Map(
+    (await prisma.segment.findMany({
+      where: { routeId, direction: dir },
+      select: { id: true, fromStation: true, toStation: true },
+    })).map((x) => [x.id, x]),
+  );
+
   const features = geo.flatMap((g) => {
     const s = byId.get(g.id);
     if (s === undefined) return [];
@@ -142,6 +184,24 @@ app.get("/routes/:routeId/:direction/map", async (req, reply) => {
         : [];
     if (coordinates.length < 2) return [];
 
+    // A segment is blocked when either endpoint is a station a step-free rider
+    // cannot use. "unknown" counts as blocked: absence of an alert is not
+    // evidence an elevator works, and U-04 abandons us the first time we route
+    // them somewhere we could not verify (P-03).
+    let blockedBy: { station: string; state: string; note?: string } | null = null;
+    if (stepFree) {
+      const names = segmentsById.get(g.id);
+      for (const name of [names?.fromStation ?? "", names?.toStation ?? ""]) {
+        const st = endpointState(name, states as never);
+        if (st !== null && !isUsable(st.state)) {
+          blockedBy = st.note === undefined
+            ? { station: st.station, state: st.state }
+            : { station: st.station, state: st.state, note: st.note };
+          break;
+        }
+      }
+    }
+
     return [
       {
         type: "Feature" as const,
@@ -149,6 +209,8 @@ app.get("/routes/:routeId/:direction/map", async (req, reply) => {
         geometry: { type: "LineString" as const, coordinates },
         properties: {
           segmentId: s.segment.id,
+          /** Null unless step-free routing is on and an endpoint blocks it. */
+          blockedBy,
           from: s.segment.fromStation,
           to: s.segment.toStation,
           confidence: s.confidence,

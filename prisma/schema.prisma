@@ -140,3 +140,36 @@ model Segment {
   @@index([mode, routeId])
   @@index([toStopId])
 }
+
+/// A live service alert from the GTFS-RT feed.
+///
+/// Stored verbatim alongside what we parsed out of it, so a wrong parse is
+/// auditable rather than invisible (P-08). The feed is a snapshot with no
+/// history: each ingest replaces the set.
+model ServiceAlert {
+  id          String   @id
+  header      String
+  description String
+  /// Route ids the TTC attached. Note these are routes, not stations — the
+  /// station is only present in the description text.
+  routeIds    String
+  /// Station name parsed from the description prefix, when there is one.
+  stationName String?
+  /// True when the alert describes an elevator or escalator outage.
+  isElevator  Boolean  @default(false)
+  fetchedAt   DateTime @default(now())
+
+  @@index([isElevator])
+  @@index([stationName])
+}
+
+/// Baseline step-free access per station, from GTFS `wheelchair_boarding`.
+///
+/// Baseline and live outage are kept apart on purpose: a station can be built
+/// accessible and be unusable today. Collapsing them would hide which is which.
+model StationAccess {
+  station     String  @id
+  /// GTFS wheelchair_boarding: 1 accessible, 2 not, 0 unknown.
+  boarding    Int
+  stopId      String?
+}

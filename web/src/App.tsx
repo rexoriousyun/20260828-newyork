@@ -30,6 +30,21 @@ function Sheet({ feature, onClose }: { feature: SegmentFeature; onClose: () => v
         {p.isTerminalApproach && <span className="flag">terminal</span>}
       </div>
 
+      {p.blockedBy !== null && (
+        <div className="blocked">
+          <strong>
+            {p.blockedBy.state === "outage"
+              ? `${p.blockedBy.station}: elevator out of service`
+              : `${p.blockedBy.station} is not step-free`}
+          </strong>
+          <span>
+            {p.blockedBy.state === "outage"
+              ? "Reported by the TTC right now — this may clear."
+              : "This station has no step-free route. It will not change today."}
+          </span>
+        </div>
+      )}
+
       {p.confidence === "unknown" ? (
         <>
           <p className="answer">We don&rsquo;t have enough data on this stretch to say.</p>
@@ -84,6 +99,7 @@ export function App(): JSX.Element {
   const [selected, setSelected] = useState("");
   const [day, setDay] = useState("");
   const [hour, setHour] = useState("");
+  const [stepFree, setStepFree] = useState(false);
   const [data, setData] = useState<RouteMap | null>(null);
   const [feature, setFeature] = useState<SegmentFeature | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -105,10 +121,11 @@ export function App(): JSX.Element {
     fetchRouteMap(routeId, direction, {
       ...(day !== "" ? { dayOfWeek: day } : {}),
       ...(hour !== "" ? { hour: Number(hour) } : {}),
+      ...(stepFree ? { stepFree: true } : {}),
     })
       .then(setData)
       .catch((e: unknown) => setError(String(e)));
-  }, [selected, day, hour]);
+  }, [selected, day, hour, stepFree]);
 
   const onSelect = useCallback((f: SegmentFeature | null) => setFeature(f), []);
 
@@ -142,6 +159,13 @@ export function App(): JSX.Element {
             ))}
           </select>
         </div>
+        <button
+          className="toggle"
+          aria-pressed={stepFree}
+          onClick={() => setStepFree(!stepFree)}
+        >
+          Step-free only
+        </button>
       </div>
 
       {error !== null && <div className="sheet">Could not load: {error}</div>}
@@ -164,6 +188,12 @@ export function App(): JSX.Element {
                 <i className="k-unknown" />
                 not enough data
               </span>
+              {stepFree && (
+                <span>
+                  <i className="k-blocked" />
+                  not step-free
+                </span>
+              )}
             </div>
             <div className="quiet">Minutes of waiting caused per month. Tap a line.</div>
           </div>

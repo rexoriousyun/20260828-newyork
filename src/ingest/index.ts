@@ -4,6 +4,7 @@ import { buildSegments } from "./segments.js";
 import { attributeSubwayIncidents, attributeSurfaceIncidents } from "../domain/attribute.js";
 import { buildSurfaceSegments } from "./surface-segments.js";
 import { buildGeometry } from "./geometry.js";
+import { ingestAlerts } from "./alerts.js";
 import { disconnect } from "../db/client.js";
 
 const MODES: Mode[] = ["subway", "bus", "streetcar"];
@@ -42,6 +43,9 @@ async function main(): Promise<void> {
   console.log(`    location unresolved:            ${sattr.unresolvedStation.toLocaleString()}`);
   console.log(`    no direction recorded:          ${sattr.unknownDirection.toLocaleString()}`);
   console.log(`    no matching segment:            ${sattr.noMatchingSegment.toLocaleString()}`);
+
+  const alerts = await ingestAlerts();
+  console.log(`\n  alerts: ${alerts.total} live, ${alerts.elevator} elevator/escalator`);
 
   const geo = await buildGeometry();
   const pct = ((geo.drawn / geo.total) * 100).toFixed(1);

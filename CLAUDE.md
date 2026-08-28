@@ -140,10 +140,10 @@ can. Tiles are proxied through the API — which is the right production choice 
 
 Named so they are not silently carried:
 
-- **`D-07` commits to accessibility as a hard routing constraint and nothing is
-  implemented.** Elevator status *is* available in the GTFS-RT alerts feed (`E-D15`), so
-  this is buildable, not blocked. U-04 is currently served by nothing.
-- **GTFS-Realtime is verified live and unconsumed.** J-02 and J-03 need it.
+- **`D-07` is implemented as a filter, not as routing.** Blocked segments are marked; the
+  planner does not yet route *around* them. U-04 is partially served.
+- **GTFS-Realtime alerts are consumed; trip updates and vehicle positions are not.** J-02
+  and J-03 need the latter two.
 - **`D-08` is open.** Every persona is provisional — derived from research and data, never
   from talking to a Toronto rider. Q-A is the highest-value question: does a mostly-unknown
   map read as honest or as broken?

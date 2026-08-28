@@ -28,6 +28,8 @@ export interface Tokens {
   /** Scale stops: green at zero exposure, orange at the threshold, red at the top. */
   scale: [string, string, string];
   unknown: string;
+  /** Struck-out treatment for a segment a step-free rider cannot use. */
+  blocked: string;
   selection: string;
 }
 
@@ -37,12 +39,14 @@ export const LIGHT: Tokens = {
   // Unknown takes the scale's low end, dashed and thinned — greyscale belongs to
   // the basemap alone, so it cannot be borrowed to mean "no data".
   unknown: "#1a7f4c",
+  blocked: "#2b2b28",
   selection: "#1f6feb",
 };
 
 export const DARK: Tokens = {
   scale: ["#57c78a", "#eda545", "#e35f4e"],
   unknown: "#57c78a",
+  blocked: "#d8d8d2",
   selection: "#6ea8ff",
 };
 

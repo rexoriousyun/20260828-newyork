@@ -184,9 +184,12 @@ a **different design need**, evidenced. These do not, yet.
 |---|---|---|
 | **U-02** captive rider | partially — segments exist and rank | 86% unknown (E-D12); no at-stop view; nothing seasonal; no "leave by" (M7) |
 | **U-05** downtown rider | partially — streetcar segments rank | no walk comparison, no realtime |
-| **U-04** access-constrained | **not at all** | `D-07` unimplemented — but elevator data exists in the alerts feed (E-D15), so this is now buildable |
+| **U-04** access-constrained | partially — step-free filter with live outages | no routing yet, so it marks rather than re-routes; no station-entrance detail |
 
-U-04 is the uncomfortable one: a decision recorded that the build has not honoured.
+U-04 was the uncomfortable one — a decision recorded that the build had not honoured. `D-07`
+is now implemented (`E-D17`): step-free is a filter, live outages included, and `unknown`
+counts as blocked. What is still missing is *routing around* a blocked station rather than
+just marking it.
 
 ## Three personas, one axis
 

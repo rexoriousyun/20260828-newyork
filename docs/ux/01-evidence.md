@@ -386,3 +386,20 @@ successful slice, fixed it.
 *Why it matters:* it is the difference between a map and a diagram. Straight lines between
 stops cut through buildings and read as unfinished, and `D-14` commits to a map people
 recognise.
+
+### E-D17 — Step-free access is knowable from two feeds, and 16 stations are structurally excluded
+GTFS `stops.txt` carries `wheelchair_boarding` for every stop (8,091 marked accessible,
+1,311 not — no blanks), which gives a **baseline**: is the station built step-free? The
+GTFS-RT alerts feed gives the **live** picture, naming outages in its description text
+("Cedarvale: Elevator out of service between platform and upper concourse").
+
+Resolved across 293 stations: **275 accessible, 16 structurally not accessible, 2 with a
+live outage.** The structural list validates against reality — Museum, King, College,
+Greenwood, Old Mill and Islington are genuinely among the TTC's non-accessible stations.
+
+*Why it matters:* the two must not be collapsed. A station can be built accessible and be
+unusable today; one is permanent and the other may clear within the hour, and a rider
+deciding whether to travel needs to know which they are looking at.
+
+**Known limit:** absence of an alert is not evidence an elevator works. The feed reports
+outages it knows about, so `unknown` is treated as *not usable* rather than as fine (P-03).

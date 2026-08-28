@@ -66,6 +66,8 @@ export interface SegmentFeature {
     incidents: number;
     isTerminalApproach: boolean;
     drawnOnStreets: boolean;
+    /** Set only when step-free routing is on and an endpoint blocks this segment. */
+    blockedBy: { station: string; state: string; note?: string } | null;
   };
 }
 
@@ -79,11 +81,12 @@ export interface RouteMap {
 export function fetchRouteMap(
   routeId: string,
   direction: string,
-  filters: { dayOfWeek?: string; hour?: number },
+  filters: { dayOfWeek?: string; hour?: number; stepFree?: boolean },
 ): Promise<RouteMap> {
   const q = new URLSearchParams();
   if (filters.dayOfWeek !== undefined) q.set("dayOfWeek", filters.dayOfWeek);
   if (filters.hour !== undefined) q.set("hour", String(filters.hour));
+  if (filters.stepFree === true) q.set("stepFree", "1");
   const suffix = q.toString() === "" ? "" : `?${q.toString()}`;
   return get(`/routes/${encodeURIComponent(routeId)}/${direction}/map${suffix}`);
 }

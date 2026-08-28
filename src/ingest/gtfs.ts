@@ -11,11 +11,23 @@ import { parse } from "csv-parse/sync";
 import { prisma } from "../db/client.js";
 import { findResource } from "./ckan.js";
 import { keyFromStopName } from "../domain/streets.js";
+import { stationFromPlatform } from "../domain/stations.js";
 
 const GTFS_DATASET = "ttc-routes-and-schedules";
 
 /** The archive is cached so segment construction (M3) need not re-download 35MB. */
 export const GTFS_CACHE = "data/raw/gtfs.zip";
+
+/** Reads a CSV entry from an already-open archive. */
+function readCsvRaw(zip: AdmZip, entry: string): Array<Record<string, string>> {
+  const file = zip.getEntry(entry);
+  if (!file) throw new Error(`${entry} missing from GTFS archive`);
+  return parse(file.getData().toString("utf8"), {
+    columns: true,
+    skip_empty_lines: true,
+    bom: true,
+  }) as Array<Record<string, string>>;
+}
 
 export async function ingestGtfs(): Promise<{ stops: number; routes: number }> {
   const res = await findResource(GTFS_DATASET, "ZIP", () => true);
@@ -65,6 +77,24 @@ export async function ingestGtfs(): Promise<{ stops: number; routes: number }> {
   }
   await prisma.route.deleteMany();
   await prisma.route.createMany({ data: routes });
+
+  // Baseline step-free access per station, from GTFS wheelchair_boarding.
+  // A station has several platform stops; if any of them is marked accessible
+  // the station is, since a rider only needs one step-free way in.
+  const access = new Map<string, { station: string; boarding: number; stopId: string | null }>();
+  for (const s of readCsvRaw(zip, "stops.txt")) {
+    const name = (s["stop_name"] ?? "").trim();
+    if (!/\bstation\b/i.test(name)) continue;
+    const station = stationFromPlatform(name);
+    if (station === "") continue;
+    const boarding = Number(s["wheelchair_boarding"] ?? 0);
+    const existing = access.get(station);
+    if (existing === undefined || (boarding === 1 && existing.boarding !== 1)) {
+      access.set(station, { station, boarding, stopId: (s["stop_id"] ?? "").trim() || null });
+    }
+  }
+  await prisma.stationAccess.deleteMany();
+  await prisma.stationAccess.createMany({ data: [...access.values()] });
 
   return { stops: stops.length, routes: routes.length };
 }

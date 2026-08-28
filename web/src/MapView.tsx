@@ -62,6 +62,26 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
         },
       });
 
+      // Blocked segments, when step-free routing is on.
+      //
+      // Drawn as a struck-out line rather than recoloured: accessibility is a
+      // filter, not a worse score (P-05). A blocked stretch is not "more
+      // unreliable" — it is unavailable, and colouring it on the reliability
+      // scale would say the wrong thing entirely.
+      m.addLayer({
+        id: "segments-blocked",
+        type: "line",
+        source: SRC,
+        filter: ["!=", ["get", "blockedBy"], null],
+        layout: { "line-cap": "butt", "line-join": "round" },
+        paint: {
+          "line-color": tok.blocked,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 4, 14, 8, 17, 13],
+          "line-dasharray": [0.6, 0.9],
+          "line-opacity": 0.85,
+        },
+      });
+
       // Known segments: the route in green, or the reserved ramp when unreliable.
       m.addLayer({
         id: "segments-known",

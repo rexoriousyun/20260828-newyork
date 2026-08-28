@@ -101,7 +101,7 @@ having no map.
 **Reversed if:** analysis shows terminal incidents do propagate to through-riders in a
 measurable way — in which case model the propagation rather than simply re-including them.
 
-## D-07 — Accessibility filters before ranking `ACCEPTED`
+## D-07 — Accessibility filters before ranking `ACCEPTED · IMPLEMENTED`
 **Cites:** P-05 · **Personas:** U-04 · **Evidence:** E-L09
 
 Accessibility constraints reduce the candidate route set before any reliability ranking.
@@ -109,6 +109,16 @@ Never a weight, never a post-filter.
 
 *Why:* the failure mode is binary and can strand a rider mid-journey. A blended score
 implies a 95%-accessible route is 95% as good; for U-04 it is unusable.
+
+> **Implemented 2026-08-28.** Baseline from GTFS `wheelchair_boarding`, live outages parsed
+> from the GTFS-RT alerts feed (`E-D17`). A `stepFree` filter marks every segment whose
+> endpoint station a step-free rider cannot use; blocked stretches render struck out rather
+> than recoloured, because a blocked segment is *unavailable*, not "more unreliable", and
+> putting it on the reliability scale would say the wrong thing. The constraint leads the
+> detail sheet, above the number.
+>
+> **`unknown` counts as blocked.** Absence of an alert is not evidence an elevator works,
+> and U-04 abandons us the first time we route them somewhere we could not verify.
 
 **Reversed if:** never, while U-04 is a target user. Dropping this means dropping U-04 —
 which would itself be a decision requiring an entry here.
