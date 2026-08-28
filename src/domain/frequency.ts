@@ -11,6 +11,10 @@
  */
 
 import type { ConnectionSet } from "./connections.js";
+import { stationFromPlatform } from "./stations.js";
+
+/** Subway segments key on station names, not stop ids — see below. */
+const SUBWAY_ROUTES = new Set(["1", "2", "4"]);
 
 /** Weekday service days in an average month. */
 const WEEKDAYS_PER_MONTH = 21.7;
@@ -24,11 +28,26 @@ export function key(routeId: string, fromStopId: string, toStopId: string): stri
   return `${routeId}|${fromStopId}|${toStopId}`;
 }
 
-export function buildFrequency(c: ConnectionSet): SegmentFrequency {
+export function buildFrequency(c: ConnectionSet, stopName: (id: string) => string): SegmentFrequency {
   const perWeekday = new Map<string, number>();
   for (let i = 0; i < c.count; i++) {
-    const k = key(c.tripRoute[c.trip[i]!]!, c.stopIds[c.fromStop[i]!]!, c.stopIds[c.toStop[i]!]!);
-    perWeekday.set(k, (perWeekday.get(k) ?? 0) + 1);
+    const route = c.tripRoute[c.trip[i]!]!;
+    const fromId = c.stopIds[c.fromStop[i]!]!;
+    const toId = c.stopIds[c.toStop[i]!]!;
+    perWeekday.set(key(route, fromId, toId), (perWeekday.get(key(route, fromId, toId)) ?? 0) + 1);
+
+    // Subway segments are stored against station names, because the delay feed
+    // identifies subway locations by station and never by platform. Without a
+    // station-keyed entry here, every subway segment fails its frequency lookup
+    // and drops out of scoring entirely — which is what happened.
+    if (SUBWAY_ROUTES.has(route)) {
+      const a = stationFromPlatform(stopName(fromId));
+      const b = stationFromPlatform(stopName(toId));
+      if (a !== "" && b !== "" && a !== b) {
+        const sk = key(route, a, b);
+        perWeekday.set(sk, (perWeekday.get(sk) ?? 0) + 1);
+      }
+    }
   }
   const tripsPerMonth = new Map<string, number>();
   for (const [k, n] of perWeekday) tripsPerMonth.set(k, n * WEEKDAYS_PER_MONTH);

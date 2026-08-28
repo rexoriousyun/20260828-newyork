@@ -51,11 +51,12 @@ async function getGraph(): Promise<Graph> {
       lat[i] = s?.lat ?? 0;
       lon[i] = s?.lon ?? 0;
     }
+    const stopNamesMap = new Map(stops.map((s) => [s.id, s.name]));
     return {
       connections,
       footpaths: buildFootpaths(lat, lon),
-      stopNames: new Map(stops.map((s) => [s.id, s.name])),
-      frequency: buildFrequency(connections),
+      stopNames: stopNamesMap,
+      frequency: buildFrequency(connections, (id) => stopNamesMap.get(id) ?? id),
       segmentIndex: await loadSegmentIndex(),
     };
   })();

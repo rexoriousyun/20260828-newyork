@@ -444,11 +444,11 @@ honestly say.
 
 For a Jane/Eglinton → Union trip, three routings:
 
-| via | typical | when disrupted | disruption rate |
-|---|---|---|---|
-| 32 + 5 + 1 | 49 min | 73 min | **1 in 1,236 trips** |
-| 935 + 2 + 1 | 49 min | 73 min | 1 in 393 |
-| 935 + 2 + 510 | 69 min | 93 min | 1 in 296 |
+| via | typical | when disrupted | disruption rate | coverage |
+|---|---|---|---|---|
+| 32 + 5 + 1 | 49 min | 73 min | **1 in 150 trips** | 67% |
+| 935 + 2 + 1 | 49 min | 73 min | 1 in 99 | 90% |
+| 935 + 2 + 510 | 69 min | 93 min | 1 in 147 | 45% |
 
 **Expected added minutes is a useless number to show a rider.** At a 0.1–0.3% per-trip risk
 it rounds to zero, and ranking on it is indistinguishable from ranking on the timetable.
@@ -463,6 +463,16 @@ minutes slower on average" — that claim is false. It is **"this route goes wro
 as often, and when it does it costs you 24 minutes."** Which is also exactly what `P-01`
 asks for: a distribution, not a point estimate.
 
-**Limitation, stated:** only **10–11% of segments** on these journeys could be scored at
-all, after `D-19` tightened what counts as evidence. The ranking is real but thin, and the
-API returns that coverage figure rather than hiding it.
+**A correction worth keeping.** The first run of this measurement reported 10–11% coverage
+and blamed `D-19` for thinning the evidence. That was wrong, and the diagnosis was lazy: a
+funnel over the actual journeys showed **65% of segments were failing a frequency lookup**,
+not failing for want of data. Subway segments store station names with null stop ids, while
+the frequency map was keyed on GTFS stop ids — the same name-versus-id mismatch already
+handled in the segment lookup and forgotten here. Every subway segment silently dropped out
+of scoring.
+
+Fixed, coverage is **45–90% per journey**, and the residue is genuine: 17% of segments have
+no logged incident at all and 10% sit below the confidence bar.
+
+*The lesson:* "the data is thin" is a comfortable explanation and was, here, a bug wearing
+a plausible story. Measure the funnel before believing it.
