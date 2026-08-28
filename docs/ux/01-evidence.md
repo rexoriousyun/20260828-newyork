@@ -177,3 +177,22 @@ Advocates' top ask is **realtime elevator information**.
 
 *Why it matters:* for this group a "5-minute delay" is not a smaller version of the same
 problem — it is a different, binary problem. Our severity model must reflect that.
+
+### E-D10 — Exposure persists at segment level; severity does not
+Split-half test across 125 segments with >=10 incidents in each period, terminal
+approaches excluded:
+
+| metric | rho | ties |
+|---|---|---|
+| incident count | 0.762 | 41% |
+| total gap-minutes | 0.681 | 7% |
+| median gap | 0.361 | 94% |
+| p90 gap | 0.214 | 82% |
+| **mean gap** | **0.104** | **3%** |
+
+*Why it matters:* the exposure dimension is strongly persistent and rankable. Severity is
+not — and with only 3% ties its near-zero correlation cannot be dismissed as a
+tied-ranks artifact. **How often a segment costs you time is predictable; how long you
+wait once it does is not.** This is the finding that reshaped the engine contract (D-11).
+
+Reproduce with `npm run audit:stability`.

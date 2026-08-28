@@ -47,16 +47,20 @@ Recorded so we stop re-litigating them:
 
 The segment engine is done when it can answer this, for any segment, from historical data:
 
+> **Revised 2026-08-28 by D-11.** This contract originally specified per-segment
+> percentiles. Segment-level testing showed severity does not persist (rho = 0.10), so
+> percentiles are pooled across the network and only exposure is segment-specific.
+
 ```
-GET /segments/:id/reliability?dow=Mon&hour=8
+GET /segments/:id/reliability?dayOfWeek=Monday&hour=8
 
 {
-  "segment":      { "from_stop": "...", "to_stop": "...", "route": "52", "direction": "E" },
-  "wait":         { "p50": 6, "p90": 19, "p95": 26, "unit": "minutes" },
-  "sample":       { "incidents": 412, "window": "2025-01..2026-07", "coverage": "high" },
-  "excess":       { "vs_scheduled_headway": 2.1 },
-  "causes":       [ { "code": "MFUS", "share": 0.31 }, ... ],
-  "confidence":   "high" | "low" | "unknown"
+  "segment":    { "id": "1:N:DAVISVILLE->EGLINTON", "routeId": "1", "direction": "N", ... },
+  "exposure":   { "gapMinutesPerMonth": 172.4, "incidentsPerMonth": 14.09 },
+  "severity":   { "p50": 9, "p90": 17, "p95": 23, "basis": "pooled-network" },
+  "sample":     { "incidents": 267, "window": {...}, "filters": [...] },
+  "causes":     [ { "code": "MUIR", "description": "...", "share": 0.094 }, ... ],
+  "confidence": "high" | "low" | "unknown"
 }
 ```
 
@@ -78,8 +82,8 @@ Non-negotiable properties, each from a principle:
 | **M0** | Project scaffold — **DONE** | `npm run dev` starts API + web; CI runs tests | — |
 | **M1** | Data ingestion — **DONE** | TTC delay data + GTFS loaded, reproducible via one command | M2 |
 | **M2** | **`Min Gap` data audit — DONE, PASSED** | **Q-1 answered: is the field trustworthy?** | **everything** |
-| **M3** | Segment model | Network decomposed into inter-stop segments with stable IDs | M4 |
-| **M4** | Reliability scoring | Engine contract above satisfied, incl. terminal/yard correction | M5, M6 |
+| **M3** | Segment model — **DONE** | Network decomposed into inter-stop segments with stable IDs | M4 |
+| **M4** | Reliability scoring — **DONE** | Engine contract above satisfied, incl. terminal/yard correction | M5, M6 |
 | **M5** | Surface geocoding | Beat 66% baseline (`E-D07`); publish the achieved rate | M6 (bus) |
 | **M6** | J-04 segment map | Explore any route's reliability by segment, hour, day | M7 |
 | **M7** | J-01 departure advice | "Leave by X for 90% confidence" | ship |
@@ -103,7 +107,7 @@ primary metric. Run `npm run audit:gap` to reproduce.
 
 | Criterion | Target | Why |
 |---|---|---|
-| Segment score stability | rho > 0.5 split-half at segment granularity | Below this, segments are noise and `D-01` fails |
+| Segment score stability | rho > 0.5 split-half at segment granularity | **MET: 0.681 on exposure.** Severity failed at 0.10, reshaping the contract (D-11) |
 | Surface coverage | > 66% of delay-minutes geocoded | Beat the baseline in `E-D07` |
 | Honest uncertainty | 100% of low-sample segments marked, none rendered as healthy | `P-03` |
 | Rider validation | 5+ riders confirm a segment we flagged matches their experience | `D-08`, `P-08` |

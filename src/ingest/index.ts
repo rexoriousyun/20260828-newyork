@@ -1,5 +1,7 @@
 import { ingestDelays, ingestCodes, type Mode } from "./delays.js";
 import { ingestGtfs } from "./gtfs.js";
+import { buildSegments } from "./segments.js";
+import { attributeSubwayIncidents } from "../domain/attribute.js";
 import { disconnect } from "../db/client.js";
 
 const MODES: Mode[] = ["subway", "bus", "streetcar"];
@@ -16,6 +18,18 @@ async function main(): Promise<void> {
       `${mode}: ${written.toLocaleString()}/${read.toLocaleString()} incidents, ${codes} codes`,
     );
   }
+
+  console.log("\nSegments (M3)...");
+  const seg = await buildSegments();
+  console.log(`  ${seg.segments} segments across ${seg.patterns} route/direction patterns`);
+
+  const attr = await attributeSubwayIncidents();
+  const rate = ((attr.attributed / attr.considered) * 100).toFixed(1);
+  console.log(`  attributed ${attr.attributed.toLocaleString()}/${attr.considered.toLocaleString()} subway incidents (${rate}%)`);
+  console.log(`    non-revenue (excluded by D-06): ${attr.nonRevenue.toLocaleString()}`);
+  console.log(`    no direction recorded:          ${attr.unknownDirection.toLocaleString()}`);
+  console.log(`    station name unresolved:        ${attr.unresolvedStation.toLocaleString()}`);
+  console.log(`    no matching segment:            ${attr.noMatchingSegment.toLocaleString()}`);
 }
 
 main()

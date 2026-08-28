@@ -5,6 +5,7 @@
  * needed until segment construction (M3), so it is deliberately left on disk.
  */
 
+import { mkdir, writeFile } from "node:fs/promises";
 import AdmZip from "adm-zip";
 import { parse } from "csv-parse/sync";
 import { prisma } from "../db/client.js";
@@ -13,12 +14,18 @@ import { keyFromStopName } from "../domain/streets.js";
 
 const GTFS_DATASET = "ttc-routes-and-schedules";
 
+/** The archive is cached so segment construction (M3) need not re-download 35MB. */
+export const GTFS_CACHE = "data/raw/gtfs.zip";
+
 export async function ingestGtfs(): Promise<{ stops: number; routes: number }> {
   const res = await findResource(GTFS_DATASET, "ZIP", () => true);
 
   const response = await fetch(res.url);
   if (!response.ok) throw new Error(`GTFS download failed (${response.status})`);
-  const zip = new AdmZip(Buffer.from(await response.arrayBuffer()));
+  const archive = Buffer.from(await response.arrayBuffer());
+  await mkdir("data/raw", { recursive: true });
+  await writeFile(GTFS_CACHE, archive);
+  const zip = new AdmZip(archive);
 
   const read = (entry: string): Array<Record<string, string>> => {
     const file = zip.getEntry(entry);

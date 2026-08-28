@@ -133,6 +133,48 @@ development frictionless; Prisma makes the Postgres migration mechanical.
 **Reversed if:** segment aggregation over multi-year history outgrows SQLite sooner than
 expected — likely, and the reason Prisma was chosen over raw SQL.
 
+## D-10 — Incidents attribute to the arriving segment `ACCEPTED`
+**Cites:** P-04 · **Problems:** PR-09 · **Evidence:** E-D03
+
+The TTC logs an incident against a single station. It is attributed to the segment
+*arriving* at that station in that direction — the approach a through-rider is on when
+the delay bites. Records we cannot place are left unattributed rather than guessed at.
+
+*Why:* riders experience delay across a stretch of track, not at a point. Leaving a
+record unattributed shows up as missing coverage, which is visible; mis-attributing it is
+invisible and wrong (P-03).
+
+Attribution reaches **81.4% of delayed subway incidents**. The remainder is mostly
+structural: terminal departures have no approach segment, and those are the turnaround
+artifacts D-06 excludes anyway.
+
+**Reversed if:** analysis shows riders attribute delay to where they boarded rather than
+where they were stopped.
+
+## D-11 — Score exposure per segment; pool severity across the network `ACCEPTED`
+**Cites:** P-01, P-03, P-08 · **Evidence:** E-D10
+
+Segment scores publish **exposure** (gap-minutes and incidents per month). The **severity**
+distribution (p50/p90/p95) is computed across the whole network and labelled
+`basis: "pooled-network"`, not per segment.
+
+*Why:* reliability has two dimensions and only one of them persists. Split-half testing at
+segment level gives rho = 0.68 for exposure but **rho = 0.10 for mean wait, with only 3%
+ties** — so severity instability is genuine, not an artifact of a compressed scale. How
+*often* a segment costs you time is a property of place; how *long* you wait once it
+happens is roughly the same everywhere.
+
+A per-segment p95 would therefore be noise formatted as precision — exactly what P-08
+forbids.
+
+> **Revises the engine contract** written in `docs/product/PLAN.md` earlier the same day,
+> which specified per-segment percentiles as the headline output. The contract was written
+> before the segment-level stability test existed. This is the decision system working as
+> intended: the measurement invalidated the design, and the design moved.
+
+**Reversed if:** a larger window, or normalising by service volume, makes per-segment
+severity persist. Worth re-testing when the archive extends past 2024.
+
 ---
 
 ## Open questions
@@ -142,4 +184,5 @@ expected — likely, and the reason Prisma was chosen over raw SQL.
 | ~~Q-1~~ | ~~Is `Min Gap` recorded reliably enough to build on?~~ | — | **Closed 2026-08-28: yes** |
 | Q-2 | Can surface geocoding beat 66%? | D-04 | engineering |
 | Q-3 | Do riders want a verdict or the evidence? | D-05 | D-08 |
+| Q-5 | Does per-segment severity persist over a longer window? | D-11 | data, later |
 | Q-4 | Is J-02 (at-stop) the only moment people open an app? | D-03 | D-08 |

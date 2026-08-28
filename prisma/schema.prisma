@@ -40,6 +40,12 @@ model DelayIncident {
   sourceFile  String   // provenance for P-08
   ingestedAt  DateTime @default(now())
 
+  /// Set by the attribution pass (M3). Null means unattributed — either a
+  /// non-revenue location, or a name we refused to guess at (P-03, P-08).
+  segmentId String?
+  segment   Segment? @relation(fields: [segmentId], references: [id])
+
+  @@index([segmentId])
   @@index([mode, lineRaw])
   @@index([mode, locationRaw])
   @@index([occurredAt])
@@ -90,4 +96,32 @@ model IngestRun {
   windowStart DateTime?
   windowEnd   DateTime?
   notes       String?
+}
+
+/// An inter-stop segment: the stretch a rider actually traverses.
+///
+/// This is the product's core unit (D-01). Delay data is published against a
+/// point, so incidents are attributed to the segment *arriving* at that point in
+/// that direction — what a through-rider experiences (D-10).
+model Segment {
+  id          String @id // "1:N:UNION->KING" — stable across rebuilds
+  routeId     String
+  direction   String // N | S | E | W
+  fromStation String
+  toStation   String
+  sequence    Int    // position along the line, for ordering
+
+  fromLat Float?
+  fromLon Float?
+  toLat   Float?
+  toLon   Float?
+
+  /// True when `toStation` is a line terminal. Terminal approaches accumulate
+  /// turnaround incidents that never affect through-riders (E-D03, D-06).
+  isTerminalApproach Boolean @default(false)
+
+  incidents DelayIncident[]
+
+  @@unique([routeId, direction, fromStation, toStation])
+  @@index([routeId, direction, sequence])
 }

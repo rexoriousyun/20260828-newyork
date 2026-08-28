@@ -64,10 +64,43 @@ function parseMinutes(value: string | undefined): number | null {
   return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
 }
 
+/**
+ * Repairs double-encoded text in the published files.
+ *
+ * The portal's delay-code descriptions arrive as UTF-8 bytes that already encode
+ * mojibake: an en-dash is published as c3 a2 c2 80 c2 93, which is the UTF-8
+ * encoding of U+00E2 U+0080 U+0093, rather than as e2 80 93. The corruption is
+ * baked in upstream, so decoding correctly is not enough - the extra encoding
+ * round has to be undone.
+ *
+ * Applied only when the result decodes cleanly, so text that was never
+ * double-encoded passes through untouched.
+ */
+export function repairMojibake(value: string): string {
+  // Any latin-1 supplement character is a candidate; the fatal decode below is
+  // what actually decides. Accented text that was never double-encoded fails
+  // that decode and is returned unchanged.
+  if (!/[\u0080-\u00ff]/.test(value)) return value;
+  try {
+    const bytes = Uint8Array.from(value, (ch) => {
+      const code = ch.codePointAt(0)!;
+      if (code > 0xff) throw new Error("not latin-1 representable");
+      return code;
+    });
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return value;
+  }
+}
+
 async function fetchCsv(url: string): Promise<RawRow[]> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Download failed (${res.status}): ${url}`);
-  const text = await res.text();
+
+  // The portal serves UTF-8 but does not always declare it, and `res.text()`
+  // then falls back to latin-1 — which turns every en-dash in a delay-code
+  // description into mojibake. Decode explicitly.
+  const text = new TextDecoder("utf-8").decode(await res.arrayBuffer());
   return parse(text, { columns: true, skip_empty_lines: true, bom: true }) as RawRow[];
 }
 
@@ -146,7 +179,7 @@ export async function ingestCodes(mode: Mode): Promise<number> {
     .map((r) => ({
       code: (r["CODE"] ?? r["Code"] ?? "").trim(),
       mode,
-      description: (r["DESCRIPTION"] ?? r["Description"] ?? "").trim(),
+      description: repairMojibake((r["DESCRIPTION"] ?? r["Description"] ?? "").trim()),
     }))
     .filter((r) => r.code !== "");
 
