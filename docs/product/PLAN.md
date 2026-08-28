@@ -77,31 +77,46 @@ Non-negotiable properties, each from a principle:
 
 ## Milestones
 
-| # | Milestone | Done when | Blocks |
+M0–M6 built the engine. M7 onward builds the app `D-14` describes — the milestones below
+were rewritten 2026-08-28 because the old list still ended at "departure advice", which
+predates `D-14` and describes a feature of a product that did not exist yet.
+
+| # | Milestone | Done when | Unblocks |
 |---|---|---|---|
-| **M0** | Project scaffold — **DONE** | `npm run dev` starts API + web; CI runs tests | — |
-| **M1** | Data ingestion — **DONE** | TTC delay data + GTFS loaded, reproducible via one command | M2 |
-| **M2** | **`Min Gap` data audit — DONE, PASSED** | **Q-1 answered: is the field trustworthy?** | **everything** |
-| **M3** | Segment model — **DONE** | Network decomposed into inter-stop segments with stable IDs | M4 |
-| **M4** | Reliability scoring — **DONE** | Engine contract above satisfied, incl. terminal/yard correction | M5, M6 |
-| **M5** | Surface geocoding — **DONE** | Beat 66% baseline (`E-D07`); publish the achieved rate | M6 (bus) |
-| **M6** | J-04 segment map — **DONE** | Explore any route's reliability by segment, hour, day | M7 |
-| **M7** | J-01 departure advice | "Leave by X for 90% confidence" | ship |
+| **M0** | Project scaffold — **DONE** | `npm run dev` starts API + web | — |
+| **M1** | Data ingestion — **DONE** | Delay data + GTFS loaded from one command | M2 |
+| **M2** | **`Min Gap` audit — DONE, PASSED** | Q-1 answered | everything |
+| **M3** | Segment model — **DONE** | 18,982 segments, 99.6% drawn on streets | M4 |
+| **M4** | Reliability scoring — **DONE** | Exposure per segment, severity pooled per mode | M5, M6 |
+| **M5** | Surface geocoding — **DONE** | 76.6%, beating the 66.1% baseline | M6 |
+| **M6** | Segment map — **DONE** | Any route explorable by segment, hour, day | M7 |
+| **M6a** | Step-free filter — **DONE** | `D-07` honoured: blocked segments marked | M11 |
+| **M7** | Routing engine — **DONE** | A→B itineraries from the schedule; 6–12ms warm | M8, M11 |
+| **M8** | Reliability ranking | Itineraries ranked by what happens, not the timetable | M9 |
+| **M9** | App shell | Search, origin/destination, results, trip detail | M10 |
+| **M10** | Departure advice | "Leave by 8:12 to arrive 9:00, 90% of the time" | ship |
+| **M11** | Day-of disruptions | Detours and bypasses change today's answer | ship |
+| **M12** | Step-free routing | Routes *around* blocked stations, completing `D-07` | ship |
 
-**M2 was a genuine gate, and it passed** (2026-08-28). Coherence 95.2–99.1% and
-completeness 95.3–99.6% across modes against a pre-registered 95% threshold, with no
-temporal instability across 57 mode-months. `D-02` holds and the headway gap remains the
-primary metric. Run `npm run audit:gap` to reproduce.
+**M7 is the long pole and unblocks the most.** Without routing there is no trip, and without
+a trip there is nowhere for departure advice, the walk comparison, or step-free rerouting to
+live. It is also the point where the product stops being an explorer and becomes the app the
+brief asked for.
 
----
+### What M7 is not
+
+Not a general-purpose journey planner competing with Google Maps on coverage. It plans TTC
+trips well enough to hang reliability on — bounded search window, bounded transfers, TTC
+only. Multi-agency comes later or never (`E-M01`: Reroute already does it).
 
 ## Definition of done for v1
 
-- A Toronto rider can look up any bus route and see **which segments** are unreliable, by
-  hour and day of week — something no existing tool provides (`E-M01`, `E-M02`)
-- Departure advice is stated as a confidence, never a point estimate
-- Coverage gaps are visible as gaps, not as good news
-- Every published number is traceable to its window and sample
+- A rider can enter where they are and where they are going, and get itineraries **ranked by
+  what actually happens** rather than by the timetable
+- Departure advice is a confidence, never a point estimate
+- Today's disruptions change today's answer
+- A step-free rider gets routes that are usable, not routes with warnings attached
+- Coverage gaps are visible as gaps
 
 ## Success criteria
 
@@ -111,6 +126,7 @@ primary metric. Run `npm run audit:gap` to reproduce.
 | Surface coverage | > 66% of delay-minutes geocoded | **MET: 76.6% raw, 80.6% addressable** (E-D11) |
 | Honest uncertainty | 100% of low-sample segments marked, none rendered as healthy | `P-03` |
 | Rider validation | 5+ riders confirm a segment we flagged matches their experience | `D-08`, `P-08` |
+| Trip planning | A→B on the TTC returns plausible itineraries within 1s | M7 |
 
 ---
 

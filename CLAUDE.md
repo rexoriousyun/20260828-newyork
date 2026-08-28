@@ -23,7 +23,7 @@ npm run audit:stability   # does segment reliability persist? (rho > 0.5 on expo
 npm run audit:coverage    # surface geocoding rate vs the 66.1% baseline
 npm test                  # vitest
 npm run typecheck
-npm run dev               # API on :3000
+npm run dev               # API on :3000 — /plan builds a ~6s graph on first request, then 6-12ms
 cd web && npm run dev     # UI on :5173, proxies /api and /tiles to :3000
 ```
 

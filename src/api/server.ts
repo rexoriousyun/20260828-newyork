@@ -3,6 +3,7 @@ import { z } from "zod";
 import { scoreSegment, scoreRoute } from "../domain/score.js";
 import { prisma } from "../db/client.js";
 import { registerTiles } from "./tiles.js";
+import { registerPlanner } from "./planner.js";
 import { stationAccessMap, endpointState, isUsable } from "../domain/accessibility.js";
 
 const app = Fastify({ logger: true });
@@ -41,6 +42,7 @@ app.get("/accessibility", async () => {
 });
 
 registerTiles(app);
+registerPlanner(app);
 
 app.get("/health", async () => ({ ok: true }));
 

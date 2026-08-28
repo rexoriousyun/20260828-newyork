@@ -53,7 +53,10 @@ would reverse it.
 | M4 reliability scoring | done |
 | M5 surface geocoding | done — 76.6% (baseline 66.1%) |
 | M6 segment map | done |
-| M7 departure advice | **not started** — hold pending D-08 Q-A, Q-C |
+| M7 routing engine | **done** — Connection Scan, 1.2M connections, 6–12ms |
+| M8 reliability ranking | not started |
+| M9 app shell | not started |
+| M10 departure advice | not started |
 
 ## The numbers that matter
 
