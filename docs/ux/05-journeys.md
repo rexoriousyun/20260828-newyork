@@ -1,97 +1,158 @@
 # Journeys
 
-Four moments where a rider needs us. They demand **different products**, and conflating
-them is the most likely way to build something that serves nobody.
+**Reworked 2026-08-28** against three personas (U-02, U-04, U-05) and `D-13`. The previous
+version was written when there were five personas and the product was still framed as a
+router; J-05 is new, and every journey now states what it shows versus what it defers
+under `P-09`.
 
-The recurring failure across all four: **the rider's information is worst exactly when
+Five moments of need. They demand **different products**, and conflating them is the most
+likely way to build something that serves nobody.
+
+The recurring failure across all of them: **the rider's information is worst exactly when
 their decision matters most.**
 
 ---
 
 ## J-01 — Pre-trip: "when do I need to leave?"
-**Who:** U-01, U-03 · **Problems:** PR-03, PR-01, PR-07 · *Highest-value journey*
+**Who:** U-02 · **Problems:** PR-03, PR-01, PR-05 · **Built:** no (M7)
+
+The forecast journey, and the one `D-13` says is the product's centre. The rider works
+backwards from an arrival time — often one with a penalty attached.
 
 | Stage | Rider state | Today | Our intervention |
 |---|---|---|---|
 | Has an obligation | Knows arrival time, not departure | Works backwards from a schedule that lies | Work backwards from the *distribution* |
-| Checks options | Wants to know if today is unusual | No signal until at the stop | Today vs this segment's normal |
-| Decides buffer | Guesses | Blanket 15–20 min every day | Explicit: "leave 8:12 for 90% confidence" |
+| Checks | Wants to know if today is unusual | No signal until at the stop | Today against this segment's normal |
+| Decides buffer | Guesses | Blanket 20 min every day, ~1 hr/week unpaid | "Leave 8:12 for 90% confidence" |
 | Commits | Wants to stop thinking | Anxiety persists, keeps re-checking | State the confidence and let them go |
 
+**Shows:** a departure time and a confidence.
+**Defers:** the percentile basis, sample size, window.
+**Never defers:** that it is an estimate; low confidence.
+
 **Success:** they leave once, on time, and do not re-check.
-**Failure:** we give a point ETA and they trust it (violates U-01's anti-goal).
+**Failure:** a single confident ETA. For a rider with a deadline that is the number that
+gets them in trouble.
 
 ## J-02 — At the stop: "is it coming, or should I give up?"
-**Who:** U-02, U-01 · **Problems:** PR-01, PR-04 · *Most acute pain*
+**Who:** U-02 · **Problems:** PR-01, PR-04, PR-13 · **Built:** no (needs realtime)
+*Most acute pain in the product.*
 
-The rider is already committed, standing outside, possibly in winter, with rapidly
-decaying patience. Median bus headway gap during an incident is **26 minutes** (E-D09) —
-and 83.8% of bus incidents carry the bunching signature, so "the next one is 4 minutes
-away" is frequently false.
+Already committed, standing outside, patience decaying — and for a third of the year, cold
+enough that this is a safety decision rather than a comfort one (E-L11). Median bus headway
+gap during an incident is **26 minutes** (E-D09), and 83.8% of bus incidents carry the
+bunching signature, so "4 minutes away" is frequently false.
 
 | Stage | Rider state | Today | Our intervention |
 |---|---|---|---|
-| Arrives at stop | Expects a short wait | App shows optimistic prediction | Show the *gap*, not the vehicle ETA |
-| 5 min pass | Doubt | Countdown resets upward — the "ghost bus" | Name it: bunching, gap is now ~N min |
-| 10+ min | Considering abandoning | No basis to decide | Give an explicit abandon threshold |
-| Abandons or waits | Wants to stop refreshing | Refreshes compulsively | Permission: "go inside, ~18 min" |
+| Arrives | Expects a short wait | Optimistic prediction | Show the *gap*, not the vehicle ETA |
+| 5 min | Doubt | Countdown resets upward — the ghost bus | Name it: bunching, gap now ~N min |
+| 10+ min | Considering abandoning | No basis to decide | An explicit abandon threshold |
+| Decides | Wants to stop refreshing | Refreshes compulsively | Permission: "~18 min, go back inside" |
 
-**Success:** the rider stops checking their phone — either because they left, or because
-they trust our number enough to wait calmly.
-**Failure:** we mirror the optimistic countdown everyone else shows. Then we are the
-ghost bus.
+**Shows:** the wait, and whether to keep waiting.
+**Defers:** why the estimate moved, bunching mechanics.
+**Never defers:** that we cannot see the vehicle (no subway realtime, E-D06).
 
-> Note: this journey needs realtime, which the subway does not have (E-D06). J-02 is a
-> **surface-transit journey** for the foreseeable future. That is fine — the pain is
-> there anyway (E-D05).
+**Success:** the rider stops checking their phone — because they left, or because they
+trust the number enough to wait somewhere warm.
+**Failure:** mirroring the optimistic countdown everyone else shows. Then we are the ghost
+bus.
+
+> Surface-only for the foreseeable future: the subway has no realtime feed (E-D06). That is
+> acceptable — the pain is on the surface network anyway (E-D05).
 
 ## J-03 — Mid-trip disruption: "I'm stuck, now what?"
-**Who:** U-02, U-04 · **Problems:** PR-04, PR-06
+**Who:** U-02, U-04 · **Problems:** PR-04, PR-06 · **Built:** no
 
-The worst state: already committed, in a place they did not choose, alternatives
-narrowed. Short-turning strands riders 330,000+ times (E-L07); for U-04 an elevator
-outage here is not a delay but a trap (E-L09).
+The worst state: already committed, somewhere not chosen, alternatives narrowed — on a
+network the TTC's own CEO calls binary (E-L12). Short-turning strands riders 330,000+ times
+(E-L07). For U-04 an elevator outage here is not a delay but a trap.
 
 | Stage | Rider state | Today | Our intervention |
 |---|---|---|---|
-| Disruption hits | Confusion — is this normal? | Vague or absent announcement | Severity immediately: minor vs 40-min |
-| Assesses | Needs alternatives fast | Must re-plan from scratch under stress | Pre-computed alternatives from *here* |
-| Re-plans | Low patience, poor input conditions | Typing a new trip while standing | One tap, no re-entry of the destination |
-| Recovers | Wants ETA confidence | None | Honest revised arrival + confidence |
+| Disruption hits | Is this normal? | Vague or absent announcement | Severity immediately: minor vs 40 min |
+| Assesses | Needs options fast | Re-plan from scratch under stress | Pre-computed options *from here* |
+| Re-plans | Low patience, poor conditions | Typing a new trip while standing | One tap, no re-entering the destination |
+| Recovers | Wants ETA confidence | None | Honest revised arrival |
+
+**Shows:** severity, and what to do.
+**Defers:** cause detail, historical context.
+**Never defers:** when there is no good option. "Nothing you can do, ~25 minutes" is a
+valid and useful answer (P-07).
 
 **Success:** decision made in under 30 seconds without typing.
-**Failure:** we alert without severity or alternatives — a notification that says
-"there is a delay" makes things worse, not better.
+**Failure:** alerting without severity or an option — transferring anxiety without
+transferring agency.
 
 ## J-04 — Exploratory: "is this route always like this?"
-**Who:** U-01, U-03, and future planner/advocate users · **Problems:** PR-02, PR-08
+**Who:** all three · **Problems:** PR-02, PR-08 · **Built:** **yes (M6)**
 
 Low frequency, high trust-building value. Someone choosing an apartment, changing shifts,
-or arguing with the TTC. **This is the journey our segment layer uniquely serves**
-(E-M01, E-M02) — and where we earn the credibility that makes J-01 and J-02 believable.
+or arguing with the TTC. **The journey our segment layer uniquely serves** (E-M01, E-M02),
+and where the credibility that makes J-01 and J-02 believable is earned.
 
 | Stage | Rider state | Today | Our intervention |
 |---|---|---|---|
 | Suspicion | "This route feels bad" | Only anecdote | Confirm or deny with history |
-| Investigation | Wants where and when | Route-level dashboards only | Segment-level, by hour and day |
+| Investigation | Wants where and when | Route-level dashboards only | Segment level, by hour and day |
 | Understanding | Wants why | Nothing | Cause breakdown (E-D02) |
 | Action | Change route, time, or complain | — | Shareable evidence |
 
+**Shows:** which stretches cost riders time.
+**Defers:** methodology, sample, pooling rationale — behind "why this number".
+**Never defers:** unknown segments, which stay hatched (P-03).
+
 **Success:** the rider learns something true they could not have learned elsewhere.
-**Failure:** we show terminal/yard artifacts as rider risk (PR-09) — confidently wrong,
-and the fastest way to lose trust permanently (PR-08).
+**Failure:** showing terminal and yard artifacts as rider risk (PR-09) — confidently wrong,
+and the fastest way to lose trust permanently.
+
+> **Open risk:** 86% of bus segments are unknown (E-D12). Whether this journey reads as
+> honest or as broken is Q-A, the highest-priority question in D-08.
+
+## J-05 — Downtown: "transit or walk?" *(new)*
+**Who:** U-05 · **Problems:** PR-01, PR-07 · **Built:** no
+
+The only journey where "which option" is a real question. The core has **321 stops across
+26 routes** plus walking and bike share (E-D14); a 10–25 minute trip is usually walkable,
+and 504 King and 501 Queen are the worst surface routes in the system.
+
+| Stage | Rider state | Today | Our intervention |
+|---|---|---|---|
+| Reaches the stop | Considering the walk | Countdown that keeps resetting | Wait against walk time, side by side |
+| Deliberates | Losing minutes deciding | Stares up the street | One comparison, no interpretation |
+| Chooses | Wants to stop thinking | Often walks anyway, 10 min late to decide | A verdict in under five seconds |
+
+**Shows:** two numbers — typical wait, walk time — and which wins.
+**Defers:** everything else.
+**Never defers:** low confidence in the wait estimate.
+
+**Success:** the decision takes less time than looking up the street.
+**Failure:** defaulting to the streetcar because it is the transit option. Sometimes the
+honest answer is "walk", and an app willing to say so earns more trust than one that never
+does.
+
+> Strictly a downtown feature. Building comparison citywide would import the New York
+> redundancy assumption through the back door (D-13).
 
 ---
 
 ## What this implies
 
-| Journey | Product shape | Needs realtime? | v1? |
-|---|---|---|---|
-| J-01 pre-trip | Distribution + departure advice | No — history suffices | **Yes** |
-| J-02 at stop | Live gap, abandon threshold | **Yes**, surface only | Later |
-| J-03 mid-trip | Severity + one-tap alternatives | Yes | Later |
-| J-04 exploratory | Segment map + history | No | **Yes** |
+| Journey | Shape | Needs realtime? | Persona | Built |
+|---|---|---|---|---|
+| J-01 pre-trip | Forecast + departure advice | no | U-02 | M7 |
+| J-02 at stop | Live gap, abandon threshold | **yes**, surface | U-02 | later |
+| J-03 mid-trip | Severity + one-tap options | **yes** | U-02, U-04 | later |
+| J-04 exploratory | Segment map + history | no | all | **done** |
+| J-05 downtown | Wait vs walk | yes, ideally | U-05 | later |
 
-**J-01 and J-04 need no realtime feed at all.** They are buildable today from historical
-data, they are where our differentiation lives, and J-04 is the trust foundation for
-everything else. That is the v1.
+**J-01 and J-04 need no realtime at all** — they are buildable today, they dodge the subway
+realtime gap entirely, and they carry the differentiation. J-04 shipped; J-01 is M7.
+
+**J-02 is the most acute pain and is not built.** That gap is deliberate: it needs realtime
+infrastructure and a much higher correctness bar, because a wrong number at a stop in
+January is worse than no number at all.
+
+**U-04 is served by no journey yet.** J-03 names them, but accessibility is unimplemented
+(`D-07`). Naming the persona in a journey is not serving them.

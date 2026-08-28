@@ -51,8 +51,14 @@ way" is now honest advice rather than a downtown assumption.
 
 ---
 
-## U-02 — The Scarborough Bus Rider *(PRIMARY)*
+## U-02 — The Captive Rider *(PRIMARY)*
 **"There's one bus. If it doesn't come, I don't go."**
+
+> Absorbs the former **U-01, the Deadline Commuter**, merged 2026-08-28. A hard arrival
+> time is a *trip attribute*, not a person: it changes how a rider reads a number, not
+> which rider they are, and the research segments by regularity rather than by deadline
+> (E-L04). The two descriptions were also the same human — precarious work and unforgiving
+> deadlines travel together in Toronto. The deadline now lives below as a modifier.
 
 Works a shift that starts at a fixed time — warehouse near Pearson, long-term care home,
 retail, hospital cleaning. Lives north of Sheppard where the nearest subway is a 25-minute
@@ -77,48 +83,17 @@ often a **26-minute median wait** (E-D09).
   exist in their neighbourhood
 - **Anti-goal:** never offer a reroute that assumes downtown density. A 20-minute walk to
   a parallel route is a downtown answer to a suburban question — and in January it is a
-  dangerous one
-- **Unvalidated assumption:** that rerouting is usually not a real option for them (D-08)
+  dangerous one. Second anti-goal, inherited from U-01: never show a single confident ETA
+  to a rider with a deadline. That is the number that gets them in trouble
+- **When a hard deadline is attached** (a shift that docks lateness, daycare charging by
+  the minute, a clinic that gives the slot away) their tolerance turns **asymmetric**: a
+  wasted 10 minutes is an annoyance, a missed pickup is a fee and a warning. They plan by
+  the 95th percentile, not the average (E-L03), and today buy blanket insurance by leaving
+  20 minutes early every day — about an hour a week of unpaid buffer
+- **Unvalidated assumptions:** that rerouting is usually not a real option for them, and
+  that the deadline asymmetry is as sharp as assumed (D-08)
 - **Served worst by what we built:** **86% of bus segments are unknown** (E-D12). This
   persona opens the map and mostly sees hatching. That is Q-A
-
-## U-01 — The Deadline Commuter *(primary)*
-**"I don't need to be fast. I need to not be late."**
-
-A hard arrival time with a penalty attached: a shift that docks you for lateness, a daycare
-charging by the minute, a clinic that gives the slot away. Note this is often the *same
-person* as U-02 — precarious work and hard deadlines travel together in Toronto. Rides the
-same trip daily, already knows it is unreliable, and has no way to reason about how much to
-over-leave.
-
-- **Optimises:** the 95th percentile, not the mean (E-L03)
-- **Problems:** PR-01, PR-03, PR-05
-- **Currently does:** leaves 20 minutes early every day, paying the worst case on every
-  good day — an hour a week of unpaid insurance
-- **Needs from us:** "leave by 8:12 to make 9:00 with 90% confidence", and the honest cost
-  of that buffer
-- **Abandons us if:** we are wrong once in the late direction. Their tolerance is
-  asymmetric — a wasted 10 minutes is an annoyance, a missed pickup is a fee and a warning
-- **Anti-goal:** never show a single confident ETA. That is the number that gets them in
-  trouble
-- **Unvalidated assumption:** the asymmetry itself (D-08)
-
-## U-03 — The Regional Commuter *(secondary — the growth case)*
-**"I'll take transit if I trust it. Otherwise I'm driving."**
-
-Lives in the 905 or near a GO corridor, or owns a car and chooses per trip. Since One Fare
-(E-L13), combining GO and TTC no longer costs extra, so they genuinely have options — the
-only Toronto rider who reliably does. Documented as churning away from transit because of
-**uncertainty rather than average slowness** (E-L05).
-
-- **Optimises:** avoiding the bad outcome; will pay to remove variance
-- **Problems:** PR-07, PR-03, PR-08
-- **Currently does:** drives, because the downside is bounded and parking is a known cost
-- **Needs from us:** a fast, trustworthy read on whether *this trip today* is a good bet
-- **Abandons us if:** we feel like a dashboard. They will not study a map — they want a
-  verdict in five seconds
-- **Anti-goal:** never bury the answer behind exploration. Analysis is for J-04, not for
-  them
 
 ## U-04 — The Access-Constrained Rider *(primary for correctness)*
 **"A broken elevator doesn't delay my trip. It ends it."**
@@ -186,8 +161,18 @@ they have a real alternative they could have taken and didn't.
 
 ---
 
-## Who we are not building for (yet)
+## Not personas
 
+Kept here so they are not silently reinvented. A persona has to earn its place by producing
+a **different design need**, evidenced. These do not, yet.
+
+- **The Regional Commuter (former U-03).** Demoted to a hypothesis 2026-08-28. The evidence
+  behind it (E-L05: riders with options churn because of uncertainty) describes the same
+  axis U-05 already occupies — having an alternative — and does not show that a 905/GO
+  rider needs something different from a downtown rider who can walk. One Fare (E-L13) is a
+  real enabler, but we ingest no GO data and the case was always framed as growth rather
+  than as an observed user. **Revisit if:** GO data is ingested and regional riders show a
+  distinct decision, or interviews surface one.
 - **Tourists and one-off riders.** Optimise raw travel time (E-L04), have no route priors,
   get no value from history. Google Maps serves them.
 - **Transit planners and advocates.** Would want the segment layer — TTCriders built a
@@ -197,19 +182,26 @@ they have a real alternative they could have taken and didn't.
 
 | | served today | gap |
 |---|---|---|
-| **U-02** Scarborough bus | partially — segments exist and rank | 86% unknown (E-D12); no at-stop view; nothing seasonal |
-| **U-01** deadline commuter | not yet — M7 unbuilt | exposure published; "leave by" not calculated |
-| **U-03** regional commuter | no | needs a verdict; no GO data ingested |
+| **U-02** captive rider | partially — segments exist and rank | 86% unknown (E-D12); no at-stop view; nothing seasonal; no "leave by" (M7) |
 | **U-05** downtown rider | partially — streetcar segments rank | no walk comparison, no realtime |
 | **U-04** access-constrained | **not at all** | `D-07` decided, nothing implemented, no elevator data |
 
 U-04 is the uncomfortable one: a decision recorded that the build has not honoured.
 
-## What the personas jointly imply
+## Three personas, one axis
 
-U-01 and U-02 need **distributions**. U-03 needs a **verdict**. U-04 needs a
-**constraint**. Same model, sharply different presentation — which is `D-05`.
+The research supports segmenting on **whether the rider has an alternative** — not on
+geography, trip purpose, or deadline:
 
-And all four are riding a network with no redundancy, in a city where waiting outside is
-seasonally dangerous, on an app that assumes a data plan. Those three facts constrain the
-product more than any individual persona does.
+| | alternative? | needs |
+|---|---|---|
+| **U-02** captive | no | a **forecast** — is this viable, when do I leave, when do I give up |
+| **U-05** downtown | yes, in the moment | a **comparison** — transit or walk |
+| **U-04** access-constrained | rarely, and failure is binary | a **constraint** — routes that are certainly usable |
+
+That axis is `D-13`. It is why this is a forecast product with a downtown comparison
+feature, rather than a router.
+
+All three ride a network with no redundancy, in a city where waiting outside is seasonally
+dangerous, using an app that assumes a data plan. Those three facts constrain the product
+more than any individual persona does.
