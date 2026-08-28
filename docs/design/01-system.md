@@ -37,11 +37,20 @@ colour alone — the ramp needs colour to do work it cannot do. Three states can
 
 Three states. Each carries **two channels**, never colour alone, per the design concept.
 
+**Greyscale is the map's structure and nothing else.** It is never borrowed to encode data,
+so route states cannot use it — which is why unknown shares the route hue rather than
+fading to grey.
+
 | state | colour | second channel | meaning |
 |---|---|---|---|
-| **typical** | neutral ink, flat | solid, base weight | we know, and it is unremarkable |
+| **typical** | route green, flat | solid, base weight | we know, and it is unremarkable |
 | **unreliable** | reserved hue, **graded light→dark** | solid, heavier weight | we know, and it costs you — the darker, the worse |
-| **unknown** | neutral grey, flat | **dashed** | we cannot say |
+| **unknown** | route green, faded | **dashed, thinner, 45% opacity** | we cannot say |
+
+**Green is identity, not a verdict.** It means "this is your route", the way a line colour
+does on any transit map — not "this is good". That distinction is what lets unknown share
+the hue without reading as reassurance: three non-colour channels (dash, weight, opacity)
+carry the difference, and the legend names it.
 
 ### Why only one state gradates
 
@@ -63,11 +72,11 @@ statement, not a low value.
 | role | light | dark |
 |---|---|---|
 | surface | `#f2f1ee` | `#16161a` |
-| typical | `#33332f` | `#e5e5df` |
+| route (typical) | `#05301c` | `#7fd3a1` |
 | unreliable (45 min) | `#d15f14` | `#f0913f` |
-| unreliable (mid) | `#bd4113` | `#e05a34` |
-| unreliable (170 min+) | `#a52a13` | `#cf3a34` |
-| unknown | `#6f6f68` | `#8a8a83` |
+| unreliable (mid) | `#c74a17` | `#e05a34` |
+| unreliable (170 min+) | `#b8331a` | `#cf3a34` |
+| unknown | route hue at 45% | route hue at 45% |
 
 The ramp spans 45 to 170 rider-wait minutes per month — the 95th percentile of segments
 above the threshold — and clamps beyond, so one 415-minute outlier cannot flatten the ramp
@@ -78,15 +87,28 @@ for everything else.
 
 | check | light | dark |
 |---|---|---|
-| CVD separation, ramp end vs typical | PASS — ΔE 10.0 (protan) | PASS |
-| Normal-vision floor, ramp start vs unknown | PASS — ΔE 17.6 | PASS — ΔE 18.0 |
-| Ramp lightness monotonic | PASS — 2.25× span | PASS — 2.37× span |
+| Green vs ramp start | PASS — ΔE 26.8 (protan) | PASS — ΔE 10.6 (deutan) |
+| Green vs ramp end | PASS — ΔE 15.1 (protan) | PASS — ΔE 22.3 (deutan) |
+| Ramp lightness monotonic | PASS — 1.72× span | PASS — 2.37× span |
 | Contrast vs surface | PASS — all ≥ 3:1 | PASS — all ≥ 3:1 |
 
-**Both ramp ends were set by the neutrals, not by taste.** A darker end collides with the
-typical ink under protanopia (ΔE 5.3 at `#6d1010`); a lighter start collides with the
-unknown grey for everyone (ΔE 13.9 at `#c9662a`, below the 15 floor that a dashed pattern
-does *not* excuse). The ramp lives in the gap between those two failures.
+### Green and red is the worst pair in accessibility, and it is fine here — for one reason
+
+Every green tested against the ramp failed on hue: ΔE 3.0–7.0 under protanopia, the
+textbook red-green collision.
+
+**Colour-vision deficiency destroys hue but preserves lightness.** So the green was pushed
+far darker than the entire ramp (relative luminance 0.019 against the ramp's 0.218→0.126)
+and separation now comes from value, not hue. That is why the green is a deep forest rather
+than a mid green — the depth is load-bearing, not a mood.
+
+The cost is honest: the light ramp's span narrowed from 2.25× to 1.72×, because it must
+now sit above the green and below the surface's contrast floor. A slightly shallower
+gradient in exchange for a route line that survives colour blindness is the right trade.
+
+Adjacent ramp steps measure ΔE 5.0, which the categorical validator flags. That check does
+not apply — a gradient's neighbours are *supposed* to be close, and a sequential ramp is
+judged by monotonic lightness. Only the boundaries above are categorical.
 
 The validator also reports two FAILs, both expected and both accepted: *lightness band* and
 *chroma floor* flag colours that "read gray". Ours are deliberately grey — that is rule 2.

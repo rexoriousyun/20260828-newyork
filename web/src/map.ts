@@ -25,6 +25,7 @@ export const UNRELIABLE_THRESHOLD = 45;
 export const RAMP_MAX = 170;
 
 export interface Tokens {
+  /** The route itself. Green is identity — "this is your line" — not a verdict. */
   typical: string;
   /** Sequential single-hue ramp, light to dark, applied above the threshold. */
   unreliable: [string, string, string];
@@ -34,16 +35,18 @@ export interface Tokens {
 
 /** Validated for CVD separation, normal-vision floor and 3:1 contrast in both modes. */
 export const LIGHT: Tokens = {
-  typical: "#33332f",
-  unreliable: ["#d15f14", "#bd4113", "#a52a13"],
-  unknown: "#6f6f68",
+  typical: "#05301c",
+  unreliable: ["#d15f14", "#c74a17", "#b8331a"],
+  // Unknown is the route colour, dashed and thinned — greyscale belongs to the
+  // basemap alone, so it cannot be borrowed to mean "no data".
+  unknown: "#05301c",
   selection: "#1f6feb",
 };
 
 export const DARK: Tokens = {
-  typical: "#e5e5df",
+  typical: "#7fd3a1",
   unreliable: ["#f0913f", "#e05a34", "#cf3a34"],
-  unknown: "#8a8a83",
+  unknown: "#7fd3a1",
   selection: "#6ea8ff",
 };
 
@@ -115,6 +118,15 @@ export function stateOf(confidence: string, minutes: number | null): State {
   if (confidence === "unknown") return "unknown";
   return (minutes ?? 0) >= UNRELIABLE_THRESHOLD ? "unreliable" : "typical";
 }
+
+/**
+ * Opacity for the unknown state.
+ *
+ * Unknown shares the route hue, so the distinction is carried entirely by dash,
+ * weight and this transparency — three non-colour channels. It must read as
+ * *unfinished*, never as a lighter shade of fine (P-03).
+ */
+export const UNKNOWN_OPACITY = 0.45;
 
 /** CSS gradient for the legend swatch, so it teaches the ramp rather than one step. */
 export function legendGradient(t: Tokens): string {

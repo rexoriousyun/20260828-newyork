@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Map as MlMap, NavigationControl, GeolocateControl, type GeoJSONSource, type MapMouseEvent } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { lineColorExpression, lineWidthExpression, tokensFor } from "./map.js";
+import { lineColorExpression, lineWidthExpression, tokensFor, UNKNOWN_OPACITY } from "./map.js";
 import type { RouteMap, SegmentFeature } from "./api.js";
 
 /** Served by our own tile proxy — the client never contacts the basemap host. */
@@ -69,8 +69,9 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
         layout: { "line-cap": "butt", "line-join": "round" },
         paint: {
           "line-color": tok.unknown,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 2.5, 12, 3.5, 14, 5, 17, 8],
-          "line-dasharray": [1.6, 1.8],
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 2, 12, 2.8, 14, 3.8, 17, 6],
+          "line-dasharray": [1.4, 2.2],
+          "line-opacity": UNKNOWN_OPACITY,
         },
       });
 

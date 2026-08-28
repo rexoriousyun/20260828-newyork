@@ -2,11 +2,11 @@
   color-scheme: light dark;
   /* Encoding tokens — validated for CVD, normal-vision separation and 3:1
      contrast in both modes. See docs/design/01-system.md. */
-  --typical: #33332f;
+  --typical: #05301c;
   --unreliable-1: #d15f14;
-  --unreliable-2: #bd4113;
-  --unreliable-3: #a52a13;
-  --unknown: #6f6f68;
+  --unreliable-2: #c74a17;
+  --unreliable-3: #b8331a;
+  --unknown: #05301c;
   --panel: #ffffff;
   --ink: #1a1a18;
   --muted: #6b6b63;
@@ -16,11 +16,11 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --typical: #e5e5df;
+    --typical: #7fd3a1;
     --unreliable-1: #f0913f;
     --unreliable-2: #e05a34;
     --unreliable-3: #cf3a34;
-    --unknown: #8a8a83;
+    --unknown: #7fd3a1;
     --panel: #1e1e24;
     --ink: #ececf0;
     --muted: #9a9aa4;
@@ -115,8 +115,11 @@ select {
   height: 5px; vertical-align: 2px; width: 26px;
 }
 /* Dashed, mirroring the map, so the legend teaches the encoding. */
+/* Same hue as the route, thinner and faded — the swatch mirrors the map, where
+   dash, weight and opacity carry "unknown" without borrowing the basemap's grey. */
 .legend i.k-unknown {
   background: repeating-linear-gradient(90deg, var(--unknown) 0 4px, transparent 4px 7px);
+  opacity: 0.45; height: 2px; vertical-align: 4px;
 }
 
 .maplibregl-ctrl-top-right { margin-top: 108px; }
