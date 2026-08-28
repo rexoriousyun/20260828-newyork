@@ -21,6 +21,9 @@ export interface Leg {
   /** Present on a ride. */
   routeId?: string;
   tripId?: string;
+  /** Every stop the ride passes through, board to alight. Needed to map a leg
+   *  onto the segments it traverses, which is what carries the reliability. */
+  stopIds?: string[];
 }
 
 export interface Journey {
@@ -52,6 +55,7 @@ function scan(
   origin: number,
   departAt: number,
   horizonSeconds: number,
+  bannedRoutes: ReadonlySet<string>,
 ): Reached {
   const stops = c.stopIds.length;
   const arrival = new Int32Array(stops).fill(INF);
@@ -90,6 +94,7 @@ function scan(
     if (dep > limit) break;
 
     const trip = c.trip[i]!;
+    if (bannedRoutes.size > 0 && bannedRoutes.has(c.tripRoute[trip]!)) continue;
     const from = c.fromStop[i]!;
     const boardable = onTrip[trip] === 1 || arrival[from]! + MIN_TRANSFER_S <= dep;
     if (!boardable) continue;
@@ -130,6 +135,21 @@ function reconstruct(c: ConnectionSet, r: Reached, origin: number, target: numbe
         first = r.viaConnection[boardStop]!;
         boardStop = c.fromStop[first]!;
       }
+      // Replay the ride forward to collect the stops it passes through.
+      const traversed: string[] = [c.stopIds[boardStop]!];
+      let cursor = first;
+      while (true) {
+        traversed.push(c.stopIds[c.toStop[cursor]!]!);
+        if (cursor === conn) break;
+        // The next connection on this trip departs where this one arrived.
+        let next = -1;
+        for (let k = cursor + 1; k < c.count; k++) {
+          if (c.trip[k] === trip && c.fromStop[k] === c.toStop[cursor]!) { next = k; break; }
+        }
+        if (next === -1) break;
+        cursor = next;
+      }
+
       legs.push({
         kind: "ride",
         fromStop: c.stopIds[boardStop]!,
@@ -138,6 +158,7 @@ function reconstruct(c: ConnectionSet, r: Reached, origin: number, target: numbe
         arriveAt: c.arrTime[conn]!,
         routeId: c.tripRoute[trip]!,
         tripId: c.tripIds[trip]!,
+        stopIds: traversed,
       });
       at = boardStop;
       continue;
@@ -166,12 +187,13 @@ export function plan(
   toStopId: string,
   departAt: number,
   horizonSeconds = 3 * 3600,
+  bannedRoutes: ReadonlySet<string> = new Set(),
 ): Journey | null {
   const origin = c.stopIndex.get(fromStopId);
   const target = c.stopIndex.get(toStopId);
   if (origin === undefined || target === undefined) return null;
 
-  const reached = scan(c, paths, origin, departAt, horizonSeconds);
+  const reached = scan(c, paths, origin, departAt, horizonSeconds, bannedRoutes);
   const legs = reconstruct(c, reached, origin, target);
   if (legs === null || legs.length === 0) return null;
 

@@ -436,3 +436,33 @@ exactly the failure `P-08` exists to prevent.
 fall from 2,703 to 1,167 even after recalibrating the bar. 52 Lawrence West drops from 25
 scored stretches to 7. We do not have as much recent evidence as raw counts implied — that
 was always true; it was just hidden.
+
+### E-D19 — Per-trip disruption risk is small, so the tail is the story, not the average
+Scoring whole journeys required converting exposure (harm per *month*) into per-trip risk by
+dividing by how often each segment is served. The result changes what the product can
+honestly say.
+
+For a Jane/Eglinton → Union trip, three routings:
+
+| via | typical | when disrupted | disruption rate |
+|---|---|---|---|
+| 32 + 5 + 1 | 49 min | 73 min | **1 in 1,236 trips** |
+| 935 + 2 + 1 | 49 min | 73 min | 1 in 393 |
+| 935 + 2 + 510 | 69 min | 93 min | 1 in 296 |
+
+**Expected added minutes is a useless number to show a rider.** At a 0.1–0.3% per-trip risk
+it rounds to zero, and ranking on it is indistinguishable from ranking on the timetable.
+
+**The same figure as a rate is both legible and discriminating.** "1 in 393 trips" versus
+"1 in 1,236" is a threefold difference a rider can act on, and it matches how the risk
+actually arrives: almost every trip is fine, and occasionally one costs you 24 extra
+minutes.
+
+*Why it matters:* it settles the framing for M9/M10. The product is not "this route is five
+minutes slower on average" — that claim is false. It is **"this route goes wrong three times
+as often, and when it does it costs you 24 minutes."** Which is also exactly what `P-01`
+asks for: a distribution, not a point estimate.
+
+**Limitation, stated:** only **10–11% of segments** on these journeys could be scored at
+all, after `D-19` tightened what counts as evidence. The ranking is real but thin, and the
+API returns that coverage figure rather than hiding it.

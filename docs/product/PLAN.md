@@ -92,7 +92,7 @@ predates `D-14` and describes a feature of a product that did not exist yet.
 | **M6** | Segment map — **DONE** | Any route explorable by segment, hour, day | M7 |
 | **M6a** | Step-free filter — **DONE** | `D-07` honoured: blocked segments marked | M11 |
 | **M7** | Routing engine — **DONE** | A→B itineraries from the schedule; 6–12ms warm | M8, M11 |
-| **M8** | Reliability ranking | Itineraries ranked by what happens, not the timetable | M9 |
+| **M8** | Reliability ranking — **DONE** | Journeys ranked and rated by disruption rate | M9 |
 | **M9** | App shell | Search, origin/destination, results, trip detail | M10 |
 | **M10** | Departure advice | "Leave by 8:12 to arrive 9:00, 90% of the time" | ship |
 | **M11** | Day-of disruptions | Detours and bypasses change today's answer | ship |
