@@ -3,11 +3,10 @@
 
   /* Encoding tokens — validated for CVD separation, normal-vision floor and
      3:1 contrast in both modes. See docs/design/01-system.md. */
-  --typical: #1e8f59;
-  --unreliable-1: #a32a14;
-  --unreliable-2: #82170e;
-  --unreliable-3: #5e0f08;
-  --unknown: #1e8f59;
+  --scale-1: #1a7f4c;
+  --scale-2: #d9882c;
+  --scale-3: #c33f2b;
+  --unknown: #1a7f4c;
 
   /* Surfaces and ink. One elevation only: the map is the ground, the sheet
      sits on it. Nothing else floats. */
@@ -26,11 +25,10 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --typical: #7fd3a1;
-    --unreliable-1: #b8402e;
-    --unreliable-2: #d64c33;
-    --unreliable-3: #f25c3c;
-    --unknown: #7fd3a1;
+    --scale-1: #57c78a;
+    --scale-2: #eda545;
+    --scale-3: #e35f4e;
+    --unknown: #57c78a;
     --panel: #1c1c20;
     --ink: #f0f0ea;
     --ink-2: #a8a8a0;
@@ -153,12 +151,11 @@ select {
   display: inline-block; width: 18px; height: 3px; border-radius: 2px;
   vertical-align: 3px; margin-right: 6px;
 }
-.legend i.k-typical { background: var(--typical); }
-/* Heavier and graded, mirroring the map: weight is the second channel and the
-   swatch teaches the ramp rather than one step. */
-.legend i.k-unreliable {
-  background: linear-gradient(90deg, var(--unreliable-1), var(--unreliable-2), var(--unreliable-3));
-  height: 5px; vertical-align: 2px; width: 26px;
+/* One swatch for the whole scale: it teaches the gradient rather than sampling
+   arbitrary points on it. */
+.legend i.k-scale {
+  background: linear-gradient(90deg, var(--scale-1), var(--scale-2), var(--scale-3));
+  width: 54px; height: 5px; vertical-align: 2px;
 }
 /* Same hue as the route, thinner and faded — dash, weight and opacity carry
    "unknown" without borrowing the basemap's grey. */

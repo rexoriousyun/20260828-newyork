@@ -25,28 +25,24 @@ export const UNRELIABLE_THRESHOLD = 45;
 export const RAMP_MAX = 170;
 
 export interface Tokens {
-  /** The route itself. Green is identity — "this is your line" — not a verdict. */
-  typical: string;
-  /** Sequential single-hue ramp, light to dark, applied above the threshold. */
-  unreliable: [string, string, string];
+  /** Scale stops: green at zero exposure, orange at the threshold, red at the top. */
+  scale: [string, string, string];
   unknown: string;
   selection: string;
 }
 
 /** Validated for CVD separation, normal-vision floor and 3:1 contrast in both modes. */
 export const LIGHT: Tokens = {
-  typical: "#1e8f59",
-  unreliable: ["#a32a14", "#82170e", "#5e0f08"],
-  // Unknown is the route colour, dashed and thinned — greyscale belongs to the
-  // basemap alone, so it cannot be borrowed to mean "no data".
-  unknown: "#1e8f59",
+  scale: ["#1a7f4c", "#d9882c", "#c33f2b"],
+  // Unknown takes the scale's low end, dashed and thinned — greyscale belongs to
+  // the basemap alone, so it cannot be borrowed to mean "no data".
+  unknown: "#1a7f4c",
   selection: "#1f6feb",
 };
 
 export const DARK: Tokens = {
-  typical: "#7fd3a1",
-  unreliable: ["#b8402e", "#d64c33", "#f25c3c"],
-  unknown: "#7fd3a1",
+  scale: ["#57c78a", "#eda545", "#e35f4e"],
+  unknown: "#57c78a",
   selection: "#6ea8ff",
 };
 
@@ -55,36 +51,34 @@ export function tokensFor(dark: boolean): Tokens {
 }
 
 /**
- * Colour by state, with a gradient inside the reserved one.
+ * One continuous green-orange-red scale across exposure.
  *
- * A flat red above the threshold hides real magnitude — 50 minutes and 200
- * minutes a month are not the same problem, and reading them as identical was
- * the defect this ramp fixes.
+ * Green at zero, orange at the threshold, red at the top — the reading everyone
+ * already knows from traffic signals, so the encoding needs no teaching.
  *
- * The gradient is a single hue, light to dark, and applies *only* within the
- * reserved colour. Typical stays flat neutral and unknown stays outside the ramp
- * entirely, so colour still marks one thing: where the trip costs you time.
+ * Values are moderate by intent. An earlier version drove the severe end almost
+ * to black chasing colour-vision separation; it validated and looked wrong, and
+ * a scale nobody wants to look at is not a safer scale.
  *
- * The ramp's ends were chosen against the neutrals, not for looks: a darker end
- * collides with the typical ink for protanopic vision, and a lighter start
- * collides with the unknown grey for everyone.
+ * Green against red is the textbook colour-vision collision and no moderate
+ * palette escapes it: the best available separation here is ΔE 7.2, inside the
+ * band that is legal *only* alongside a second channel. Line weight is that
+ * channel — segments above the threshold render 45% heavier — and the legend
+ * names each state in words.
  */
 export function lineColorExpression(t: Tokens): unknown {
-  const mid = UNRELIABLE_THRESHOLD + (RAMP_MAX - UNRELIABLE_THRESHOLD) / 2;
   return [
     "case",
     ["==", ["get", "confidence"], "unknown"],
     t.unknown,
-    [">=", ["coalesce", ["get", "gapMinutesPerMonth"], 0], UNRELIABLE_THRESHOLD],
     [
       "interpolate",
       ["linear"],
       ["coalesce", ["get", "gapMinutesPerMonth"], 0],
-      UNRELIABLE_THRESHOLD, t.unreliable[0],
-      mid, t.unreliable[1],
-      RAMP_MAX, t.unreliable[2],
+      0, t.scale[0],
+      UNRELIABLE_THRESHOLD, t.scale[1],
+      RAMP_MAX, t.scale[2],
     ],
-    t.typical,
   ];
 }
 
@@ -128,7 +122,7 @@ export function stateOf(confidence: string, minutes: number | null): State {
  */
 export const UNKNOWN_OPACITY = 0.45;
 
-/** CSS gradient for the legend swatch, so it teaches the ramp rather than one step. */
+/** CSS gradient for the legend swatch, so it teaches the scale rather than one step. */
 export function legendGradient(t: Tokens): string {
-  return `linear-gradient(90deg, ${t.unreliable[0]}, ${t.unreliable[1]}, ${t.unreliable[2]})`;
+  return `linear-gradient(90deg, ${t.scale[0]}, ${t.scale[1]}, ${t.scale[2]})`;
 }

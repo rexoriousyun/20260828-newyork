@@ -46,42 +46,28 @@ decoration, so the basemap's stop icons stay. Generic POIs — shops, restaurant
 attractions — are dropped: they are clutter here, and their sprites are coloured in ways
 desaturation cannot reach.
 
+One continuous **green → orange → red** scale across exposure, plus a separate state for
+what we cannot measure.
+
 | state | colour | second channel | meaning |
 |---|---|---|---|
-| **typical** | route green, flat | solid, base weight | we know, and it is unremarkable |
-| **unreliable** | reserved hue, **graded light→dark** | solid, heavier weight | we know, and it costs you — the darker, the worse |
-| **unknown** | route green, faded | **dashed, thinner, 45% opacity** | we cannot say |
+| **scored** | green → orange → red by exposure | heavier above the threshold | green is low waiting, red is high |
+| **unknown** | scale's green, faded | **dashed, thinner, 45% opacity** | we cannot say |
 
-**Green is identity, not a verdict.** It means "this is your route", the way a line colour
-does on any transit map — not "this is good". That distinction is what lets unknown share
-the hue without reading as reassurance: three non-colour channels (dash, weight, opacity)
-carry the difference, and the legend names it.
-
-### Why only one state gradates
-
-A flat colour above the threshold hid real magnitude: 50 minutes a month and 200 minutes a
-month are not the same problem, and rendering them identically threw away information the
-data actually supports.
-
-So the gradient goes **inside** the reserved colour, and nowhere else. Typical stays flat
-because its whole message is "unremarkable" — grading it would spend attention on
-differences that do not matter. Unknown stays flat because it is not a magnitude at all.
-
-Colour still marks exactly one thing. Within that one thing, it now says *how much*.
-
-Unknown is deliberately *outside* the ramp, not at one end of it. It is a different kind of
-statement, not a low value.
+Green at zero, orange at the threshold, red at the top — the reading everyone already knows
+from traffic signals, so the encoding needs no teaching. Values are deliberately moderate:
+an earlier version drove the severe end almost to black chasing colour-vision separation.
+It validated, and it looked wrong. **A scale nobody wants to look at is not a safer scale.**
 
 ### Tokens
 
 | role | light | dark |
 |---|---|---|
 | surface | `#f2f1ee` | `#16161a` |
-| route (typical) | `#1e8f59` | `#7fd3a1` |
-| unreliable (45 min) | `#a32a14` | `#b8402e` |
-| unreliable (mid) | `#82170e` | `#d64c33` |
-| unreliable (170 min+) | `#5e0f08` | `#f25c3c` |
-| unknown | route hue at 45% | route hue at 45% |
+| scale — low (0 min) | `#1a7f4c` | `#57c78a` |
+| scale — threshold (45 min) | `#d9882c` | `#eda545` |
+| scale — high (170 min+) | `#c33f2b` | `#e35f4e` |
+| unknown | scale green at 45% | scale green at 45% |
 
 The ramp spans 45 to 170 rider-wait minutes per month — the 95th percentile of segments
 above the threshold — and clamps beyond, so one 415-minute outlier cannot flatten the ramp
@@ -97,39 +83,29 @@ for everything else.
 | Ramp lightness monotonic | PASS — 1.72× span | PASS — 2.37× span |
 | Contrast vs surface | PASS — all ≥ 3:1 | PASS — all ≥ 3:1 |
 
-### Green and red is the worst pair in accessibility. The fix is lightness, in the right direction.
+### Green and red is the worst pair in accessibility, and this scale accepts it knowingly
 
-Every green tested against a red ramp collided on hue — ΔE 3.0–7.0 under protanopia, the
-textbook failure. **Colour-vision deficiency destroys hue but preserves lightness**, so the
-two must separate by value.
+No moderate green-orange-red palette escapes the collision. The best separation available
+here is **ΔE 7.2 green↔red** (green↔orange is a comfortable 11.0), which sits in the band
+that is legal *only* alongside a second channel.
 
-The first attempt pushed the *green* below the ramp. It validated cleanly and was wrong:
-at relative luminance 0.019 the green read as **black**, and a near-black line beside a
-dark red is confusing for everyone — trading an 8% problem for a 100% one.
+Two channels carry it: segments above the threshold render **45% heavier**, and the legend
+names the scale in words rather than relying on the swatch.
 
-The correct move was the opposite. **Green sits above the ramp; severity moves away from
-it.** On a light ground that means severity darkens; on a dark ground it brightens. Same
-principle, opposite direction, because distance from the route colour is what encodes
-severity — not "red is dark".
+The alternative was tested and rejected. Pushing the ends apart in lightness reaches
+ΔE 15+, but produces a near-black "green" and a near-black severe end — trading an 8%
+problem for a 100% one. Extreme values are not a fix; they move the failure.
 
-| | route green | ramp | direction |
+| | green↔orange | green↔red | contrast |
 |---|---|---|---|
-| light | 0.206 | 0.095 → 0.027 | darkens |
-| dark | 0.537 | 0.141 → 0.269 | brightens |
+| light | 11.0 | 7.2 | green 4.54, red 4.67, orange 2.53 |
+| dark | 8.0 | 10.0 | all ≥ 4.9 |
 
-Boundaries: light ΔE 10.4 (start) / 25.3 (end); dark 25.5 / 14.4. Every step clears 3:1.
+Orange sits below 3:1 on the light surface. That obligates the visible-label relief, which
+the legend and the sheet both provide — it is not dismissed.
 
 **Lesson recorded:** the validator can pass a palette that fails on sight. It checks
 separation, not whether a colour still reads as the colour it is meant to be.
-
-Adjacent ramp steps measure ΔE 5.0, which the categorical validator flags. That check does
-not apply — a gradient's neighbours are *supposed* to be close, and a sequential ramp is
-judged by monotonic lightness. Only the boundaries above are categorical.
-
-The validator also reports two FAILs, both expected and both accepted: *lightness band* and
-*chroma floor* flag colours that "read gray". Ours are deliberately grey — that is rule 2.
-Those checks scope to categorical palettes, where every slot is an identity competing for
-attention. Here the neutrals are the ground, and one hue is the figure.
 
 ### The basemap is desaturated
 

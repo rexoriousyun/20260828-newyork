@@ -157,12 +157,8 @@ export function App(): JSX.Element {
             </div>
                   <div className="legend">
               <span>
-                <i className="k-typical" />
-                typical
-              </span>
-              <span>
-                <i className="k-unreliable" />
-                costs riders time
+                <i className="k-scale" />
+                less waiting → more
               </span>
               <span>
                 <i className="k-unknown" />
