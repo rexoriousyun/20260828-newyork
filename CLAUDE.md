@@ -57,6 +57,32 @@ measurement; that is the system working, not a failure.
   (`P-03`). An unattributed record is visible; a mis-attributed one is invisible and wrong.
 - **Commit messages carry the reasoning**, not just the change: what was wrong, what was
   measured, what was traded away. They are the second-best record after the docs.
+- **Do not spam artifacts.** One artifact per living document. If it already exists, publish
+  to the same URL (pass `url`) so the link the user holds keeps working — use
+  `action: "list"` to find it when the URL is not to hand. A new artifact is for a genuinely
+  new document, never for a revision of one that exists.
+
+## Design and flow decisions run through the UX foundation
+
+Before deciding anything about design or a user flow, walk the foundation and cite what you
+found. Not as ceremony — every time this was skipped, the decision missed a factor that was
+already written down.
+
+| Check | File | Ask |
+|---|---|---|
+| Who is this for | `04-personas.md` | Which persona, and what is their anti-goal? |
+| When do they hit it | `05-journeys.md` | Which journey, and what must never be deferred there? |
+| What breaks today | `02-problems.md` | Which `PR-*` does this address or worsen? |
+| What constrains it | `03-principles.md` | Which `P-*` applies, and does this violate one? |
+| What was already decided | `06-decisions.md` | Does a `D-*` already cover or contradict this? |
+
+If the decision survives that walk, record it with the citations. If it does not, the
+foundation just saved a rebuild.
+
+**This has caught real errors.** Routing was reframed as a forecast without checking the
+brief (`D-13`, superseded). Five user flows were designed without consulting the product
+owner at all. A colour was chosen for its validator score without checking it against the
+concept it was meant to serve.
 
 ## Verification
 

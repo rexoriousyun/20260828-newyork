@@ -321,6 +321,56 @@ actually exists**, rather than pretending every trip is a menu.
 at-stop view (J-02) becomes the product and routing is secondary.
 
 
+## D-15 — Mobile first `ACCEPTED`
+**Cites:** P-06 · **Personas:** U-02, U-05 · **Source:** product owner direction, 2026-08-28
+
+The phone is the target, not a breakpoint. Controls float over the map rather than spending
+a header; the sheet sits in the thumb zone; every value must be legible one-handed, outdoors,
+in daylight.
+
+*Why:* U-02 is standing at a stop in winter and U-05 is deciding whether to walk. Neither is
+at a desk. Contrast is therefore a gate rather than a preference.
+
+**Reversed if:** usage shows the exploratory journey (J-04) is overwhelmingly desktop, which
+would argue for a second, denser layout rather than for abandoning this one.
+
+## D-16 — Monotone for most; colour reserved for key information `ACCEPTED`
+**Cites:** P-03, P-06 · **Evidence:** E-D14 · **Source:** product owner direction, 2026-08-28
+
+The basemap is desaturated server-side. Greyscale is map structure and is never borrowed to
+encode data. Colour is spent only where it carries meaning: the reliability scale, and the
+transit stops a transit map cannot do without.
+
+*Why:* a vendor basemap paints roads orange and parks green, which competes with the one
+encoding that matters. Spending colour on everything marks nothing.
+
+**Reversed if:** riders cannot locate route data against the desaturated ground, or a second
+encoded dimension becomes essential and cannot be carried by weight, pattern or position.
+
+## D-17 — Start simple `ACCEPTED`
+**Cites:** P-01, P-06 · **Evidence:** E-D10 · **Source:** product owner direction, 2026-08-28
+
+One continuous scale plus one exception (unknown), not five discrete bands. Complexity in the
+data is not a licence for complexity on screen.
+
+*Why:* it was also forced by measurement — four states could not clear all-pairs colour
+separation, so the simpler encoding is the accessible one as well as the calmer one.
+
+**Reversed if:** riders demonstrably need finer gradation than a continuous ramp provides,
+which Q-C would surface.
+
+## D-18 — Look trustworthy; nothing casual or decorative `ACCEPTED`
+**Cites:** P-08, P-09 · **Problems:** PR-08 · **Source:** product owner direction, 2026-08-28
+
+Tabular figures, one step of emphasis, a single elevation, modest radii, no gradients or
+glows used as ornament. The product should read as infrastructure rather than as a brand.
+
+*Why:* riders already distrust transit numbers because official metrics "hide more than they
+reveal" (E-L06). A playful interface spends credibility the product has not earned yet.
+
+**Reversed if:** never, while rebuilding trust is the product's central problem. Dropping this
+means dropping PR-08, which would itself require an entry here.
+
 ---
 
 ## Open questions
