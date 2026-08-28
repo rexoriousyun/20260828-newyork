@@ -30,6 +30,7 @@ which no existing tool publishes. Reliability-aware TTC routing already exists
 | `docs/ux/06-decisions.md` | What we chose and what would reverse it (`D-*`) |
 | `docs/ux/07-flows.md` | Screen-level user flows (`F-*`), built vs proposed |
 | `docs/architecture/SYSTEM.md` | Data flow, filtering funnel, scoring model, audit gates |
+| `docs/design/00-concept.md` | Design concept, and the design work still needed |
 | `docs/product/PLAN.md` | v1 scope, milestones, engine contract |
 | `docs/portfolio/CASE-STUDY.md` | Portfolio narrative |
 | `src/` | Engine: ingest, domain, api, audits |
@@ -119,6 +120,11 @@ a hypothesis; the gaps are deliberate, so existing citations stay valid.
 | Q-D | Is compass direction the right handle, or headsigns? | polish |
 | Q-3 | Do riders want a verdict or the evidence? | D-05 |
 | Q-5 | Does per-segment severity persist over a longer window? | D-11 |
+
+**Known defect:** the shipped reliability colour scale collides with itself for normal
+vision (top two bands ΔE 15.7) and, under deuteranopia, **"under 15" is indistinguishable
+from "no data"** (ΔE 14.1) — the one distinction `P-03` exists to protect. Rebuilding the
+scale is design need #2 in `docs/design/00-concept.md`.
 
 **Known gap:** `D-07` commits to accessibility as a hard routing constraint for U-04, and
 **nothing is implemented** — no elevator data is ingested. The decision stands; the build
