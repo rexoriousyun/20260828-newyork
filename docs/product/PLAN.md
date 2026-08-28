@@ -85,7 +85,7 @@ Non-negotiable properties, each from a principle:
 | **M3** | Segment model — **DONE** | Network decomposed into inter-stop segments with stable IDs | M4 |
 | **M4** | Reliability scoring — **DONE** | Engine contract above satisfied, incl. terminal/yard correction | M5, M6 |
 | **M5** | Surface geocoding — **DONE** | Beat 66% baseline (`E-D07`); publish the achieved rate | M6 (bus) |
-| **M6** | J-04 segment map | Explore any route's reliability by segment, hour, day | M7 |
+| **M6** | J-04 segment map — **DONE** | Explore any route's reliability by segment, hour, day | M7 |
 | **M7** | J-01 departure advice | "Leave by X for 90% confidence" | ship |
 
 **M2 was a genuine gate, and it passed** (2026-08-28). Coherence 95.2–99.1% and
@@ -122,6 +122,11 @@ no interface. UX exploration blocks **M6**, where pixels first appear.
 
 Running them in parallel is fine and probably preferable — the engine informs what the
 interface can honestly show, and `D-08` (rider interviews) can proceed alongside.
+
+> **Updated after M6.** Building the map first turned out to be the right order: three of
+> the four questions now blocking `D-08` (Q-A, Q-B, Q-C) could only be written once there
+> was a real screen to react to. Interviews should now run against the built artefact
+> rather than against descriptions of it.
 
 ## Risks
 

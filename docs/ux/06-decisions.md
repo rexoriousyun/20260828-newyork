@@ -111,15 +111,67 @@ which would itself be a decision requiring an entry here.
 ## D-08 — Validate personas with real riders `OPEN`
 **Cites:** P-08 · **Personas:** all
 
-Personas are currently derived from literature and delay data, not interviews. Validate
-U-01, U-02 and U-04 with Toronto riders before committing to the v1 information
-architecture.
+Personas are derived from literature and delay data, not interviews. Validate before
+committing to the v1 information architecture.
 
-*Why:* U-02's "reroute is not a real option" assumption and U-01's asymmetric-tolerance
-assumption are both load-bearing and both unverified.
+**Building M6 changed what this needs to ask.** The original framing was "are these
+personas real?" Four questions now block the interface, and three of them could not have
+been written before there was something on screen.
 
-**Priority:** highest-value open item. Everything in `04-personas.md` is provisional
-until this closes.
+### Q-A — Does an honest, mostly-empty map build trust or destroy it? *(highest priority)*
+**From:** E-D12 · **Threatens:** P-03, D-05
+
+**86% of bus segments are unknown.** P-03 says absence of data must never read as good
+news, so the map renders them hatched — and a real bus route shows as alternating known
+and unknown stretches. Two readings, opposite implications:
+
+- The honesty reads as credibility, and directly answers the distrust in PR-08.
+- The sparsity reads as a broken product, and the rider leaves before the honesty lands.
+
+We cannot reason our way to the answer. **Show riders the actual Morningside screen and
+watch what they do.** If it reads as broken, either the granularity changes (Q-B) or P-03
+needs a gentler expression — but P-03 itself is not negotiable.
+
+### Q-B — What is the unit riders actually reason about?
+**From:** E-D12 · **Threatens:** D-01
+
+The map currently shows `Morningside Ave at Halfway Ave -> Morningside Ave at Sewells Rd`
+— roughly 200 metres, with the road name repeated on both ends. Nobody thinks about their
+commute that way, and stop-to-stop granularity is what makes the data look sparse: pooling
+the same incidents into corridors (Finch to Sheppard, say) would raise confidence and read
+more like how riders describe trips.
+
+But a corridor is not a segment, and D-01 stakes the product on the segment being the
+unit. **Ask riders to describe where their trip goes wrong, unprompted, and note the unit
+they reach for.** If it is consistently corridors, D-01 needs revising — the stable
+signal is real either way, only its resolution changes.
+
+### Q-C — Does "31 min/mo of wait caused" mean anything to a rider?
+**From:** D-11 · **Threatens:** D-05, P-06
+
+Exposure is the metric that survived the persistence test, so it is what the product can
+honestly rank on. But gap-minutes per month is an analyst's unit. A rider asks "how often
+does this go wrong, and how bad is it" — and our honest answer is split awkwardly across
+two numbers with different bases: exposure is segment-specific, severity is pooled.
+
+**Do not lead the witness.** Show the segment detail and ask what they take from it. If
+the unit does not land, the underlying model still holds — only the presentation moves.
+
+### Q-D — Is compass direction the right handle?
+**From:** M6 build
+
+The UI offers N/S/E/W because that is what the delay data records. Riders say "towards
+Finch" or "going downtown". GTFS carries trip headsigns, so this is fixable — but only
+worth fixing if it is actually a barrier.
+
+### Still open from the original framing
+- **U-02's core assumption is untested:** that rerouting is often not a real option in the
+  suburbs. It drives the whole "permission to stop refreshing" design in J-02.
+- **U-01's asymmetric tolerance is untested:** that a missed pickup costs far more than a
+  wasted ten minutes.
+
+**Priority:** Q-A first, and with the real screen in hand rather than a description of it.
+Everything in `04-personas.md` stays provisional until this closes.
 
 ## D-09 — Stack: Fastify + Prisma/SQLite + React `ACCEPTED`
 **Cites:** — (engineering, not UX)
@@ -202,3 +254,6 @@ make loops ordinary segments rather than turnarounds.
 | Q-3 | Do riders want a verdict or the evidence? | D-05 | D-08 |
 | Q-5 | Does per-segment severity persist over a longer window? | D-11 | data, later |
 | Q-4 | Is J-02 (at-stop) the only moment people open an app? | D-03 | D-08 |
+| Q-A | Does a mostly-unknown map build trust or read as broken? | P-03, D-05 | D-08 |
+| Q-B | Is the segment or the corridor the rider's unit? | D-01 | D-08 |
+| Q-C | Does gap-minutes-per-month mean anything to a rider? | D-05 | D-08 |
