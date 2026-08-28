@@ -45,7 +45,24 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
         paint: { "line-width": 22, "line-opacity": 0 },
       });
 
-      // Known segments: neutral ink, or the one reserved colour when unreliable.
+      // Selection is a halo drawn BENEATH the data, never over it. An overlay at
+      // any opacity tints the line it highlights, turning an encoded orange into
+      // a muddy maroon — the highlight would corrupt the thing it points at.
+      m.addLayer({
+        id: "segments-selected",
+        type: "line",
+        source: SRC,
+        filter: ["==", ["get", "segmentId"], "__none__"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": tok.selection,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 9, 14, 16, 17, 22],
+          "line-opacity": 0.3,
+          "line-blur": 1,
+        },
+      });
+
+      // Known segments: the route in green, or the reserved ramp when unreliable.
       m.addLayer({
         id: "segments-known",
         type: "line",
@@ -75,15 +92,6 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
         },
       });
 
-      m.addLayer({
-        id: "segments-selected",
-        type: "line",
-        source: SRC,
-        filter: ["==", ["get", "segmentId"], "__none__"],
-        layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": tok.selection, "line-width": 10, "line-opacity": 0.4 },
-      });
-
       m.on("click", "segments-hit", (e: MapMouseEvent & { features?: unknown[] }) => {
         const f = e.features?.[0] as { properties: unknown } | undefined;
         onSelect(f === undefined ? null : ({ ...f, properties: f.properties } as unknown as SegmentFeature));
@@ -96,6 +104,12 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
       m.on("mouseleave", "segments-hit", () => { m.getCanvas().style.cursor = ""; });
 
       ready.current = true;
+      // Exposed in development only, so tests and debugging can frame a specific
+      // place. Zoomed-out views flatter this design; downtown at street zoom is
+      // where the encoding has to hold up.
+      if (import.meta.env.DEV) {
+        (window as unknown as { __map?: MlMap }).__map = m;
+      }
     });
     map.current = m;
   }, [onSelect]);

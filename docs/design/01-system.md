@@ -41,6 +41,11 @@ Three states. Each carries **two channels**, never colour alone, per the design 
 so route states cannot use it — which is why unknown shares the route hue rather than
 fading to grey.
 
+**Transit stops keep their colour.** On a transit map a stop is key information, not
+decoration, so the basemap's stop icons stay. Generic POIs — shops, restaurants,
+attractions — are dropped: they are clutter here, and their sprites are coloured in ways
+desaturation cannot reach.
+
 | state | colour | second channel | meaning |
 |---|---|---|---|
 | **typical** | route green, flat | solid, base weight | we know, and it is unremarkable |
@@ -72,10 +77,10 @@ statement, not a low value.
 | role | light | dark |
 |---|---|---|
 | surface | `#f2f1ee` | `#16161a` |
-| route (typical) | `#05301c` | `#7fd3a1` |
-| unreliable (45 min) | `#d15f14` | `#f0913f` |
-| unreliable (mid) | `#c74a17` | `#e05a34` |
-| unreliable (170 min+) | `#b8331a` | `#cf3a34` |
+| route (typical) | `#1e8f59` | `#7fd3a1` |
+| unreliable (45 min) | `#a32a14` | `#b8402e` |
+| unreliable (mid) | `#82170e` | `#d64c33` |
+| unreliable (170 min+) | `#5e0f08` | `#f25c3c` |
 | unknown | route hue at 45% | route hue at 45% |
 
 The ramp spans 45 to 170 rider-wait minutes per month — the 95th percentile of segments
@@ -92,19 +97,30 @@ for everything else.
 | Ramp lightness monotonic | PASS — 1.72× span | PASS — 2.37× span |
 | Contrast vs surface | PASS — all ≥ 3:1 | PASS — all ≥ 3:1 |
 
-### Green and red is the worst pair in accessibility, and it is fine here — for one reason
+### Green and red is the worst pair in accessibility. The fix is lightness, in the right direction.
 
-Every green tested against the ramp failed on hue: ΔE 3.0–7.0 under protanopia, the
-textbook red-green collision.
+Every green tested against a red ramp collided on hue — ΔE 3.0–7.0 under protanopia, the
+textbook failure. **Colour-vision deficiency destroys hue but preserves lightness**, so the
+two must separate by value.
 
-**Colour-vision deficiency destroys hue but preserves lightness.** So the green was pushed
-far darker than the entire ramp (relative luminance 0.019 against the ramp's 0.218→0.126)
-and separation now comes from value, not hue. That is why the green is a deep forest rather
-than a mid green — the depth is load-bearing, not a mood.
+The first attempt pushed the *green* below the ramp. It validated cleanly and was wrong:
+at relative luminance 0.019 the green read as **black**, and a near-black line beside a
+dark red is confusing for everyone — trading an 8% problem for a 100% one.
 
-The cost is honest: the light ramp's span narrowed from 2.25× to 1.72×, because it must
-now sit above the green and below the surface's contrast floor. A slightly shallower
-gradient in exchange for a route line that survives colour blindness is the right trade.
+The correct move was the opposite. **Green sits above the ramp; severity moves away from
+it.** On a light ground that means severity darkens; on a dark ground it brightens. Same
+principle, opposite direction, because distance from the route colour is what encodes
+severity — not "red is dark".
+
+| | route green | ramp | direction |
+|---|---|---|---|
+| light | 0.206 | 0.095 → 0.027 | darkens |
+| dark | 0.537 | 0.141 → 0.269 | brightens |
+
+Boundaries: light ΔE 10.4 (start) / 25.3 (end); dark 25.5 / 14.4. Every step clears 3:1.
+
+**Lesson recorded:** the validator can pass a palette that fails on sight. It checks
+separation, not whether a colour still reads as the colour it is meant to be.
 
 Adjacent ramp steps measure ΔE 5.0, which the categorical validator flags. That check does
 not apply — a gradient's neighbours are *supposed* to be close, and a sequential ramp is

@@ -40,18 +40,16 @@ function Sheet({ feature, onClose }: { feature: SegmentFeature; onClose: () => v
         </>
       ) : (
         <>
-          <p className="answer">
-            {stateOf(p.confidence, p.gapMinutesPerMonth) === "unreliable" ? (
-              <>
-                Costs riders <strong>{Math.round(p.gapMinutesPerMonth ?? 0)} minutes</strong> of
-                waiting a month — among the worst stretches we can measure.
-              </>
-            ) : (
-              <>
-                Usually fine. Costs riders{" "}
-                <strong>{Math.round(p.gapMinutesPerMonth ?? 0)} minutes</strong> of waiting a month.
-              </>
-            )}
+          {/* The value gets the weight it earns; the sentence explains it. One
+              step of emphasis, not a headline competing with a subhead. */}
+          <div className="stat">
+            <span className="stat-value">{Math.round(p.gapMinutesPerMonth ?? 0)}</span>
+            <span className="stat-unit">min / month</span>
+          </div>
+          <p className="stat-label">
+            {stateOf(p.confidence, p.gapMinutesPerMonth) === "unreliable"
+              ? "of waiting caused — among the worst stretches we can measure."
+              : "of waiting caused. Usually fine."}
           </p>
           {p.confidence === "low" && (
             <p className="caveat">Based on limited data — treat as a rough signal.</p>

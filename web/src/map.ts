@@ -35,17 +35,17 @@ export interface Tokens {
 
 /** Validated for CVD separation, normal-vision floor and 3:1 contrast in both modes. */
 export const LIGHT: Tokens = {
-  typical: "#05301c",
-  unreliable: ["#d15f14", "#c74a17", "#b8331a"],
+  typical: "#1e8f59",
+  unreliable: ["#a32a14", "#82170e", "#5e0f08"],
   // Unknown is the route colour, dashed and thinned — greyscale belongs to the
   // basemap alone, so it cannot be borrowed to mean "no data".
-  unknown: "#05301c",
+  unknown: "#1e8f59",
   selection: "#1f6feb",
 };
 
 export const DARK: Tokens = {
   typical: "#7fd3a1",
-  unreliable: ["#f0913f", "#e05a34", "#cf3a34"],
+  unreliable: ["#b8402e", "#d64c33", "#f25c3c"],
   unknown: "#7fd3a1",
   selection: "#6ea8ff",
 };

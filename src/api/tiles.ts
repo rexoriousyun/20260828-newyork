@@ -58,6 +58,19 @@ function greyToken(token: string): string {
 }
 
 /**
+ * Basemap layers dropped entirely.
+ *
+ * Generic POIs — shops, restaurants, attractions — are clutter on a routing map
+ * and their sprites are coloured, which desaturation cannot reach.
+ *
+ * `poi_transit` is deliberately NOT dropped. On a transit map a stop is key
+ * information, not decoration, so its colour is earning its place rather than
+ * competing for attention. Road shields and place labels stay for the same
+ * reason: orientation.
+ */
+const DROPPED_LAYERS = new Set(["poi_r20", "poi_r7", "poi_r1"]);
+
+/**
  * Greys every string inside a subtree.
  *
  * Applied only within `paint` blocks. Paint values can be plain colours or
@@ -120,7 +133,9 @@ export function registerTiles(app: FastifyInstance, mountedAt = "/tiles"): void 
     if (!res.ok) return reply.code(502).send({ error: `upstream ${res.status}` });
     const base = `${originOf(req)}${mountedAt}`;
     const style = JSON.parse(rewrite(await res.text(), base)) as Record<string, unknown>;
-    style["layers"] = (style["layers"] as unknown[]).map(desaturate);
+    style["layers"] = (style["layers"] as Array<{ id?: string }>)
+      .filter((l) => !DROPPED_LAYERS.has(l.id ?? ""))
+      .map(desaturate);
 
     return reply
       .type("application/json")
