@@ -20,6 +20,7 @@ which no existing tool publishes. Reliability-aware TTC routing already exists
 
 | Path | What |
 |---|---|
+| `CLAUDE.md` | Working conventions, verification habits, gotchas |
 | `docs/STATE.md` | This file — the anchor |
 | `docs/ux/README.md` | How the decision system works |
 | `docs/ux/01-evidence.md` | Every factual claim, with source and date (`E-*`) |
