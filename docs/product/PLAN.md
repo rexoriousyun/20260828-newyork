@@ -75,17 +75,19 @@ Non-negotiable properties, each from a principle:
 
 | # | Milestone | Done when | Blocks |
 |---|---|---|---|
-| **M0** | Project scaffold | `npm run dev` starts API + web; CI runs tests | — |
-| **M1** | Data ingestion | TTC delay data + GTFS loaded, reproducible via one command | M2 |
-| **M2** | **`Min Gap` data audit** | **Q-1 answered: is the field trustworthy?** | **everything** |
+| **M0** | Project scaffold — **DONE** | `npm run dev` starts API + web; CI runs tests | — |
+| **M1** | Data ingestion — **DONE** | TTC delay data + GTFS loaded, reproducible via one command | M2 |
+| **M2** | **`Min Gap` data audit — DONE, PASSED** | **Q-1 answered: is the field trustworthy?** | **everything** |
 | **M3** | Segment model | Network decomposed into inter-stop segments with stable IDs | M4 |
 | **M4** | Reliability scoring | Engine contract above satisfied, incl. terminal/yard correction | M5, M6 |
 | **M5** | Surface geocoding | Beat 66% baseline (`E-D07`); publish the achieved rate | M6 (bus) |
 | **M6** | J-04 segment map | Explore any route's reliability by segment, hour, day | M7 |
 | **M7** | J-01 departure advice | "Leave by X for 90% confidence" | ship |
 
-**M2 is a genuine gate.** If `Min Gap` is not trustworthy, `D-02` reverses and the
-product's core metric changes. Do not build M3+ before answering it.
+**M2 was a genuine gate, and it passed** (2026-08-28). Coherence 95.2–99.1% and
+completeness 95.3–99.6% across modes against a pre-registered 95% threshold, with no
+temporal instability across 57 mode-months. `D-02` holds and the headway gap remains the
+primary metric. Run `npm run audit:gap` to reproduce.
 
 ---
 

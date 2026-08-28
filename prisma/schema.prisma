@@ -1,0 +1,93 @@
+// Reliable Transit — data model
+//
+// Scope note: this schema covers M1 (ingestion) and M2 (the Min Gap audit),
+// plus the GTFS tables M3/M5 will need. Segment tables arrive in M3, once the
+// M2 gate confirms which metric we are building on (see docs/product/PLAN.md).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// One row per incident as published by the TTC.
+/// Stored verbatim — filtering (zero-minute records, terminals) happens in the
+/// domain layer, never at ingest, so the raw record stays auditable (P-08).
+model DelayIncident {
+  id          Int      @id @default(autoincrement())
+  mode        String   // "subway" | "bus" | "streetcar"
+  occurredAt  DateTime // date + time combined, local Toronto time
+  dayOfWeek   String
+  hour        Int      // 0-23, denormalised for time-of-day queries
+
+  /// Raw location string as published. Subway: "BATHURST STATION".
+  /// Surface: free-text intersection, e.g. "KING AND PARLIAMENT" (E-D07).
+  locationRaw String
+  /// Route or line as published: "YU", "BD", "SHP", "52 LAWRENCE WEST".
+  lineRaw     String
+
+  code        String
+  /// Vehicle lateness in minutes. Diagnostic only — NOT the headline metric (D-02).
+  minDelay    Int
+  /// Headway gap left behind, in minutes. The rider-facing metric (D-02, E-D09).
+  minGap      Int
+  bound       String?
+  vehicle     String?
+
+  sourceFile  String   // provenance for P-08
+  ingestedAt  DateTime @default(now())
+
+  @@index([mode, lineRaw])
+  @@index([mode, locationRaw])
+  @@index([occurredAt])
+  @@index([code])
+}
+
+/// TTC delay cause codes, per mode.
+model DelayCode {
+  code        String
+  mode        String
+  description String
+
+  @@id([code, mode])
+}
+
+/// GTFS stops. Used to resolve surface delay locations to coordinates (M5).
+model Stop {
+  id        String  @id
+  name      String
+  lat       Float
+  lon       Float
+  /// Normalised street pair for intersection matching, e.g. "KING|PARLIAMENT".
+  streetKey String?
+
+  @@index([streetKey])
+  @@index([name])
+}
+
+/// GTFS routes.
+model Route {
+  id        String @id
+  shortName String
+  longName  String
+  /// GTFS route_type: 0 streetcar, 1 subway, 3 bus.
+  type      Int
+
+  @@index([shortName])
+}
+
+/// Records each ingest run so published numbers trace to a data window (P-08).
+model IngestRun {
+  id          Int      @id @default(autoincrement())
+  startedAt   DateTime @default(now())
+  finishedAt  DateTime?
+  source      String
+  rowsRead    Int      @default(0)
+  rowsWritten Int      @default(0)
+  windowStart DateTime?
+  windowEnd   DateTime?
+  notes       String?
+}

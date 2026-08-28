@@ -30,8 +30,13 @@ and 83.8% of bus incidents carry the bunching signature. This is public data nob
 using correctly, and it directly answers the documented critique that official metrics
 hide lived experience.
 
-**Reversed if:** `Min Gap` turns out to be unreliably recorded — needs a data-quality
-audit before we build on it. **This is the top open risk.**
+**Reversed if:** `Min Gap` turns out to be unreliably recorded.
+
+> **Confirmed 2026-08-28 (M2 audit, `npm run audit:gap`).** Among incidents with a real
+> delay: coherence (gap >= delay) 99.1% bus / 98.6% streetcar / 95.2% subway;
+> completeness (gap > 0) 99.6% / 99.5% / 95.3%; zero absurd values; 57 mode-months
+> checked with none below the stability floor. Pre-registered thresholds were 95%
+> coherence and completeness. **Q-1 closed, D-02 holds.**
 
 ## D-03 — v1 serves J-01 and J-04 only `ACCEPTED`
 **Cites:** P-06, P-03 · **Journeys:** J-01, J-04
@@ -134,7 +139,7 @@ expected — likely, and the reason Prisma was chosen over raw SQL.
 
 | # | Question | Blocks | Owner |
 |---|---|---|---|
-| Q-1 | Is `Min Gap` recorded reliably enough to build on? | D-02 | data audit |
+| ~~Q-1~~ | ~~Is `Min Gap` recorded reliably enough to build on?~~ | — | **Closed 2026-08-28: yes** |
 | Q-2 | Can surface geocoding beat 66%? | D-04 | engineering |
 | Q-3 | Do riders want a verdict or the evidence? | D-05 | D-08 |
 | Q-4 | Is J-02 (at-stop) the only moment people open an app? | D-03 | D-08 |
