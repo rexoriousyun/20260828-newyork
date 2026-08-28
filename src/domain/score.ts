@@ -49,7 +49,13 @@ export interface SegmentReliability {
    * per-segment p95 would imply a precision the data cannot support. It is
    * therefore pooled across the network and labelled as such (D-11, P-08).
    */
-  severity: { p50: number; p90: number; p95: number; unit: "minutes"; basis: "pooled-network" } | null;
+  severity: {
+    p50: number;
+    p90: number;
+    p95: number;
+    unit: "minutes";
+    basis: "pooled-subway" | "pooled-surface";
+  } | null;
   sample: {
     incidents: number;
     window: { start: string; end: string } | null;
@@ -96,29 +102,47 @@ async function observationMonths(): Promise<number> {
 }
 
 /**
- * The network-wide wait distribution, used for every segment.
+ * The pooled wait distribution, computed per mode.
  *
- * Pooling is not a shortcut. Segment-level severity fails the persistence test
- * outright, so a per-segment distribution would be noise dressed as insight.
+ * Pooling is not a shortcut: segment-level severity fails the persistence test
+ * outright (E-D10), so a per-segment distribution would be noise dressed as
+ * insight. But pooling across *modes* is wrong in the other direction — surface
+ * waits run far longer than subway ones, so a single network pool shows a
+ * subway rider percentiles drawn mostly from buses. Each mode gets its own pool.
+ *
  * Terminal approaches are excluded here too, for the same reason as everywhere
  * else (D-06).
  */
-let severityCache: SegmentReliability["severity"] = null;
-async function pooledSeverity(): Promise<SegmentReliability["severity"]> {
-  if (severityCache !== null) return severityCache;
+const severityCache = new Map<string, SegmentReliability["severity"]>();
+async function pooledSeverity(mode: string): Promise<SegmentReliability["severity"]> {
+  const cached = severityCache.get(mode);
+  if (cached !== undefined) return cached;
+
+  // Bus and streetcar share a pool: both run in mixed traffic and behave alike,
+  // and streetcar alone is thin.
+  const modes = mode === "subway" ? ["subway"] : ["bus", "streetcar"];
   const rows = await prisma.delayIncident.findMany({
-    where: { minDelay: { gt: 0 }, segmentId: { not: null }, segment: { isTerminalApproach: false } },
+    where: {
+      mode: { in: modes },
+      minDelay: { gt: 0 },
+      segmentId: { not: null },
+      segment: { isTerminalApproach: false },
+    },
     select: { minGap: true },
   });
   const gaps = rows.map((r) => r.minGap).sort((a, b) => a - b);
-  if (gaps.length === 0) return null;
-  return (severityCache = {
-    p50: percentile(gaps, 50),
-    p90: percentile(gaps, 90),
-    p95: percentile(gaps, 95),
-    unit: "minutes",
-    basis: "pooled-network",
-  });
+  const result: SegmentReliability["severity"] =
+    gaps.length === 0
+      ? null
+      : {
+          p50: percentile(gaps, 50),
+          p90: percentile(gaps, 90),
+          p95: percentile(gaps, 95),
+          unit: "minutes",
+          basis: mode === "subway" ? "pooled-subway" : "pooled-surface",
+        };
+  severityCache.set(mode, result);
+  return result;
 }
 
 export async function scoreSegment(
@@ -169,7 +193,7 @@ export async function scoreSegment(
           incidentsPerMonth: Number((incidents.length / months).toFixed(2)),
         };
 
-  const severity = confidence === "unknown" ? null : await pooledSeverity();
+  const severity = confidence === "unknown" ? null : await pooledSeverity(segment.mode);
 
   const counts = new Map<string, number>();
   for (const i of incidents) counts.set(i.code, (counts.get(i.code) ?? 0) + 1);

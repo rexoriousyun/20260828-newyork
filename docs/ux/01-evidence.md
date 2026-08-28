@@ -222,3 +222,33 @@ The residual 18.7% is largely irreducible: `RENFORTH STATION` is a MiWay termina
 from TTC GTFS, and pairs such as `YONGE AND YONGE BLVD` cannot be told apart once
 street-type suffixes are stripped. Pushing the matcher further trades false matches for
 coverage, which P-08 forbids.
+
+### E-D12 — Most of the bus network cannot be scored at stop-to-stop granularity
+Built 18,840 surface segments across 233 routes; 6,511 have any attributed incidents.
+Against the pre-registered confidence thresholds:
+
+| | segments | share |
+|---|---|---|
+| high confidence (>=30 incidents) | 576 | **3.1%** |
+| low confidence (>=5) | 2,703 | 14.3% |
+| unknown (<5) | 16,137 | **85.7%** |
+
+Surface attribution reaches 56.2% of delayed incidents and 53.9% of surface delay-minutes.
+
+*Why it matters:* a stop-to-stop bus map is ~86% unknown. Honouring P-03 makes that
+visible, which is correct but produces a mostly-hatched screen with known and unknown
+segments alternating. This is the central open question for the interface, not a polish
+item.
+
+### E-D13 — Surface waits are roughly three times subway waits
+Pooled wait once an incident occurs, terminal approaches excluded:
+
+| | p50 | p90 | p95 |
+|---|---|---|---|
+| subway | 9 min | 17 min | 23 min |
+| surface | 24 min | 59 min | **73 min** |
+
+*Why it matters:* pooling these together — as the engine briefly did — shows a subway
+rider percentiles drawn mostly from buses. It also sharpens E-D05 and PR-01: the network
+carrying most of the delay is also the one where each incident hurts about three times as
+much. Strong support for U-02 as the primary persona rather than U-01.

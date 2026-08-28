@@ -77,9 +77,9 @@ export function classifySurfaceLocation(raw: string): SurfaceLocation {
  */
 export function resolveIntersection(
   key: string,
-  known: ReadonlyMap<string, string>,
+  known: ReadonlyMap<string, string[]>,
   prefixIndex: ReadonlyMap<string, string[]>,
-): string | null {
+): string[] | null {
   const exact = known.get(key);
   if (exact !== undefined) return exact;
 
@@ -97,8 +97,8 @@ export function resolveIntersection(
     const matches = candidates.filter((other) => other.startsWith(clipped));
     if (matches.length === 1) {
       const resolved = [whole, matches[0]!].sort().join("|");
-      const stop = known.get(resolved);
-      if (stop !== undefined) return stop;
+      const stops = known.get(resolved);
+      if (stops !== undefined) return stops;
     }
   }
   return null;
@@ -134,9 +134,9 @@ export function buildPrefixIndex(keys: Iterable<string>): Map<string, string[]> 
  */
 export function resolveByName(
   name: string,
-  exact: ReadonlyMap<string, string>,
+  exact: ReadonlyMap<string, string[]>,
   names: readonly string[],
-): string | null {
+): string[] | null {
   const direct = exact.get(name);
   if (direct !== undefined) return direct;
 

@@ -13,6 +13,48 @@ const query = z.object({
 
 app.get("/health", async () => ({ ok: true }));
 
+/**
+ * Routes that have enough attributed data to be worth opening.
+ *
+ * Only ~3% of surface segments reach high confidence, so listing all 233 routes
+ * equally would send most riders to an empty map. Routes are ranked by how much
+ * of them we can actually speak to (P-03, P-06).
+ */
+app.get("/routes", async () => {
+  const rows = await prisma.$queryRawUnsafe<
+    Array<{ routeId: string; direction: string; mode: string; segments: number; scored: number }>
+  >(`
+    SELECT s.routeId,
+           s.direction,
+           s.mode,
+           COUNT(DISTINCT s.id)                                    AS segments,
+           COUNT(DISTINCT CASE WHEN d.n >= 5 THEN s.id END)        AS scored
+    FROM Segment s
+    LEFT JOIN (
+      SELECT segmentId, COUNT(*) AS n
+      FROM DelayIncident
+      WHERE minDelay > 0 AND segmentId IS NOT NULL
+      GROUP BY segmentId
+    ) d ON d.segmentId = s.id
+    GROUP BY s.routeId, s.direction, s.mode
+    HAVING scored > 0
+    ORDER BY scored DESC
+  `);
+
+  const routes = await prisma.route.findMany({ select: { id: true, shortName: true, longName: true } });
+  const names = new Map(routes.map((r) => [r.id, r.longName || r.shortName]));
+
+  return {
+    count: rows.length,
+    routes: rows.map((r) => ({
+      ...r,
+      segments: Number(r.segments),
+      scored: Number(r.scored),
+      name: names.get(r.routeId) ?? r.routeId,
+    })),
+  };
+});
+
 app.get("/segments", async () => {
   const segments = await prisma.segment.findMany({
     orderBy: [{ routeId: "asc" }, { direction: "asc" }, { sequence: "asc" }],

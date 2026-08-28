@@ -111,17 +111,25 @@ async function buildSegmentSet(
 
     terminals.add(walk.at(-1)!.station);
 
+    // Direction comes from the DEPARTING platform, not the arriving one.
+    //
+    // A platform is labelled with the direction its trains travel, so the stop a
+    // train leaves tells you where it is heading. The arriving platform does not:
+    // Union is Line 1's U-turn pivot and every Union platform is labelled
+    // northbound, so a southbound train arriving from King would be recorded as
+    // northbound — putting "KING -> UNION" on the northbound list.
+    //
     // Terminal platforms are often named plainly ("Kipling Station") with no
-    // direction, so the approach into a terminal would otherwise be dropped —
-    // losing exactly the segments D-06 needs to flag. A trip does not reverse
-    // mid-run, so an undirected platform inherits the direction in force.
+    // direction at all, so the approach into a terminal would otherwise be
+    // dropped, losing exactly the segments D-06 needs to flag. A trip does not
+    // reverse mid-run, so an undirected platform inherits the direction in force.
     let running: string | null = null;
 
     for (let i = 0; i < walk.length - 1; i++) {
       const from = walk[i]!;
       const to = walk[i + 1]!;
-      running = from.direction ?? running;
-      const direction = to.direction ?? running;
+      const direction: string | null = from.direction ?? to.direction ?? running;
+      running = direction ?? running;
       if (from.station === to.station || direction === null) continue;
 
       const key = `${routeId}:${direction}:${from.station}->${to.station}`;

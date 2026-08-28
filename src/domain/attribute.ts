@@ -13,6 +13,12 @@
 
 import { prisma } from "../db/client.js";
 import { parseSubwayLocation, resolveStation, LINE_TO_ROUTE } from "./stations.js";
+import { nearestByBound, type Compass } from "./bearing.js";
+import {
+  buildSurfaceIndex,
+  resolveSurfaceLocation,
+  routeShortName,
+} from "./surface-resolver.js";
 
 export interface AttributionReport {
   considered: number;
@@ -121,6 +127,109 @@ export async function attributeSubwayIncidents(): Promise<AttributionReport> {
   }
   for (const [segmentId, ids] of bySegment) {
     await prisma.delayIncident.updateMany({ where: { id: { in: ids } }, data: { segmentId } });
+  }
+
+  return report;
+}
+
+/**
+ * Attributes surface incidents to segments.
+ *
+ * Same rule as the subway (D-10): the incident lands on the segment arriving at
+ * the resolved stop, in the direction the vehicle was travelling. Direction is
+ * matched against the segment's geometric bearing, since the published `Bound`
+ * is a compass letter while GTFS uses an opaque direction_id.
+ */
+export async function attributeSurfaceIncidents(): Promise<AttributionReport> {
+  const index = await buildSurfaceIndex();
+
+  const routes = await prisma.route.findMany({ select: { id: true, shortName: true } });
+  const routeByShortName = new Map(routes.map((r) => [r.shortName, r.id]));
+
+  const segments = await prisma.segment.findMany({
+    where: { mode: { not: "subway" } },
+    select: { id: true, routeId: true, direction: true, toStopId: true },
+  });
+  // Candidates are grouped by route and stop, not by route/direction/stop, so
+  // the bound can be matched by angle rather than by exact letter.
+  const byArrival = new Map<string, Array<{ direction: Compass; value: string }>>();
+  for (const s of segments) {
+    if (s.toStopId === null) continue;
+    const key = `${s.routeId}|${s.toStopId}`;
+    const list = byArrival.get(key);
+    const entry = { direction: s.direction as Compass, value: s.id };
+    if (list === undefined) byArrival.set(key, [entry]);
+    else list.push(entry);
+  }
+
+  const incidents = await prisma.delayIncident.findMany({
+    where: { mode: { in: ["bus", "streetcar"] } },
+    select: { id: true, locationRaw: true, lineRaw: true, bound: true },
+  });
+
+  const report: AttributionReport = {
+    considered: incidents.length,
+    attributed: 0,
+    nonRevenue: 0,
+    unknownDirection: 0,
+    unresolvedStation: 0,
+    noMatchingSegment: 0,
+  };
+  const updates: Array<{ id: number; segmentId: string }> = [];
+
+  for (const incident of incidents) {
+    const resolution = resolveSurfaceLocation(incident.locationRaw, index);
+    if (resolution.kind === "excluded") {
+      report.nonRevenue++;
+      continue;
+    }
+    if (resolution.kind === "unresolved") {
+      report.unresolvedStation++;
+      continue;
+    }
+
+    const short = routeShortName(incident.lineRaw);
+    const routeId = short === null ? undefined : routeByShortName.get(short);
+    if (routeId === undefined) {
+      report.noMatchingSegment++;
+      continue;
+    }
+
+    const bound = (incident.bound ?? "").trim().toUpperCase();
+    if (!["N", "S", "E", "W"].includes(bound)) {
+      report.unknownDirection++;
+      continue;
+    }
+
+    // Try every stop at the resolved location; the route serves exactly one of them.
+    let segmentId: string | null = null;
+    for (const stopId of resolution.stopIds) {
+      const candidates = byArrival.get(`${routeId}|${stopId}`);
+      if (candidates === undefined) continue;
+      segmentId = nearestByBound(bound as Compass, candidates);
+      if (segmentId !== null) break;
+    }
+    if (segmentId === null) {
+      report.noMatchingSegment++;
+      continue;
+    }
+    updates.push({ id: incident.id, segmentId });
+    report.attributed++;
+  }
+
+  const bySegment = new Map<string, number[]>();
+  for (const u of updates) {
+    const ids = bySegment.get(u.segmentId) ?? [];
+    ids.push(u.id);
+    bySegment.set(u.segmentId, ids);
+  }
+  for (const [segmentId, ids] of bySegment) {
+    for (let i = 0; i < ids.length; i += 500) {
+      await prisma.delayIncident.updateMany({
+        where: { id: { in: ids.slice(i, i + 500) } },
+        data: { segmentId },
+      });
+    }
   }
 
   return report;

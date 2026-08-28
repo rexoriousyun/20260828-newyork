@@ -42,26 +42,28 @@ describe("classifySurfaceLocation", () => {
 });
 
 describe("resolveIntersection", () => {
+  // A corner carries several stops - one per direction and side of the street -
+  // so the resolver returns the whole group and lets the route pick.
   const known = new Map([
-    ["BIRCHMOUNT|ST CLAIR", "stop-1"],
-    ["MEADOWVALE|SHEPPARD", "stop-2"],
-    ["SHEPPARD|SHERBOURNE", "stop-3"],
-    ["SHEPPARD|SHERWAY", "stop-4"],
+    ["BIRCHMOUNT|ST CLAIR", ["stop-1a", "stop-1b"]],
+    ["MEADOWVALE|SHEPPARD", ["stop-2"]],
+    ["SHEPPARD|SHERBOURNE", ["stop-3"]],
+    ["SHEPPARD|SHERWAY", ["stop-4"]],
   ]);
   const index = buildPrefixIndex(known.keys());
 
   it("resolves an exact key", () => {
-    expect(resolveIntersection("BIRCHMOUNT|ST CLAIR", known, index)).toBe("stop-1");
+    expect(resolveIntersection("BIRCHMOUNT|ST CLAIR", known, index)).toEqual(["stop-1a", "stop-1b"]);
   });
 
   it("resolves a key whose second street was truncated", () => {
     // "ST CLAIR AND BIRCHMOUN" -> "BIRCHMOUN|ST CLAIR"
-    expect(resolveIntersection("BIRCHMOUN|ST CLAIR", known, index)).toBe("stop-1");
+    expect(resolveIntersection("BIRCHMOUN|ST CLAIR", known, index)).toEqual(["stop-1a", "stop-1b"]);
   });
 
   it("resolves a prefix that is unique among that street's corners", () => {
     // Only SHEPPARD crosses MEADOWVALE, so "SH" is unambiguous here.
-    expect(resolveIntersection("MEADOWVALE|SH", known, index)).toBe("stop-2");
+    expect(resolveIntersection("MEADOWVALE|SH", known, index)).toEqual(["stop-2"]);
   });
 
   it("refuses an ambiguous prefix rather than guessing a corner", () => {

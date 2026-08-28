@@ -105,11 +105,17 @@ model IngestRun {
 /// that direction — what a through-rider experiences (D-10).
 model Segment {
   id          String @id // "1:N:UNION->KING" — stable across rebuilds
+  mode        String @default("subway") // subway | bus | streetcar
   routeId     String
   direction   String // N | S | E | W
   fromStation String
   toStation   String
   sequence    Int    // position along the line, for ordering
+
+  /// Surface segments key on GTFS stops; subway segments key on station names,
+  /// because delay data identifies subway locations by station, not by platform.
+  fromStopId String?
+  toStopId   String?
 
   fromLat Float?
   fromLon Float?
@@ -122,6 +128,10 @@ model Segment {
 
   incidents DelayIncident[]
 
-  @@unique([routeId, direction, fromStation, toStation])
+  // No composite unique on names: distinct surface stops can share a stop_name
+  // (the same corner appears on both sides of the street). Identity lives in the
+  // primary key, which encodes stop ids for surface and station names for subway.
   @@index([routeId, direction, sequence])
+  @@index([mode, routeId])
+  @@index([toStopId])
 }
