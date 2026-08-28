@@ -196,3 +196,29 @@ tied-ranks artifact. **How often a segment costs you time is predictable; how lo
 wait once it does is not.** This is the finding that reshaped the engine contract (D-11).
 
 Reproduce with `npm run audit:stability`.
+
+### E-D11 — Surface coverage reaches 76.6%, and the gap is not what it looked like
+Resolving surface delay locations against GTFS (measured 2026-08-28,
+`npm run audit:coverage`), by share of surface delay-minutes:
+
+| bucket | share | |
+|---|---|---|
+| intersection resolved | 57.4% | |
+| station resolved | 17.9% | |
+| landmark resolved | 1.3% | |
+| loop (turnaround) | 3.0% | excluded, D-06 |
+| garage / division | 1.8% | excluded, D-06 |
+| **unresolved** | **18.7%** | the real gap |
+
+**Raw coverage 76.6%** against the 66.1% baseline in E-D07; **addressable coverage 80.6%**
+once non-rider locations are removed.
+
+*Why it matters:* nearly 5% of surface delay is logged at garages and loops — places no
+rider is ever waiting. Counting those as geocoding failures understates coverage;
+counting them as covered would put phantom risk on the map. They are a third category,
+not a gap (D-12).
+
+The residual 18.7% is largely irreducible: `RENFORTH STATION` is a MiWay terminal absent
+from TTC GTFS, and pairs such as `YONGE AND YONGE BLVD` cannot be told apart once
+street-type suffixes are stripped. Pushing the matcher further trades false matches for
+coverage, which P-08 forbids.

@@ -6,3 +6,4 @@ data/*.db-journal
 *.log
 .env
 .DS_Store
+src/scratch/

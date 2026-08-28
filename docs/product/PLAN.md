@@ -84,7 +84,7 @@ Non-negotiable properties, each from a principle:
 | **M2** | **`Min Gap` data audit — DONE, PASSED** | **Q-1 answered: is the field trustworthy?** | **everything** |
 | **M3** | Segment model — **DONE** | Network decomposed into inter-stop segments with stable IDs | M4 |
 | **M4** | Reliability scoring — **DONE** | Engine contract above satisfied, incl. terminal/yard correction | M5, M6 |
-| **M5** | Surface geocoding | Beat 66% baseline (`E-D07`); publish the achieved rate | M6 (bus) |
+| **M5** | Surface geocoding — **DONE** | Beat 66% baseline (`E-D07`); publish the achieved rate | M6 (bus) |
 | **M6** | J-04 segment map | Explore any route's reliability by segment, hour, day | M7 |
 | **M7** | J-01 departure advice | "Leave by X for 90% confidence" | ship |
 
@@ -108,7 +108,7 @@ primary metric. Run `npm run audit:gap` to reproduce.
 | Criterion | Target | Why |
 |---|---|---|
 | Segment score stability | rho > 0.5 split-half at segment granularity | **MET: 0.681 on exposure.** Severity failed at 0.10, reshaping the contract (D-11) |
-| Surface coverage | > 66% of delay-minutes geocoded | Beat the baseline in `E-D07` |
+| Surface coverage | > 66% of delay-minutes geocoded | **MET: 76.6% raw, 80.6% addressable** (E-D11) |
 | Honest uncertainty | 100% of low-sample segments marked, none rendered as healthy | `P-03` |
 | Rider validation | 5+ riders confirm a segment we flagged matches their experience | `D-08`, `P-08` |
 
@@ -128,6 +128,6 @@ interface can honestly show, and `D-08` (rider interviews) can proceed alongside
 | Risk | Impact | Mitigation |
 |---|---|---|
 | `Min Gap` unreliable (Q-1) | Reverses `D-02`, core metric | M2 gate before any modelling |
-| Geocoding stalls at 66% (Q-2) | Bus segments too sparse; `D-04` at risk | M5 measured explicitly; fall back to route-level for sparse segments |
+| ~~Geocoding stalls at 66%~~ | — | **Resolved: 76.6% achieved (E-D11)** |
 | Segment scores unstable | `D-01` fails, product thesis dies | Split-half test at segment level in M4 |
 | Personas wrong (`D-08`) | M6/M7 build the wrong interface | Interviews in parallel, before M6 |

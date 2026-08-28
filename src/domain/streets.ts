@@ -22,11 +22,15 @@ const NOISE = new Set([
  * "King St West" -> "KING", "Lawrence Ave E" -> "LAWRENCE"
  */
 export function streetToken(name: string): string | null {
-  const tokens = name
+  return streetTokens(name)[0] ?? null;
+}
+
+/** All identifying tokens, in order. */
+export function streetTokens(name: string): string[] {
+  return name
     .toUpperCase()
     .split(/[^A-Z0-9]+/)
     .filter((t) => t.length > 0 && !NOISE.has(t));
-  return tokens[0] ?? null;
 }
 
 /**
@@ -34,10 +38,19 @@ export function streetToken(name: string): string | null {
  * and "Parliament St at King St East" produce the same key.
  */
 export function intersectionKey(a: string, b: string): string | null {
-  const ta = streetToken(a);
-  const tb = streetToken(b);
-  if (ta === null || tb === null || ta === tb) return null;
-  return [ta, tb].sort().join("|");
+  const tokensA = streetTokens(a);
+  const tokensB = streetTokens(b);
+  if (tokensA.length === 0 || tokensB.length === 0) return null;
+
+  const [ta, tb] = [tokensA[0]!, tokensB[0]!];
+  if (ta !== tb) return [ta, tb].sort().join("|");
+
+  // Streets sharing a first token — "Wilson Ave at Wilson Heights Blvd" — would
+  // otherwise collapse to a self-pair and be discarded. Fall back to the full
+  // names, which still differ.
+  const fullA = tokensA.join(" ");
+  const fullB = tokensB.join(" ");
+  return fullA === fullB ? null : [fullA, fullB].sort().join("|");
 }
 
 /** Splits a GTFS stop name like "Danforth Rd at Kennedy Rd" into its street pair. */

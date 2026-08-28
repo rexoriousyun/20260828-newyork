@@ -175,6 +175,22 @@ forbids.
 **Reversed if:** a larger window, or normalising by service volume, makes per-segment
 severity persist. Worth re-testing when the archive extends past 2024.
 
+## D-12 — Garages and loops are excluded, and coverage is reported two ways `ACCEPTED`
+**Cites:** P-03, P-04, P-08 · **Evidence:** E-D11 · **Extends:** D-06
+
+Surface locations are classified before geocoding. Garages and divisions are non-revenue
+and excluded outright; loops are turnarounds and flagged. Coverage is published as both a
+**raw** rate (share of all surface delay placed) and an **addressable** rate (share of
+rider-facing delay placed).
+
+*Why:* garages are the surface equivalent of subway yards, and loops of subway terminals —
+the same attribution artifact E-D03 identified, wearing different names. Folding them into
+either "covered" or "failed" misleads in opposite directions. Two rates with the exclusion
+declared is the only honest presentation.
+
+**Reversed if:** riders turn out to experience meaningful waiting at loops, which would
+make loops ordinary segments rather than turnarounds.
+
 ---
 
 ## Open questions
@@ -182,7 +198,7 @@ severity persist. Worth re-testing when the archive extends past 2024.
 | # | Question | Blocks | Owner |
 |---|---|---|---|
 | ~~Q-1~~ | ~~Is `Min Gap` recorded reliably enough to build on?~~ | — | **Closed 2026-08-28: yes** |
-| Q-2 | Can surface geocoding beat 66%? | D-04 | engineering |
+| ~~Q-2~~ | ~~Can surface geocoding beat 66%?~~ | — | **Closed 2026-08-28: yes, 76.6%** |
 | Q-3 | Do riders want a verdict or the evidence? | D-05 | D-08 |
 | Q-5 | Does per-segment severity persist over a longer window? | D-11 | data, later |
 | Q-4 | Is J-02 (at-stop) the only moment people open an app? | D-03 | D-08 |

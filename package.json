@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "audit:stability": "tsx src/audit/segment-stability.ts"
+    "audit:stability": "tsx src/audit/segment-stability.ts",
+    "audit:coverage": "tsx src/audit/surface-coverage.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
