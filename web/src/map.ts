@@ -1,48 +1,86 @@
 /**
- * Map layer construction.
+ * The map's visual encoding.
  *
- * Kept out of the component so the colour rules — which encode P-03 — are
- * readable in one place rather than buried in an effect.
+ * Three states, each carrying two channels — colour and pattern/weight — so no
+ * state is ever expressed by colour alone (design concept; P-03).
+ *
+ * Colour is reserved: the basemap is greyed server-side and typical segments are
+ * neutral ink, so the single red marks only the stretches that cost riders time.
  */
 
-export interface Band {
-  max: number;
-  color: string;
-  label: string;
+/**
+ * Minutes of rider waiting caused per month, above which a stretch is called
+ * unreliable. 45 is the 75th percentile of scorable segments — "the worst
+ * quarter of what we can measure" — chosen so colour stays reserved rather than
+ * covering most of the map.
+ */
+export const UNRELIABLE_THRESHOLD = 45;
+
+export interface Tokens {
+  typical: string;
+  unreliable: string;
+  unknown: string;
+  selection: string;
+}
+
+/** Validated for CVD separation, normal-vision floor and 3:1 contrast in both modes. */
+export const LIGHT: Tokens = {
+  typical: "#33332f",
+  unreliable: "#b03217",
+  unknown: "#87877f",
+  selection: "#1f6feb",
+};
+
+export const DARK: Tokens = {
+  typical: "#e5e5df",
+  unreliable: "#e35f3f",
+  unknown: "#8a8a83",
+  selection: "#6ea8ff",
+};
+
+export function tokensFor(dark: boolean): Tokens {
+  return dark ? DARK : LIGHT;
+}
+
+/** Colour by state. Unknown never receives the reserved hue. */
+export function lineColorExpression(t: Tokens): unknown {
+  return [
+    "case",
+    ["==", ["get", "confidence"], "unknown"],
+    t.unknown,
+    [">=", ["coalesce", ["get", "gapMinutesPerMonth"], 0], UNRELIABLE_THRESHOLD],
+    t.unreliable,
+    t.typical,
+  ];
 }
 
 /**
- * Exposure bands in gap-minutes per month, as fixed thresholds rather than a
- * per-route relative scale. A rider comparing two routes needs the colours to
- * mean the same thing on both; normalising within a route would paint its
- * least-bad segment green even when the whole route is bad.
- */
-export const BANDS: Band[] = [
-  { max: 15, color: "#3f9e6a", label: "under 15" },
-  { max: 40, color: "#c9a227", label: "15-40" },
-  { max: 80, color: "#e08a3c", label: "40-80" },
-  { max: 140, color: "#d4593f", label: "80-140" },
-  { max: Infinity, color: "#a8322a", label: "140+" },
-];
-
-export const UNKNOWN_COLOR = "#9a9a94";
-
-/**
- * MapLibre colour expression for a segment line.
+ * Weight is the second channel: unreliable stretches are heavier, not just redder.
  *
- * Unknown segments are NOT given a pale version of the scale — a lighter green
- * reads as "mildly fine". They get a distinct grey, and the layer that draws
- * them is dashed, so absence of data is a different visual kind rather than a
- * low value (P-03).
+ * `zoom` may only feed a top-level `step` or `interpolate`, so the per-feature
+ * factor cannot wrap the ramp — it goes inside each stop's output instead.
  */
-export function lineColorExpression(): unknown {
-  const steps: unknown[] = ["step", ["get", "gapMinutesPerMonth"], BANDS[0]!.color];
-  for (const b of BANDS.slice(0, -1)) {
-    steps.push(b.max, BANDS[BANDS.indexOf(b) + 1]!.color);
-  }
-  return ["case", ["==", ["get", "confidence"], "unknown"], UNKNOWN_COLOR, steps];
+export function lineWidthExpression(): unknown {
+  const heavier = (base: number): unknown => [
+    "case",
+    [">=", ["coalesce", ["get", "gapMinutesPerMonth"], 0], UNRELIABLE_THRESHOLD],
+    Number((base * 1.45).toFixed(2)),
+    base,
+  ];
+  return [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    9, heavier(3),
+    12, heavier(4.5),
+    14, heavier(6),
+    17, heavier(10),
+  ];
 }
 
-export function bandFor(minutes: number): Band {
-  return BANDS.find((b) => minutes < b.max) ?? BANDS[BANDS.length - 1]!;
+export type State = "typical" | "unreliable" | "unknown";
+
+export function stateOf(confidence: string, minutes: number | null): State {
+  if (confidence === "unknown") return "unknown";
+  return (minutes ?? 0) >= UNRELIABLE_THRESHOLD ? "unreliable" : "typical";
 }

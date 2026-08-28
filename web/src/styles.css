@@ -1,5 +1,10 @@
 :root {
   color-scheme: light dark;
+  /* Encoding tokens — validated for CVD, normal-vision separation and 3:1
+     contrast in both modes. See docs/design/01-system.md. */
+  --typical: #33332f;
+  --unreliable: #b03217;
+  --unknown: #87877f;
   --panel: #ffffff;
   --ink: #1a1a18;
   --muted: #6b6b63;
@@ -9,6 +14,9 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
+    --typical: #e5e5df;
+    --unreliable: #e35f3f;
+    --unknown: #8a8a83;
     --panel: #1e1e24;
     --ink: #ececf0;
     --muted: #9a9aa4;
@@ -90,12 +98,16 @@ select {
 .coverage-line strong { color: var(--ink); font-variant-numeric: tabular-nums; }
 .legend { display: flex; gap: 11px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
 .legend i {
-  display: inline-block; width: 16px; height: 4px; border-radius: 2px;
-  vertical-align: 2px; margin-right: 5px;
+  display: inline-block; width: 18px; height: 3px; border-radius: 2px;
+  vertical-align: 3px; margin-right: 6px;
 }
-/* Mirrors the dashed line on the map, so the legend teaches the encoding. */
-.legend i.dash {
-  background: repeating-linear-gradient(90deg, var(--muted) 0 3px, transparent 3px 6px) !important;
+.legend i.k-typical { background: var(--typical); }
+/* Heavier, mirroring the map: weight is the second channel, so the swatch is
+   not distinguished by colour alone. */
+.legend i.k-unreliable { background: var(--unreliable); height: 5px; vertical-align: 2px; }
+/* Dashed, mirroring the map, so the legend teaches the encoding. */
+.legend i.k-unknown {
+  background: repeating-linear-gradient(90deg, var(--unknown) 0 4px, transparent 4px 7px);
 }
 
 .maplibregl-ctrl-top-right { margin-top: 108px; }

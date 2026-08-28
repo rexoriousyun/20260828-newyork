@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { MapView } from "./MapView.js";
-import { BANDS, UNKNOWN_COLOR, bandFor } from "./map.js";
+import { UNRELIABLE_THRESHOLD, stateOf } from "./map.js";
 import {
   fetchRoutes,
   fetchRouteMap,
@@ -41,8 +41,17 @@ function Sheet({ feature, onClose }: { feature: SegmentFeature; onClose: () => v
       ) : (
         <>
           <p className="answer">
-            Costs riders <strong>{Math.round(p.gapMinutesPerMonth ?? 0)} minutes</strong> of waiting
-            a month.
+            {stateOf(p.confidence, p.gapMinutesPerMonth) === "unreliable" ? (
+              <>
+                Costs riders <strong>{Math.round(p.gapMinutesPerMonth ?? 0)} minutes</strong> of
+                waiting a month — among the worst stretches we can measure.
+              </>
+            ) : (
+              <>
+                Usually fine. Costs riders{" "}
+                <strong>{Math.round(p.gapMinutesPerMonth ?? 0)} minutes</strong> of waiting a month.
+              </>
+            )}
           </p>
           {p.confidence === "low" && (
             <p className="caveat">Based on limited data — treat as a rough signal.</p>
@@ -148,16 +157,18 @@ export function App(): JSX.Element {
               <strong>{data.coverage.scored}</strong> of <strong>{data.coverage.segments}</strong>{" "}
               stretches have enough data
             </div>
-            <div className="legend">
-              {BANDS.map((b) => (
-                <span key={b.label}>
-                  <i style={{ background: b.color }} />
-                  {b.label}
-                </span>
-              ))}
+                  <div className="legend">
               <span>
-                <i className="dash" style={{ background: UNKNOWN_COLOR }} />
-                no data
+                <i className="k-typical" />
+                typical
+              </span>
+              <span>
+                <i className="k-unreliable" />
+                costs riders time
+              </span>
+              <span>
+                <i className="k-unknown" />
+                not enough data
               </span>
             </div>
             <div className="quiet">Minutes of waiting caused per month. Tap a line.</div>

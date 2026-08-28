@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Map as MlMap, NavigationControl, GeolocateControl, type GeoJSONSource, type MapMouseEvent } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { lineColorExpression, UNKNOWN_COLOR } from "./map.js";
+import { lineColorExpression, lineWidthExpression, tokensFor } from "./map.js";
 import type { RouteMap, SegmentFeature } from "./api.js";
 
 /** Served by our own tile proxy — the client never contacts the basemap host. */
@@ -31,6 +31,8 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
     m.addControl(new NavigationControl({ showCompass: false }), "top-right");
     m.addControl(new GeolocateControl({ trackUserLocation: true }), "top-right");
 
+    const tok = tokensFor(window.matchMedia("(prefers-color-scheme: dark)").matches);
+
     m.on("load", () => {
       m.addSource(SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
 
@@ -43,7 +45,7 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
         paint: { "line-width": 22, "line-opacity": 0 },
       });
 
-      // Known segments, coloured by exposure.
+      // Known segments: neutral ink, or the one reserved colour when unreliable.
       m.addLayer({
         id: "segments-known",
         type: "line",
@@ -51,14 +53,14 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
         filter: ["!=", ["get", "confidence"], "unknown"],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": lineColorExpression() as never,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 3.5, 12, 5, 14, 7, 17, 11],
-          "line-opacity": 0.9,
+          "line-color": lineColorExpression(tok) as never,
+          "line-width": lineWidthExpression() as never,
         },
       });
 
-      // Unknown segments are dashed and grey — a different visual kind, not a
-      // paler shade of fine (P-03).
+      // Unknown segments are dashed — a different visual kind, not a paler shade
+      // of fine. Pattern is the second channel, so this survives greyscale and
+      // colour-vision deficiency (P-03).
       m.addLayer({
         id: "segments-unknown",
         type: "line",
@@ -66,10 +68,9 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
         filter: ["==", ["get", "confidence"], "unknown"],
         layout: { "line-cap": "butt", "line-join": "round" },
         paint: {
-          "line-color": UNKNOWN_COLOR,
+          "line-color": tok.unknown,
           "line-width": ["interpolate", ["linear"], ["zoom"], 9, 2.5, 12, 3.5, 14, 5, 17, 8],
-          "line-dasharray": [2, 2],
-          "line-opacity": 0.75,
+          "line-dasharray": [1.6, 1.8],
         },
       });
 
@@ -79,7 +80,7 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
         source: SRC,
         filter: ["==", ["get", "segmentId"], "__none__"],
         layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#1f6feb", "line-width": 9, "line-opacity": 0.55 },
+        paint: { "line-color": tok.selection, "line-width": 10, "line-opacity": 0.4 },
       });
 
       m.on("click", "segments-hit", (e: MapMouseEvent & { features?: unknown[] }) => {
