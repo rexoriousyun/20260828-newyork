@@ -28,6 +28,8 @@ which no existing tool publishes. Reliability-aware TTC routing already exists
 | `docs/ux/04-personas.md` | Who we build for — `U-02`, `U-04`, `U-05`, **provisional** |
 | `docs/ux/05-journeys.md` | Moments of need (`J-01`..`J-05`) |
 | `docs/ux/06-decisions.md` | What we chose and what would reverse it (`D-*`) |
+| `docs/ux/07-flows.md` | Screen-level user flows (`F-*`), built vs proposed |
+| `docs/architecture/SYSTEM.md` | Data flow, filtering funnel, scoring model, audit gates |
 | `docs/product/PLAN.md` | v1 scope, milestones, engine contract |
 | `docs/portfolio/CASE-STUDY.md` | Portfolio narrative |
 | `src/` | Engine: ingest, domain, api, audits |
