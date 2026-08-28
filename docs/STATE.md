@@ -25,8 +25,8 @@ which no existing tool publishes. Reliability-aware TTC routing already exists
 | `docs/ux/01-evidence.md` | Every factual claim, with source and date (`E-*`) |
 | `docs/ux/02-problems.md` | Rider problems, ranked (`PR-*`) |
 | `docs/ux/03-principles.md` | Design rules derived from evidence (`P-*`) |
-| `docs/ux/04-personas.md` | Who we build for (`U-01`..`U-05`) — **provisional** |
-| `docs/ux/05-journeys.md` | Moments of need (`J-*`) |
+| `docs/ux/04-personas.md` | Who we build for — `U-02`, `U-04`, `U-05`, **provisional** |
+| `docs/ux/05-journeys.md` | Moments of need (`J-01`..`J-05`) |
 | `docs/ux/06-decisions.md` | What we chose and what would reverse it (`D-*`) |
 | `docs/product/PLAN.md` | v1 scope, milestones, engine contract |
 | `docs/portfolio/CASE-STUDY.md` | Portfolio narrative |
@@ -86,6 +86,26 @@ would reverse it.
 3. **Delay data points at terminals and yards, not at rider risk** (E-D03). 20.7% of
    subway delay-minutes land on 12 of ~70 stations, because that is where the log entry is
    written. Shipping the obvious map would have been confidently wrong. See `D-06`, `D-12`.
+
+## Personas and journeys
+
+Three personas, split on the axis the research supports — **does the rider have an
+alternative?** IDs are non-contiguous because U-01 was merged into U-02 and U-03 demoted to
+a hypothesis; the gaps are deliberate, so existing citations stay valid.
+
+| | rider | needs | journeys |
+|---|---|---|---|
+| **U-02** | captive — one route, no car | a **forecast** | J-01, J-02, J-03 |
+| **U-05** | downtown — can walk | a **comparison** | J-05 |
+| **U-04** | access-constrained — binary failure | a **constraint** | J-03 (named, unserved) |
+
+| | journey | built |
+|---|---|---|
+| J-01 | pre-trip: when do I leave? | no (M7) |
+| J-02 | at the stop: is it coming? | no — **most acute pain** |
+| J-03 | mid-trip disruption | no |
+| J-04 | exploratory: is this route always like this? | **yes (M6)** |
+| J-05 | downtown: transit or walk? | no |
 
 ## What is open
 
