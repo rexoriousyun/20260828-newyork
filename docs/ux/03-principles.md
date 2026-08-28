@@ -81,6 +81,42 @@ inherit that scepticism and cannot assert our way out of it.
 where we were wrong. We filter the 65% zero-minute non-events (E-D04) and say that we do.
 Where confidence is low we publish a wide range rather than a precise-looking lie.
 
+## P-09 — Hide the machinery; never hide the uncertainty
+**From:** PR-08, E-L10 · **Serves:** U-05, U-03, U-02
+
+Magic is best when it is hidden. The rider gets an answer, not a method. Everything behind
+it — sample sizes, the observation window, filter lists, percentile bases, why severity is
+pooled — stays out of the way **until the rider hits a moment where they need it**, and is
+then one tap away, complete and unhedged.
+
+*Why:* the answer is the product. A rider standing at a stop in winter, or deciding
+whether to walk, is not reading methodology. And our audience is not analysts — 66.6% of
+TTC riders are equity-deserving (E-L10), and an interface that demands interpretation
+excludes people before it helps them.
+
+*In practice:* the primary view carries the answer and nothing else. Derivation lives
+behind a "why this number" affordance that is visible but quiet. Nothing is deleted;
+everything is deferred.
+
+**But there is a line, and it is not negotiable.**
+
+Hiding *how we know* is good design. Hiding *that we do not know* is a lie. These look
+similar in a mock and are opposites in the hand:
+
+| Hide until asked | Never hide |
+|---|---|
+| Sample size, observation window | That a segment has no data (P-03) |
+| Which filters were applied | That confidence is low |
+| Why severity is pooled, not per-segment | That severity is not segment-specific when a number is shown |
+| Persistence statistics, methodology | That a figure is an estimate, not a promise |
+
+The right-hand column is not machinery. It is the claim itself, and a rider who acts on a
+number we quietly did not stand behind is worse off than one who saw a hatched bar.
+
+Riders already distrust transit numbers because official metrics "hide more than they
+reveal" (PR-08, E-L06). **Hiding the method earns trust; hiding the uncertainty is the
+exact failure they have learned to expect.**
+
 ---
 
 ## Tensions to resolve deliberately
@@ -92,3 +128,6 @@ Where confidence is low we publish a wide range rather than a precise-looking li
   screen into caveats. Resolved by making unknown a *visual* state rather than prose.
 - **P-08 (falsifiability) vs simplicity.** Traceability lives in a detail layer, not the
   primary view.
+- **P-09 (hide the machinery) vs P-03 and P-08.** Resolved by the table in P-09: method is
+  deferred, uncertainty never is. If a design cannot tell those apart, it has not resolved
+  the tension — it has picked a side.

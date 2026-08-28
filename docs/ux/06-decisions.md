@@ -71,7 +71,7 @@ bus-dependent. The subway is a convenient *development substrate*, not the marke
 bus segments too sparse to score honestly.
 
 ## D-05 — Verdict first, distribution one level down `ACCEPTED`
-**Cites:** P-01, P-06 · **Personas:** U-01, U-03
+**Cites:** P-01, P-06, P-09 · **Personas:** U-01, U-03, U-05
 
 Primary view gives a single actionable answer. The distribution, confidence and history
 live one interaction beneath it.
@@ -80,8 +80,13 @@ live one interaction beneath it.
 U-01 will not trust a bare number. Layering serves both without averaging them into
 something that serves neither.
 
-**Reversed if:** testing shows U-01 does not trust a verdict whose uncertainty is hidden,
-even one tap away.
+> **Sharpened by P-09.** The layering defers the *method*, not the *uncertainty*. A verdict
+> may hide its sample size; it may never hide that it is low-confidence. The current detail
+> view puts methodology in front of the rider before they have asked — that is a P-09
+> violation and is being corrected.
+
+**Reversed if:** testing shows U-01 does not trust a verdict whose method is hidden, even
+one tap away. Note this is Q-C in D-08 and is genuinely open.
 
 ## D-06 — Terminal and yard incidents are modelled separately `ACCEPTED`
 **Cites:** P-04 · **Problems:** PR-09 · **Evidence:** E-D03
@@ -266,6 +271,12 @@ router does not.
 > reliable way from A to B. The A-to-B framing imports an assumption from cities with
 > redundancy. The underlying goal — expose which lanes are unreliable — is unchanged and is
 > better served by a forecast.
+
+> **Downtown is the exception.** The core has 321 stops across 26 routes in the
+> King/Queen/Dundas box against 131 across 17 in an equivalent Scarborough box, plus
+> walking and bike share. For U-05, "which option" is a real question and comparison is
+> worth building. Treat it as a downtown feature, not a citywide one — building it
+> citywide would import the New York assumption through the back door.
 
 **Reversed if:** the Ontario Line opens and gives downtown genuine parallel capacity, or GO
 coverage expands enough that most riders have a real second option.

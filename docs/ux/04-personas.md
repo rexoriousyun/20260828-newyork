@@ -32,9 +32,13 @@ minutes average** against a 7.8-minute mean.
 *Consequence for us:* "your bus is 26 minutes away" is information in July and a safety
 decision in January. Same number, different stakes.
 
-**3. There is usually no second option.**
+**3. There is usually no second option — except downtown.**
 The TTC's own CEO calls the system **"binary"** (E-L12). No express tracks, no parallel
 downtown line, weekend closures sometimes with no shuttle at all.
+
+The core is the exception: **321 stops across 26 routes** in the King/Queen/Dundas box
+against 131 across 17 in an equivalent Scarborough box, plus walking and bike share. U-05
+has choices; U-02 does not.
 
 *Consequence for us:* this is where the New York analogy breaks, and it is the most
 important difference. Toronto is like New York in density, commute length and transit
@@ -137,6 +141,49 @@ it is not — potentially stranding them mid-journey, in a system with no second
 - **Abandons us if:** we route them through a station we cannot verify is accessible. Once
 - **Anti-goal:** never blend accessibility into a composite score. It is a constraint
 
+## U-05 — The Downtown Rider *(primary)*
+**"The app says 9 minutes. I can walk it in 20. Which is it?"**
+
+Lives or works inside the core — King, Queen, Dundas, the condo corridors along Yonge and
+the waterfront. Rides streetcars for trips of 10–25 minutes. Often a student (U of T, TMU,
+OCAD) or works service, hospitality or an office job with some flexibility.
+
+Their routes are the worst-performing surface routes in the system, and it is not close:
+
+| route | rider-wait minutes |
+|---|---|
+| 504 King | 105,302 |
+| 501 Queen | 103,678 |
+| 505 Dundas | 79,223 |
+| 506 Carlton | 74,073 |
+
+Mean wait per streetcar incident is **32.1 minutes** — not far off the bus figure of 38.0.
+Downtown is not spared; it is differently shaped.
+
+**This is the one persona with real alternatives.** In the King/Queen/Dundas box there are
+**321 stops across 26 routes**; the equivalent Scarborough box has 131 stops across 17.
+Parallel streetcar routes are blocks apart, bike share is dense, and most core trips are
+walkable — usually the decisive fact, since a 25-minute walk beats an unknown wait plus a
+crawling streetcar.
+
+They are also the rider most likely to be *misled* by an optimistic prediction, because
+they have a real alternative they could have taken and didn't.
+
+- **Optimises:** the choice between streetcar, walking, bike and parallel route — the only
+  persona for whom "which option" is genuinely the question
+- **Problems:** PR-01, PR-02, PR-03, PR-07
+- **Currently does:** stares at a countdown that keeps resetting, then walks anyway,
+  having lost 10 minutes deciding
+- **Needs from us:** a fast comparison against the walk. "18 min typical wait, 22 min walk"
+  ends the deliberation
+- **Abandons us if:** we are slower to consult than looking up the street
+- **Anti-goal:** never present the streetcar as the default because it is the transit
+  option. Sometimes the honest answer is "walk" — and a transit app that says so earns more
+  trust than one that never does
+- **Where they complicate D-13:** the forecast framing holds system-wide, but downtown is
+  precisely where routing *is* meaningful. Comparison is a downtown feature, not a
+  citywide one
+
 ---
 
 ## Who we are not building for (yet)
@@ -153,6 +200,7 @@ it is not — potentially stranding them mid-journey, in a system with no second
 | **U-02** Scarborough bus | partially — segments exist and rank | 86% unknown (E-D12); no at-stop view; nothing seasonal |
 | **U-01** deadline commuter | not yet — M7 unbuilt | exposure published; "leave by" not calculated |
 | **U-03** regional commuter | no | needs a verdict; no GO data ingested |
+| **U-05** downtown rider | partially — streetcar segments rank | no walk comparison, no realtime |
 | **U-04** access-constrained | **not at all** | `D-07` decided, nothing implemented, no elevator data |
 
 U-04 is the uncomfortable one: a decision recorded that the build has not honoured.

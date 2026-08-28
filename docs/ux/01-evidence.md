@@ -320,3 +320,24 @@ per rider.
 *Why it matters:* in corridors GO actually serves, riders now have a genuine alternative
 that used to cost extra. It is the one place where Toronto has meaningful redundancy — and
 the one place where "go another way" is honest advice rather than a downtown assumption.
+
+### E-D14 — Downtown is the one place with real alternatives, and its routes are the worst
+Streetcar routes by rider-wait minutes: **504 King 105,302**, 501 Queen 103,678,
+505 Dundas 79,223, 506 Carlton 74,073. Mean wait per streetcar incident is **32.1 minutes**
+against 38.0 for buses — downtown is not spared, only differently shaped.
+
+But alternative density differs sharply. Counting stops and distinct routes in equivalent
+bounding boxes:
+
+| | stops | distinct routes |
+|---|---|---|
+| Downtown core (King/Queen/Dundas) | 321 | **26** |
+| Scarborough (Markham/Lawrence) | 131 | **17** |
+
+Downtown also has walking and bike share as genuine substitutes for a 10–25 minute trip.
+
+*Why it matters:* it qualifies D-13. The forecast framing holds citywide, but the core is
+where "which option should I take" is a real question — so comparison is a **downtown
+feature, not a citywide one**. It also gives U-05 its defining behaviour: the walk is
+usually the decisive alternative, and a transit app willing to say "walk" earns more trust
+than one that never does.

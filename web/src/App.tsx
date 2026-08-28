@@ -48,17 +48,17 @@ function Bar({ segment }: { segment: SegmentReliability }): JSX.Element {
 
 function Detail({ segment }: { segment: SegmentReliability }): JSX.Element {
   const { exposure, severity, sample, causes, confidence } = segment;
+  const [showWhy, setShowWhy] = useState(false);
 
+  // Not knowing is never deferred. P-09 hides the method, never the uncertainty.
   if (confidence === "unknown") {
     return (
       <div className="detail">
-        <p style={{ margin: 0 }}>
-          Only {sample.incidents} recorded {sample.incidents === 1 ? "incident" : "incidents"} on
-          this segment{sample.filters.length > 1 ? " under these filters" : ""}. That is not enough
-          to describe how it behaves.
-        </p>
-        <p className="note">
-          Shown as unknown rather than as reliable. Absence of data is not evidence of good service.
+        <p className="answer">We don&rsquo;t have enough data on this stretch to say.</p>
+        <p className="quiet">
+          {sample.incidents} recorded {sample.incidents === 1 ? "incident" : "incidents"}
+          {sample.filters.length > 1 ? " under these filters" : ""} — not enough to describe how
+          it behaves. Shown as unknown rather than as reliable.
         </p>
       </div>
     );
@@ -66,52 +66,74 @@ function Detail({ segment }: { segment: SegmentReliability }): JSX.Element {
 
   return (
     <div className="detail">
-      <dl>
-        <dt>Wait caused</dt>
-        <dd>
-          <strong>{exposure?.gapMinutesPerMonth ?? 0} min</strong> per month
-        </dd>
-        <dt>Incidents</dt>
-        <dd>{exposure?.incidentsPerMonth ?? 0} per month</dd>
-        <dt>Sample</dt>
-        <dd>
-          {sample.incidents.toLocaleString()} incidents
-          {sample.window ? `, ${sample.window.start} to ${sample.window.end}` : ""}
-        </dd>
-        <dt>Confidence</dt>
-        <dd>{confidence}</dd>
-      </dl>
+      {/* The answer, alone. Everything that produced it waits until asked. */}
+      <p className="answer">
+        Costs riders <strong>{Math.round(exposure?.gapMinutesPerMonth ?? 0)} minutes</strong> of
+        waiting a month
+        {severity !== null && (
+          <>
+            , typically <strong>{severity.p50} min</strong> at a time
+          </>
+        )}
+        .
+      </p>
 
-      {severity !== null && (
-        <>
-          <h3>Wait once it happens</h3>
-          <div>
-            typically <strong>{severity.p50} min</strong>, {severity.p90} min at the 90th
-            percentile, {severity.p95} min at the 95th
-          </div>
-          <p className="note">
-            These percentiles are typical of {severity.basis === "pooled-subway" ? "the subway" : "surface routes"}{" "}
-            as a whole, not of this segment. How <em>often</em> a segment costs you time persists
-            over time; how <em>long</em> the wait runs does not, so a per-segment figure would imply
-            a precision the data does not support.
-          </p>
-        </>
+      {/* Low confidence is part of the claim, not part of the method. Always shown. */}
+      {confidence === "low" && (
+        <p className="caveat">Based on limited data — treat as a rough signal.</p>
       )}
 
-      {causes.length > 0 && (
-        <>
-          <h3>Most common causes</h3>
-          <ul>
-            {causes.map((c) => (
-              <li key={c.code}>
-                {c.description.toLowerCase()} — {Math.round(c.share * 100)}%
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      <button className="why" onClick={() => setShowWhy(!showWhy)} aria-expanded={showWhy}>
+        {showWhy ? "Hide details" : "Why this number?"}
+      </button>
 
-      <p className="note">Filters applied: {sample.filters.join("; ")}</p>
+      {showWhy && (
+        <div className="why-body">
+          <dl>
+            <dt>Incidents</dt>
+            <dd>{exposure?.incidentsPerMonth ?? 0} per month</dd>
+            <dt>Sample</dt>
+            <dd>
+              {sample.incidents.toLocaleString()} incidents
+              {sample.window ? `, ${sample.window.start} to ${sample.window.end}` : ""}
+            </dd>
+            <dt>Confidence</dt>
+            <dd>{confidence}</dd>
+          </dl>
+
+          {severity !== null && (
+            <>
+              <h3>Wait once it happens</h3>
+              <div>
+                typically {severity.p50} min, {severity.p90} at the 90th percentile,{" "}
+                {severity.p95} at the 95th
+              </div>
+              <p className="quiet">
+                These percentiles describe{" "}
+                {severity.basis === "pooled-subway" ? "the subway" : "surface routes"} as a whole,
+                not this segment. How <em>often</em> a segment costs you time persists over time;
+                how <em>long</em> the wait runs does not, so a per-segment figure would imply a
+                precision the data does not support.
+              </p>
+            </>
+          )}
+
+          {causes.length > 0 && (
+            <>
+              <h3>Most common causes</h3>
+              <ul>
+                {causes.map((c) => (
+                  <li key={c.code}>
+                    {c.description.toLowerCase()} — {Math.round(c.share * 100)}%
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <p className="quiet">Filters applied: {sample.filters.join("; ")}</p>
+        </div>
+      )}
     </div>
   );
 }

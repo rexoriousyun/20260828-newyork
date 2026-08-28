@@ -25,7 +25,7 @@ which no existing tool publishes. Reliability-aware TTC routing already exists
 | `docs/ux/01-evidence.md` | Every factual claim, with source and date (`E-*`) |
 | `docs/ux/02-problems.md` | Rider problems, ranked (`PR-*`) |
 | `docs/ux/03-principles.md` | Design rules derived from evidence (`P-*`) |
-| `docs/ux/04-personas.md` | Who we build for (`U-*`) — **provisional** |
+| `docs/ux/04-personas.md` | Who we build for (`U-01`..`U-05`) — **provisional** |
 | `docs/ux/05-journeys.md` | Moments of need (`J-*`) |
 | `docs/ux/06-decisions.md` | What we chose and what would reverse it (`D-*`) |
 | `docs/product/PLAN.md` | v1 scope, milestones, engine contract |
@@ -66,6 +66,8 @@ would reverse it.
 | TTC riders who are equity-deserving | **66.6%** | E-L10 |
 | Scarborough transit access score | **20.97** vs 102.8 affluent | E-L10 |
 | Ice/snow incident average duration | **68.8 min** | E-D02 |
+| Downtown vs Scarborough route density | **26 vs 17** routes per box | E-D14 |
+| Worst surface route by rider-wait | **504 King**, 105,302 min | E-D14 |
 
 ## The three findings that reshaped the product
 
