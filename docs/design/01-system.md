@@ -39,9 +39,21 @@ Three states. Each carries **two channels**, never colour alone, per the design 
 
 | state | colour | second channel | meaning |
 |---|---|---|---|
-| **typical** | neutral ink | solid, base weight | we know, and it is unremarkable |
-| **unreliable** | reserved red | solid, heavier weight | we know, and it costs you |
-| **unknown** | neutral grey | **dashed** | we cannot say |
+| **typical** | neutral ink, flat | solid, base weight | we know, and it is unremarkable |
+| **unreliable** | reserved hue, **graded light→dark** | solid, heavier weight | we know, and it costs you — the darker, the worse |
+| **unknown** | neutral grey, flat | **dashed** | we cannot say |
+
+### Why only one state gradates
+
+A flat colour above the threshold hid real magnitude: 50 minutes a month and 200 minutes a
+month are not the same problem, and rendering them identically threw away information the
+data actually supports.
+
+So the gradient goes **inside** the reserved colour, and nowhere else. Typical stays flat
+because its whole message is "unremarkable" — grading it would spend attention on
+differences that do not matter. Unknown stays flat because it is not a magnitude at all.
+
+Colour still marks exactly one thing. Within that one thing, it now says *how much*.
 
 Unknown is deliberately *outside* the ramp, not at one end of it. It is a different kind of
 statement, not a low value.
@@ -52,17 +64,29 @@ statement, not a low value.
 |---|---|---|
 | surface | `#f2f1ee` | `#16161a` |
 | typical | `#33332f` | `#e5e5df` |
-| unreliable | `#b03217` | `#e35f3f` |
-| unknown | `#87877f` | `#8a8a83` |
+| unreliable (45 min) | `#d15f14` | `#f0913f` |
+| unreliable (mid) | `#bd4113` | `#e05a34` |
+| unreliable (170 min+) | `#a52a13` | `#cf3a34` |
+| unknown | `#6f6f68` | `#8a8a83` |
+
+The ramp spans 45 to 170 rider-wait minutes per month — the 95th percentile of segments
+above the threshold — and clamps beyond, so one 415-minute outlier cannot flatten the ramp
+for everything else.
 | selection | `#1f6feb` | `#6ea8ff` |
 
 **Validated, not eyeballed** (`dataviz` validator, all-pairs, both modes):
 
 | check | light | dark |
 |---|---|---|
-| CVD separation | PASS — ΔE 12.4 (protan) | PASS — ΔE 9.6 (protan) |
-| Normal-vision floor | PASS — ΔE 20.0 | PASS — ΔE 16.9 |
+| CVD separation, ramp end vs typical | PASS — ΔE 10.0 (protan) | PASS |
+| Normal-vision floor, ramp start vs unknown | PASS — ΔE 17.6 | PASS — ΔE 18.0 |
+| Ramp lightness monotonic | PASS — 2.25× span | PASS — 2.37× span |
 | Contrast vs surface | PASS — all ≥ 3:1 | PASS — all ≥ 3:1 |
+
+**Both ramp ends were set by the neutrals, not by taste.** A darker end collides with the
+typical ink under protanopia (ΔE 5.3 at `#6d1010`); a lighter start collides with the
+unknown grey for everyone (ΔE 13.9 at `#c9662a`, below the 15 floor that a dashed pattern
+does *not* excuse). The ramp lives in the gap between those two failures.
 
 The validator also reports two FAILs, both expected and both accepted: *lightness band* and
 *chroma floor* flag colours that "read gray". Ours are deliberately grey — that is rule 2.

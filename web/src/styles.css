@@ -3,8 +3,10 @@
   /* Encoding tokens — validated for CVD, normal-vision separation and 3:1
      contrast in both modes. See docs/design/01-system.md. */
   --typical: #33332f;
-  --unreliable: #b03217;
-  --unknown: #87877f;
+  --unreliable-1: #d15f14;
+  --unreliable-2: #bd4113;
+  --unreliable-3: #a52a13;
+  --unknown: #6f6f68;
   --panel: #ffffff;
   --ink: #1a1a18;
   --muted: #6b6b63;
@@ -15,7 +17,9 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --typical: #e5e5df;
-    --unreliable: #e35f3f;
+    --unreliable-1: #f0913f;
+    --unreliable-2: #e05a34;
+    --unreliable-3: #cf3a34;
     --unknown: #8a8a83;
     --panel: #1e1e24;
     --ink: #ececf0;
@@ -104,7 +108,12 @@ select {
 .legend i.k-typical { background: var(--typical); }
 /* Heavier, mirroring the map: weight is the second channel, so the swatch is
    not distinguished by colour alone. */
-.legend i.k-unreliable { background: var(--unreliable); height: 5px; vertical-align: 2px; }
+/* The swatch carries the gradient, so the legend teaches the ramp rather than a
+   single step. Heavier too — weight is the second channel. */
+.legend i.k-unreliable {
+  background: linear-gradient(90deg, var(--unreliable-1), var(--unreliable-2), var(--unreliable-3));
+  height: 5px; vertical-align: 2px; width: 26px;
+}
 /* Dashed, mirroring the map, so the legend teaches the encoding. */
 .legend i.k-unknown {
   background: repeating-linear-gradient(90deg, var(--unknown) 0 4px, transparent 4px 7px);

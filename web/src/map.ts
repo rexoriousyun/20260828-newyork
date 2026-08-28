@@ -16,9 +16,18 @@
  */
 export const UNRELIABLE_THRESHOLD = 45;
 
+/**
+ * Top of the gradient, in rider-wait minutes per month.
+ *
+ * The 95th percentile of segments above the threshold. Values beyond this clamp,
+ * so a single 415-minute outlier cannot flatten the ramp for everything else.
+ */
+export const RAMP_MAX = 170;
+
 export interface Tokens {
   typical: string;
-  unreliable: string;
+  /** Sequential single-hue ramp, light to dark, applied above the threshold. */
+  unreliable: [string, string, string];
   unknown: string;
   selection: string;
 }
@@ -26,14 +35,14 @@ export interface Tokens {
 /** Validated for CVD separation, normal-vision floor and 3:1 contrast in both modes. */
 export const LIGHT: Tokens = {
   typical: "#33332f",
-  unreliable: "#b03217",
-  unknown: "#87877f",
+  unreliable: ["#d15f14", "#bd4113", "#a52a13"],
+  unknown: "#6f6f68",
   selection: "#1f6feb",
 };
 
 export const DARK: Tokens = {
   typical: "#e5e5df",
-  unreliable: "#e35f3f",
+  unreliable: ["#f0913f", "#e05a34", "#cf3a34"],
   unknown: "#8a8a83",
   selection: "#6ea8ff",
 };
@@ -42,14 +51,36 @@ export function tokensFor(dark: boolean): Tokens {
   return dark ? DARK : LIGHT;
 }
 
-/** Colour by state. Unknown never receives the reserved hue. */
+/**
+ * Colour by state, with a gradient inside the reserved one.
+ *
+ * A flat red above the threshold hides real magnitude — 50 minutes and 200
+ * minutes a month are not the same problem, and reading them as identical was
+ * the defect this ramp fixes.
+ *
+ * The gradient is a single hue, light to dark, and applies *only* within the
+ * reserved colour. Typical stays flat neutral and unknown stays outside the ramp
+ * entirely, so colour still marks one thing: where the trip costs you time.
+ *
+ * The ramp's ends were chosen against the neutrals, not for looks: a darker end
+ * collides with the typical ink for protanopic vision, and a lighter start
+ * collides with the unknown grey for everyone.
+ */
 export function lineColorExpression(t: Tokens): unknown {
+  const mid = UNRELIABLE_THRESHOLD + (RAMP_MAX - UNRELIABLE_THRESHOLD) / 2;
   return [
     "case",
     ["==", ["get", "confidence"], "unknown"],
     t.unknown,
     [">=", ["coalesce", ["get", "gapMinutesPerMonth"], 0], UNRELIABLE_THRESHOLD],
-    t.unreliable,
+    [
+      "interpolate",
+      ["linear"],
+      ["coalesce", ["get", "gapMinutesPerMonth"], 0],
+      UNRELIABLE_THRESHOLD, t.unreliable[0],
+      mid, t.unreliable[1],
+      RAMP_MAX, t.unreliable[2],
+    ],
     t.typical,
   ];
 }
@@ -83,4 +114,9 @@ export type State = "typical" | "unreliable" | "unknown";
 export function stateOf(confidence: string, minutes: number | null): State {
   if (confidence === "unknown") return "unknown";
   return (minutes ?? 0) >= UNRELIABLE_THRESHOLD ? "unreliable" : "typical";
+}
+
+/** CSS gradient for the legend swatch, so it teaches the ramp rather than one step. */
+export function legendGradient(t: Tokens): string {
+  return `linear-gradient(90deg, ${t.unreliable[0]}, ${t.unreliable[1]}, ${t.unreliable[2]})`;
 }
