@@ -476,3 +476,50 @@ no logged incident at all and 10% sit below the confidence bar.
 
 *The lesson:* "the data is thin" is a comfortable explanation and was, here, a bug wearing
 a plausible story. Measure the funnel before believing it.
+
+### E-D20 — Risk really does vary by time of day, and it is not the pattern anyone expected
+*Measured 2026-08-29 · `npm run audit:timeofday` · thresholds pre-registered in `src/audit/time-of-day.ts`*
+
+The scoring model divides incidents by trips across the whole service day, so an 08:30
+departure is quoted a figure that includes 23:00 running. The concern was that peak would be
+much worse than the pooled average and riders were being told a number diluted by hours they
+never travel in.
+
+**Peak is barely worse. Two of the five bands are better than the pooled figure.**
+
+| Band | segments | median ratio to pooled | ≥1.5× | ≤0.67× |
+|---|---|---|---|---|
+| am peak (06–09) | 134 | **0.83** | 11.2% | 31.3% |
+| midday (09–15) | 357 | 1.01 | 8.1% | 16.0% |
+| pm peak (15–19) | 229 | **1.08** | 10.5% | 14.4% |
+| evening (19–24) | 237 | 0.88 | 9.7% | 28.7% |
+| night (00–06) | 34 | **0.78** | 8.8% | 44.1% |
+
+A commuter planning an AM-peak trip is currently quoted a figure about 20% *worse* than
+their actual exposure. PM peak is the only band worse than the average, and only by 8%. The
+intuition that a late-night run flatters the number is backwards: per trip, night is the
+safest band measured. More incidents happen at peak, but far more trips run at peak, and
+risk is a ratio — both sides move together and mostly cancel.
+
+**The real effect is dispersion, not a peak curve.** 31.2% of segment-band pairs sit at least
+1.5× away from their segment's pooled figure, against a pre-registered bar of 25%. Segments
+have individual time patterns; there is no single network-wide shape to apply.
+
+**And that dispersion persists.** Split-half rank correlation across 953 segment-bands gives
+**rho = 0.406**, above the pre-registered 0.3. This test decides the finding: with three
+expected incidents in a band, Poisson noise alone throws ratios of 0.5 and 1.5 around
+freely, so a wide spread is exactly what pure chance looks like. Severity showed the same
+dispersion and rho = 0.10, and `D-11` pooled it rather than fit noise. This one is real.
+
+**What conditioning would cost.** Only **378 of 1,173** scorable segments (32.2%) have any
+band carrying enough exposure to score on its own. Night has 34. So conditioning cannot
+replace pooling — it can only refine it where the sample reaches, which is the tension
+`D-19` already created by decaying old evidence.
+
+> **A methodological correction, kept visible.** The first run gated each band on *observed*
+> incidents, so a band only appeared if it had accumulated some. Quiet bands were dropped and
+> every surviving band came out worse than pooled — the median ratio was above 1.0 in all
+> five, which is impossible for a trip-weighted decomposition and was the tell. Gating on
+> *expected* incidents instead keeps the quiet bands, and an observed zero where three were
+> predicted becomes evidence of lower risk rather than absence of evidence. The biased run
+> would have reported night at 1.87× and confirmed the original hypothesis.
