@@ -256,8 +256,8 @@ td strong { color: var(--ink); }
 
 /* --- Stat row ----------------------------------------------------------- */
 .stats {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
-  gap: 1.1rem 1.4rem; margin: 0.5rem 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1.3rem 1.4rem; margin: 0.5rem 0;
 }
 .stat { display: flex; flex-direction: column; gap: 0.15rem; }
 .stat b {
@@ -369,8 +369,9 @@ footer {
   <div class="mark"><span class="num">04</span><span>D-01 … D-35</span></div>
   <div class="body">
     <h2>A system, not a pile of opinions</h2>
-    <p>The client asked for a UX-driven project, so decisions needed to survive being questioned
-    six weeks later. Every claim in this study resolves to an identifier in a chain:</p>
+    <p>This is my own project, which is exactly why the decisions needed a structure. Nobody was
+    going to make me justify them six weeks later, so the record had to do it. Every claim in this
+    study resolves to an identifier in a chain:</p>
 
     <div class="pull chain">
       <span>Evidence</span><i>→</i><span>Problem</span><i>→</i><span>Principle</span><i>→</i><span>Decision</span><i>→</i><span>Implementation</span>
@@ -476,8 +477,8 @@ footer {
     </table></div>
 
     <h3>The last row, in full</h3>
-    <p>The product owner asked about riders travelling alone at night. I proposed a feature on a
-    hunch, pre-registered its threshold in the source, and wrote an audit to test the threshold
+    <p>I wanted to serve riders travelling alone at night. I proposed the feature on a hunch,
+    pre-registered its threshold in the source, and then wrote the audit to test that threshold
     rather than to confirm the hunch. The audit said the hunch was backwards.</p>
 
     <div class="fig">
@@ -573,8 +574,8 @@ footer {
   <div class="mark"><span class="num">09</span><span>P-09</span><span>D-33</span></div>
   <div class="body">
     <h2>Hiding the machinery without hiding the doubt</h2>
-    <p>The client's principle was that magic is best when it is hidden. Adopted — the answer is the
-    product, and sample sizes, windows, filters and pooling rationale wait behind a quiet
+    <p>One of the four rules I set for this design: magic is best when it is hidden. The answer is
+    the product, and sample sizes, windows, filters and pooling rationale wait behind a quiet
     <em>why this number</em>. But it needed one line drawn, because two things look identical in a
     mock and are opposites in the hand.</p>
 
@@ -612,9 +613,10 @@ footer {
     <div class="refuse">
       <h3>Declined, with the reason on record</h3>
       <ul>
-        <li><b>A safety score.</b> The product owner asked about solo travellers at night, and a
+        <li><b>A safety score.</b> I wanted something for riders travelling alone at night, and a
         delay archive cannot speak to personal safety. I built the measurable thing instead — how
-        long you stand there — and said plainly why the other was not on the table.</li>
+        long you stand there — and wrote down why the other was not on the table, so it does not
+        get proposed again.</li>
         <li><b>A buffer recommendation.</b> The rider knows what being late costs them; we do not.
         The app states the rate and the price and stops.</li>
         <li><b>Any claim about shelter.</b> The app says a wait is <em>outside</em>. Whether that
@@ -679,11 +681,12 @@ footer {
       hard routing constraint while nothing was implemented and no elevator data was ingested. It
       is closed now — the planner routes <em>around</em> stations that are not step-free — but it
       should not have drifted for as long as it did.</li>
-      <li><strong>I designed five user flows without asking the product owner what they wanted.</strong>
-      The research was sound and the flows follow from it, but they were derived, not agreed. The
+      <li><strong>I let the design run ahead of my own brief.</strong> Five user flows were derived
+      from the research and never checked back against what the brief actually asked for. The
       sharpest instance: the brief asked twice for A-to-B routing, and I argued it into a forecast
-      on redundancy evidence. The evidence was right; the conclusion was not. Low redundancy is an
-      argument about what a router should <em>say</em>, not a reason to withhold one.</li>
+      on redundancy evidence. The evidence was right; the conclusion was not — low redundancy is an
+      argument about what a router should <em>say</em>, not a reason to withhold one. Caught on
+      re-reading the brief, superseded, and kept in the log with the error visible.</li>
       <li><strong>I proposed a feature before measuring the thing it was for.</strong> The night
       case above. The audit that corrected it took twenty minutes and should have come first.</li>
     </ul>

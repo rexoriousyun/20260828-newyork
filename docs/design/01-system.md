@@ -1,8 +1,8 @@
 # Design System
 
-Derived from four rules given by the product owner, 2026-08-28. Each is recorded in the
-decision log with a kill condition — `D-15` to `D-18` — so they carry the same traceability
-as every other decision here:
+Derived from four product rules set 2026-08-28. Each is recorded in the decision log with a
+kill condition — `D-15` to `D-18` — so they carry the same traceability as every other
+decision here, even though they were set rather than derived:
 
 1. **Mobile first.**
 2. **Monotone for most; colour reserved for key information.**

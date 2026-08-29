@@ -156,7 +156,8 @@ The project has no name. For portfolio purposes it needs one, plus a mark and a 
 voice. Cheap, and it makes the case study read as a product rather than an exercise.
 
 *Resolved 2026-08-29:* **Reliable Transit**, taken from the repository rather than invented,
-with a monotone mark. See `D-35` — including why the name is the product owner's to change.
+with a monotone mark. See `D-35` — including why it is a placeholder rather than the naming
+work this item describes.
 
 ---
 

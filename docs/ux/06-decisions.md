@@ -326,9 +326,9 @@ router does not.
 **Reversed if:** the Ontario Line opens and gives downtown genuine parallel capacity, or GO
 coverage expands enough that most riders have a real second option.
 
-> **Superseded 2026-08-28 by D-14, on the product owner's direction.** The redundancy
-> evidence (E-L12) stands and still shapes *how* routing should behave. What was wrong was
-> the conclusion drawn from it: I read "Toronto has few alternatives" as "do not build a
+> **Superseded 2026-08-28 by D-14, on re-reading the brief.** The redundancy evidence
+> (E-L12) stands and still shapes *how* routing should behave. What was wrong was the
+> conclusion drawn from it: "Toronto has few alternatives" was read as "do not build a
 > router", when the brief had twice asked for A-to-B. Low redundancy is an argument about
 > what a router should *say*, not a reason to withhold one. Recorded rather than rewritten,
 > because the reasoning error is worth keeping visible.
@@ -366,8 +366,14 @@ actually exists**, rather than pretending every trip is a menu.
 at-stop view (J-02) becomes the product and routing is secondary.
 
 
+> **On the `Source` field, which appears on the next four decisions.** Most decisions here
+> are derived from evidence, and rule 1 says one without a chain is a preference. D-15 to
+> D-18 are the exception: they are product direction — set, not derived — and the field says
+> so rather than dressing them up with a citation after the fact. They still earn their place
+> below by resolving questions the research had already raised.
+
 ## D-15 — Mobile first `ACCEPTED`
-**Cites:** P-06 · **Personas:** U-02, U-05 · **Source:** product owner direction, 2026-08-28
+**Cites:** P-06 · **Personas:** U-02, U-05 · **Source:** product direction, 2026-08-28
 
 The phone is the target, not a breakpoint. Controls float over the map rather than spending
 a header; the sheet sits in the thumb zone; every value must be legible one-handed, outdoors,
@@ -380,7 +386,7 @@ at a desk. Contrast is therefore a gate rather than a preference.
 would argue for a second, denser layout rather than for abandoning this one.
 
 ## D-16 — Monotone for most; colour reserved for key information `ACCEPTED`
-**Cites:** P-03, P-06 · **Evidence:** E-D14 · **Source:** product owner direction, 2026-08-28
+**Cites:** P-03, P-06 · **Evidence:** E-D14 · **Source:** product direction, 2026-08-28
 
 The basemap is desaturated server-side. Greyscale is map structure and is never borrowed to
 encode data. Colour is spent only where it carries meaning: the reliability scale, and the
@@ -393,7 +399,7 @@ encoding that matters. Spending colour on everything marks nothing.
 encoded dimension becomes essential and cannot be carried by weight, pattern or position.
 
 ## D-17 — Start simple `ACCEPTED`
-**Cites:** P-01, P-06 · **Evidence:** E-D10 · **Source:** product owner direction, 2026-08-28
+**Cites:** P-01, P-06 · **Evidence:** E-D10 · **Source:** product direction, 2026-08-28
 
 One continuous scale plus one exception (unknown), not five discrete bands. Complexity in the
 data is not a licence for complexity on screen.
@@ -405,7 +411,7 @@ separation, so the simpler encoding is the accessible one as well as the calmer 
 which Q-C would surface.
 
 ## D-18 — Look trustworthy; nothing casual or decorative `ACCEPTED`
-**Cites:** P-08, P-09 · **Problems:** PR-08 · **Source:** product owner direction, 2026-08-28
+**Cites:** P-08, P-09 · **Problems:** PR-08 · **Source:** product direction, 2026-08-28
 
 Tabular figures, one step of emphasis, a single elevation, modest radii, no gradients or
 glows used as ornament. The product should read as infrastructure rather than as a brand.
@@ -1068,11 +1074,11 @@ The page title was `TTC Segment Reliability` — the name of the M6 explorer, wr
 add the app to a home screen, which is how a testing session begins.
 
 **The name is the repository's own, not an invention.** `Reliable Transit` was already in
-`package.json`; adopting it costs nothing and asserts nothing. Naming is the product owner's
-call, and inventing one here would have been a preference wearing a decision's clothes — so
-this records the *problem* (the title named a feature that no longer exists) and takes the
-cheapest correct answer, rather than claiming the naming work item 10 of the design concept
-describes.
+`package.json`; adopting it costs nothing and asserts nothing. Naming is a product call
+rather than an implementation one, and inventing a name here would have been a preference
+wearing a decision's clothes — so this records the *problem* (the title named a feature that
+no longer exists) and takes the cheapest correct answer, rather than claiming the naming work
+that item 10 of the design concept describes.
 
 **The mark is a route with a stretch missing** — two solid strokes and a dashed one between
 them, monotone, at the same dash rhythm the map uses for an unmeasured segment. `P-03` is
@@ -1085,5 +1091,5 @@ both palettes so the browser chrome matches the sheet rather than sitting in a s
 someone else's colour, and `apple-mobile-web-app-title` so the home-screen label is the
 product's name.
 
-**Reversed if:** the product owner picks a different name, which they should feel free to do
-— nothing downstream depends on this one.
+**Reversed if:** a different name is chosen. Nothing downstream depends on this one — it is a
+placeholder that is merely correct, not a naming decision.

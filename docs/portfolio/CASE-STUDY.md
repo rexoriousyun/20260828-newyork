@@ -86,8 +86,9 @@ research surfaced early.
 
 ## 4. Building a system, not a pile of opinions
 
-The client asked for a UX-driven project, so decisions needed to survive being questioned
-six weeks later. I set up a traceable chain:
+This is my own project, which is exactly why the decisions needed a structure. Nobody was
+going to make me justify them six weeks later, so the record had to do it. Every claim
+resolves along a traceable chain:
 
 ```
 Evidence (E-*) -> Problem (PR-*) -> Principle (P-*) -> Decision (D-*) -> Implementation
@@ -202,8 +203,8 @@ question, and it is not answerable from a desk.
 
 ## 8. Hiding the machinery without hiding the doubt
 
-The client's principle: *magic is great when it is hidden.* Adopted — the answer is the
-product, and sample sizes, windows, filters and pooling rationale wait behind a quiet
+One of the four rules I set for the design: *magic is great when it is hidden.* The answer
+is the product, and sample sizes, windows, filters and pooling rationale wait behind a quiet
 "why this number".
 
 But it needed one line drawn, because two things look identical in a mock and are opposites
@@ -233,10 +234,10 @@ words does not become a tag.
 A portfolio usually shows what was made. This project's clearer signal is what was declined,
 because each refusal cost a feature that would have demoed well.
 
-- **No safety score.** The product owner asked about solo travellers at night, and the delay
+- **No safety score.** I wanted something for riders travelling alone at night, and the delay
   archive cannot speak to personal safety. `PR-11` is marked `OUT` for exactly this. I built
-  the measurable thing instead — how long you stand there — and said plainly why the other
-  was not on the table.
+  the measurable thing instead — how long you stand there — and wrote down why the other was
+  not on the table, so it does not get proposed again.
 - **No buffer recommendation.** The rider knows what being late costs them; we do not. The
   app states the rate and the price and stops.
 - **No claim about shelter.** The app says a wait is *outside*. Whether that stop has a roof
@@ -285,12 +286,12 @@ actually worked:
   constraint while nothing was implemented and no elevator data was ingested. It is closed
   now — the planner routes *around* stations that are not step-free — but it should not have
   drifted for as long as it did.
-- **I designed five user flows without asking the product owner what they wanted.** The
-  research was sound and the flows follow from it — but they were derived, not agreed. The
-  sharpest instance: the brief asked twice for **A-to-B routing**, and I argued it into a
-  forecast on redundancy evidence. The evidence was right; the conclusion was not. Low
-  redundancy is an argument about what a router should *say*, not a reason to withhold one.
-  Superseded on the product owner's direction, and kept in the log.
+- **I let the design run ahead of my own brief.** Five user flows were derived from the
+  research and never checked back against what the brief actually asked for. The sharpest
+  instance: the brief asked twice for **A-to-B routing**, and I argued it into a forecast on
+  redundancy evidence. The evidence was right; the conclusion was not — low redundancy is an
+  argument about what a router should *say*, not a reason to withhold one. Caught on
+  re-reading the brief, superseded, and kept in the log with the reasoning error visible.
 - **I proposed a feature before measuring the thing it was for.** The night case in section
   6. The audit that corrected it took twenty minutes and should have come first.
 
