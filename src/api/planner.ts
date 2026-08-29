@@ -6,6 +6,7 @@
  * request after is single-digit milliseconds.
  */
 
+import { readFileSync } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db/client.js";
@@ -13,6 +14,8 @@ import { buildConnections, type ConnectionSet } from "../domain/connections.js";
 import { displayStopName, displayStationName } from "../domain/stop-names.js";
 import { departureAdvice, latestDeparture } from "../domain/departure.js";
 import { inServiceDay, DAY_SECONDS } from "../domain/time-bands.js";
+import { BENCHMARK_PATH, MIN_COMPARABLE_COVERAGE, bucketFor, percentileOf, verdictFor,
+  type BenchmarkTable, type Verdict } from "../benchmark/table.js";
 import { buildFootpaths, type Footpaths } from "../domain/footpaths.js";
 import { plan, type Journey } from "../domain/csa.js";
 import { buildFrequency, type SegmentFrequency } from "../domain/frequency.js";
@@ -92,6 +95,63 @@ async function getGraph(): Promise<Graph> {
     };
   })();
   return graphPromise;
+}
+
+/**
+ * How a trip compares with others of its length.
+ *
+ * "Goes wrong 1 trip in 181" is an analyst's number until there is something to
+ * measure it against — the complaint Q-C makes about our whole unit vocabulary.
+ * The table is built offline by `npm run benchmark`; a missing table or a thin
+ * bucket yields no comparison rather than a guessed one (P-03).
+ */
+let benchmark: BenchmarkTable | null = null;
+try {
+  benchmark = JSON.parse(readFileSync(BENCHMARK_PATH, "utf8")) as BenchmarkTable;
+} catch {
+  benchmark = null;
+}
+
+interface Comparison {
+  /** Share of comparable trips this one is safer than. */
+  saferThan: number;
+  /** What a typical trip of this length does, as 1 in N. */
+  typicalOneInTrips: number | null;
+  /** This trip's risk over the typical one's. Above 1 is worse. */
+  ratioToTypical: number | null;
+  /** The side the comparison takes — decided here, not in the interface. */
+  verdict: Verdict;
+  /** How the reference class is named on screen. */
+  label: string;
+}
+
+function compare(
+  risk: number,
+  coverage: number,
+  minutes: number,
+  bandId: string | null,
+): Comparison | null {
+  if (benchmark === null) return null;
+  // The reference only holds trips we could measure properly, so a thinly
+  // measured trip has nothing fair to be ranked against. Saying so beats
+  // ranking it against a standard it was not held to.
+  if (coverage < MIN_COMPARABLE_COVERAGE) return null;
+  const i = bucketFor(minutes);
+  if (i === null) return null;
+  const bucket = benchmark.buckets[i];
+  if (bucket === undefined) return null;
+  const reference = bandId === null ? bucket.allDay : (bucket.atTime[bandId] ?? null);
+  const saferThan = percentileOf(risk, reference);
+  if (saferThan === null || reference === null) return null;
+  const median = reference[Math.floor(reference.length / 2)]!;
+  const ratioToTypical = median > 0 ? Number((risk / median).toFixed(2)) : null;
+  return {
+    saferThan,
+    typicalOneInTrips: median > 0 ? Math.round(1 / median) : null,
+    ratioToTypical,
+    verdict: verdictFor(saferThan, ratioToTypical),
+    label: bucket.label,
+  };
 }
 
 const planQuery = z.object({
@@ -296,9 +356,21 @@ export function registerPlanner(app: FastifyInstance): void {
             }),
           ],
         },
-        reliability: named(j.reliability),
-        atTime: j.atTime === null ? null : { ...named(j.atTime), bands: j.atTime.bands,
-          conditionedShare: j.atTime.conditionedShare },
+        reliability: {
+          ...named(j.reliability),
+          comparison: compare(
+            j.reliability.disruptionRisk, j.reliability.coverage, j.durationMinutes, null),
+        },
+        atTime: j.atTime === null ? null : {
+          ...named(j.atTime),
+          bands: j.atTime.bands,
+          conditionedShare: j.atTime.conditionedShare,
+          // Only comparable against a reference measured in the same band.
+          comparison: j.atTime.bands.length === 1
+            ? compare(j.atTime.disruptionRisk, j.atTime.coverage, j.durationMinutes,
+                      j.atTime.bands[0]!.id)
+            : null,
+        },
         // Only present when the rider gave a deadline: without one there is
         // nothing to work backwards from, and inventing a target would be
         // answering a question they did not ask.

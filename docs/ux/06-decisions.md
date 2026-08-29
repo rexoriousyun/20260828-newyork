@@ -652,6 +652,54 @@ which case the band figure stands alone and the all-day one moves behind "why th
 
 ---
 
+## D-28 — Compare every trip with a typical one of its length `ACCEPTED · IMPLEMENTED`
+**Cites:** P-01, P-03, P-09 · **Problems:** PR-02, PR-08 · **Evidence:** E-D21 · **Answers:** Q-C
+
+"Goes wrong 1 trip in 197" is an analyst's number. Beside it now sits a verdict and the
+figure behind it: *"Safer than most trips this long — typically 1 in 139."* The ranking makes
+it a judgement; the reference figure keeps the judgement checkable rather than asking the
+rider to take our word for it.
+
+This is the direct answer to Q-C, which has been open since D-11 and asks whether our units
+mean anything to a rider. It does not close the question — only riders can — but it removes
+the version of the problem we could fix ourselves.
+
+**The reference class is trips of similar length.** A typical 90-minute trip goes wrong about
+twelve times as often as a typical 15-minute one (E-D21), so ranking them together would tell
+a rider that long trips are badly run rather than anything about the routes they chose.
+
+**Sampled offline, per band as well as all-day.** `npm run benchmark` writes a table the API
+loads at startup, so a plan request never pays for it. Band references are kept separate:
+ranking a 5pm trip's pm-peak figure against a reference sampled at 8am would compare two
+different measurements, which is the error D-27's toggle exists to avoid.
+
+**Both sides must be measured to the same standard.** A trip covered on a fifth of its length
+looks safe because most of it was never checked. The reference holds only trips at coverage
+≥ 0.5, and only trips at that coverage are ranked — the same bar the interface already uses
+to call coverage thin, so a trip that earns a comparison is exactly a trip we do not caveat.
+
+**A verdict needs rank and magnitude.** Comparable trips cluster tightly, so a trip 15%
+riskier than the median can sit below 86% of its class. Both must clear a bar or the answer
+is "about typical" — see E-D21 for why rank alone would have us overselling.
+
+### What the reference class is, and is not
+
+> It approximates trips people take, not trips that exist. There is no ridership data, so
+> stops are drawn in proportion to the service that runs there — the TTC puts buses where
+> people are. It is a proxy, and the wording on screen says "trips this long" rather than
+> claiming to know what is typical for a person.
+>
+> **The first two attempts were both wrong, and both are recorded in E-D21**: uniform stop
+> sampling ranked an ordinary downtown hop below 99% of its class, and an unfiltered
+> reference with median coverage 0.23 ranked every real trip in the worst tenth. Neither was
+> a bug in the arithmetic. Both were the reference class quietly answering a different
+> question from the one on screen.
+
+**Reversed if:** riders read the comparison as a score to optimise rather than context for a
+number, which would make it a game about routes rather than information about them.
+
+---
+
 ## Open questions
 
 | # | Question | Blocks | Owner |
@@ -664,4 +712,4 @@ which case the band figure stands alone and the all-day one moves behind "why th
 | Q-4 | Is J-02 (at-stop) the only moment people open an app? | D-03 | D-08 |
 | Q-A | Does a mostly-unknown map build trust or read as broken? | P-03, D-05 | D-08 |
 | Q-B | Is the segment or the corridor the rider's unit? | D-01 | D-08 |
-| Q-C | Does gap-minutes-per-month mean anything to a rider? | D-05 | D-08 |
+| Q-C | Does gap-minutes-per-month mean anything to a rider? | D-05 | D-08 · partly addressed by D-28 |

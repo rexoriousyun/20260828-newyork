@@ -121,6 +121,19 @@ export interface DepartureAdvice {
   covered: { leaveAt: number; extraMinutes: number } | null;
 }
 
+export interface Comparison {
+  /** Share of comparable trips this one is safer than. */
+  saferThan: number;
+  /** What a typical trip of this length does, as 1 in N. */
+  typicalOneInTrips: number | null;
+  /** This trip's risk over the typical one's. Above 1 is worse. */
+  ratioToTypical: number | null;
+  /** The side the comparison takes. Decided on the server; see benchmark/table.ts. */
+  verdict: "safer-4in5" | "safer-most" | "typical" | "riskier-most" | "riskier-4in5";
+  /** How the reference class is named. */
+  label: string;
+}
+
 export interface JourneyReliability {
   disruptionRisk: number;
   oneInTrips: number | null;
@@ -130,6 +143,11 @@ export interface JourneyReliability {
   worst: Array<{ from: string; to: string; risk: number }>;
   /** The one stretch that dominates, or null when the risk is spread. */
   dominant: { from: string; to: string; risk: number } | null;
+  /**
+   * How this trip ranks against others of its length, or null when there is no
+   * fair reference — too few sampled trips, or too little of this one measured.
+   */
+  comparison: Comparison | null;
 }
 
 export interface BandReliability extends JourneyReliability {

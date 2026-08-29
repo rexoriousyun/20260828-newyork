@@ -1,5 +1,6 @@
 import type { ScoredJourney } from "./api.js";
 import { reliabilityFor, type View } from "./view.js";
+import { Benchmark } from "./Benchmark.js";
 
 const hhmm = (s: number): string =>
   `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
@@ -77,10 +78,12 @@ export function DepartureAdvice({
           late costs this rider, which we do not know and should not guess. */}
       {a.covered !== null && (
         <p className="advice-buffer">
-          Leaving <strong>{hhmm(a.covered.leaveAt)}</strong> covers that — at{" "}
-          {a.covered.extraMinutes} min earlier every day.
+          Leave <strong>{hhmm(a.covered.leaveAt)}</strong> to cover that —{" "}
+          {a.covered.extraMinutes} min earlier daily.
         </p>
       )}
+
+      <Benchmark comparison={rel.comparison} />
 
       {/* Low confidence sits with the claim, never behind a tap (P-09, J-01). */}
       {thin && (

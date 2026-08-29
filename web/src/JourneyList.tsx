@@ -1,5 +1,6 @@
 import type { ScoredJourney } from "./api.js";
 import { reliabilityFor, type View } from "./view.js";
+import { Benchmark } from "./Benchmark.js";
 
 const hhmm = (s: number): string =>
   `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
@@ -80,6 +81,11 @@ function Journey({
           </>
         )}
       </span>
+      {rel.comparison !== null && (
+        <span className="journey-benchmark">
+          <Benchmark comparison={{ ...rel.comparison, typicalOneInTrips: null }} />
+        </span>
+      )}
       {worst !== null && (
         <span className="journey-worst">
           Most of that sits between <strong>{worst.from}</strong> and <strong>{worst.to}</strong>.

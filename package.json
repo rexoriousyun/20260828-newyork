@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "audit:stability": "tsx src/audit/segment-stability.ts",
     "audit:coverage": "tsx src/audit/surface-coverage.ts",
-    "audit:timeofday": "tsx src/audit/time-of-day.ts"
+    "audit:timeofday": "tsx src/audit/time-of-day.ts",
+    "benchmark": "tsx src/benchmark/build.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",

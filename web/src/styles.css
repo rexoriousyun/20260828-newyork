@@ -120,7 +120,10 @@ select {
 /* Peeked: the chosen answer stays on screen, the comparison folds away, and
    the map gets the rest. */
 .plan-sheet { padding-top: var(--s2); }
-.plan-sheet.peek { max-height: 42%; }
+/* The peek carries the whole answer: departure, risk, how it compares, and the
+   way into the steps. 42% cut the comparison off, and a verdict below the fold
+   is a verdict nobody reads. The collapsed trip form paid for the difference. */
+.plan-sheet.peek { max-height: 48%; }
 
 /* The handle is also the label — a bare grabber bar tells a rider nothing
    about what is behind it. */
@@ -455,3 +458,20 @@ select {
   color: var(--ink); background: var(--panel); box-shadow: var(--control-shadow);
 }
 .view-toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* The comparison. A verdict, so it leads with the judgement and carries the
+   reference figure behind it — checkable, not asking to be believed. */
+.benchmark {
+  margin: var(--s3) 0 0; padding-top: var(--s3); border-top: 1px solid var(--rule);
+  font-size: 13.5px; line-height: 1.45; color: var(--ink-2);
+}
+.benchmark strong { color: var(--ink); font-weight: 600; }
+/* Colour means risk on this screen, and a trip being unusually bad is risk
+   (D-23). "About typical" earns no colour — it is not news. */
+.benchmark-bad strong { color: var(--scale-3); }
+.benchmark-good strong { color: var(--scale-1); }
+/* Inside a card the comparison is one more line of the same block, not a
+   section: the reference figure is dropped so it does not repeat on every row. */
+.journey-benchmark .benchmark {
+  margin: 5px 0 0; padding-top: 0; border-top: 0; font-size: 13px;
+}

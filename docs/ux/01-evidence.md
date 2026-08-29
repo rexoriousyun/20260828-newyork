@@ -523,3 +523,50 @@ replace pooling — it can only refine it where the sample reaches, which is the
 > *expected* incidents instead keeps the quiet bands, and an observed zero where three were
 > predicted becomes evidence of lower risk rather than absence of evidence. The biased run
 > would have reported night at 1.87× and confirmed the original hypothesis.
+
+### E-D21 — A typical trip, so a rider can tell whether theirs is bad
+*Measured 2026-08-29 · `npm run benchmark` · 2,400 sampled journeys, thresholds in `src/benchmark/table.ts`*
+
+Q-C asks whether our units mean anything to a rider. "Goes wrong 1 trip in 197" does not,
+on its own. This is the reference that turns it into a judgement.
+
+O/D pairs are drawn from boardable stops in proportion to the service that runs there, with
+a target separation, and planned at four times of day. Trips are compared only against
+others of similar duration.
+
+**All-day disruption risk, by trip length:**
+
+| Length | n | p25 | median | p75 |
+|---|---|---|---|---|
+| under 20 min | 280 | 1 in 1429 | **1 in 833** | 1 in 476 |
+| 20–35 min | 514 | 1 in 417 | **1 in 270** | 1 in 172 |
+| 35–50 min | 591 | 1 in 182 | **1 in 137** | 1 in 108 |
+| 50–70 min | 675 | 1 in 116 | **1 in 92** | 1 in 78 |
+| over 70 min | 340 | 1 in 81 | **1 in 71** | 1 in 64 |
+
+Length dominates: a typical 90-minute trip goes wrong about **twelve times as often** as a
+typical 15-minute one. That is why the reference class is trip length — ranking a long trip
+against a short one would tell a rider that long trips are badly run, which is not a fact
+about the routes they chose.
+
+Within a bucket the spread is real: p25 to p75 is roughly threefold, so a trip can be
+meaningfully better or worse than typical without the comparison saturating.
+
+> **The first build ranked every real trip in the worst tenth of its class, and the reason
+> was our own data.** The sampled reference had a **median coverage of 0.23** — three
+> quarters of a typical reference trip was unmeasured, so its risk came out near zero, and
+> anything measured properly looked terrible beside it. This is `P-03` at the reference-class
+> level: absence of data reading as good news, one layer above where that rule is usually
+> applied. Requiring coverage ≥ 0.5 on both sides moved the 20–35 minute median from
+> 1 in 769 to 1 in 270 and gave percentiles that spread from 0.03 to 0.68 across real trips.
+>
+> A second correction: the first sampler drew stops uniformly, which filled the reference
+> with quiet suburban stops nobody starts from and ranked an ordinary downtown hop below 99%
+> of its class. Weighting by departures is the closest thing to ridership in the open data.
+
+**Rank alone is not a verdict.** Comparable trips cluster tightly enough that a trip 15%
+riskier than the median can sit below 86% of its class. Printing "riskier than most trips
+this long" beside "1 in 218, typically 1 in 250" reads as overselling a rounding difference,
+and a rider who checks our arithmetic and finds it strained stops believing the rest (PR-08).
+A verdict now needs an unusual rank **and** a ratio of at least 1.25 against the typical
+trip; otherwise the honest answer is that the trip is ordinary.

@@ -59,6 +59,7 @@ would reverse it.
 | M10 departure advice | **done** — arrive-by search, both outcomes, buffer priced |
 | Per-leg risk and route key | **done** — which part of the trip, and what the colours mean |
 | Time-of-day conditioning | **done** — one toggle, defaulted to the rider's own window (D-27) |
+| Benchmark | **done** — every trip ranked against typical ones of its length (D-28) |
 
 ## The numbers that matter
 
@@ -153,7 +154,8 @@ npm run audit:gap         # M2 gate — is Min Gap trustworthy?
 npm run audit:stability   # M4 — does segment reliability persist?
 npm run audit:coverage    # M5 — surface geocoding rate
 npm run audit:timeofday   # does pooling across the day misrepresent the risk?
-npm test                  # 106 tests
+npm run benchmark         # what a typical trip looks like, for the comparison (D-28)
+npm test                  # 115 tests
 npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
 node scripts/shot.mjs     # screenshot the app, including a downtown street zoom

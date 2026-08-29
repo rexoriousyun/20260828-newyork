@@ -174,6 +174,16 @@ milestone — valid expression, correct data, invisible to typecheck and tests. 
 to `lineColorExpression` must carry `confidence`, and unknown is drawn as a separate dashed
 layer, never as a stop on the ramp. See `D-26`.
 
+**A reference class can answer a different question from the one on screen.** The trip
+benchmark ranked every real trip in the worst tenth of its class — not because Toronto's
+trips are bad, but because the sampled reference had median coverage 0.23 and was therefore
+mostly unmeasured and fake-safe. `P-03` applies to reference classes too. Check what the
+comparison population actually looks like before believing a percentile.
+
+**A percentile alone oversells on a tight distribution.** A trip 15% riskier than the median
+can sit below 86% of its class, and "riskier than most" printed beside two nearly-equal
+numbers reads as spin. A verdict needs rank *and* a ratio (`MATERIAL_RATIO`).
+
 **A "share of the total" threshold fires on an even split.** Two equal legs each carry just
 over half a journey's risk, so any share threshold at or below 50% names one of them as the
 worst. Dominance is a ratio against the runner-up (`WORST_DOMINANCE`), not a share of the sum.
