@@ -1,10 +1,16 @@
 # Reliable Transit — a UX case study
 
 **Role:** research, product definition, interaction design, implementation
-**Timeframe:** one working session, 2026-08-28
-**Status:** engine and exploratory interface built; rider validation outstanding
+**Timeframe:** two working sessions, 2026-08-28 to 2026-08-29
+**Status:** v1 built and complete. **Rider validation is the one success criterion
+outstanding**, and the protocol for it is written and pre-registered.
 **Artefacts:** evidence base, problem inventory, principles, personas, journeys, user
-flows, system architecture, decision log — all in `docs/`
+flows, research protocol, system architecture, decision log — all in `docs/`
+**Presented as:** [a designed page](https://claude.ai/code/artifact/304700bb-f9a5-40e7-a42b-16a92e780dd0)
+— source in `case-study.html` beside this file. It carries the argument in a form a reader
+can be handed; this file is the full record. The page wears the product's own palette and
+has **no accent colour**, because `D-23` reserves colour for risk and a case study that
+breaks the rule it documents is not making the argument.
 
 ---
 
@@ -16,6 +22,13 @@ flows, system architecture, decision log — all in `docs/`
 
 A good instinct with a testable assumption inside it. So the first work was not design. It
 was finding out whether the premise was true.
+
+**What the project became:** a map-first TTC trip planner where reliability is the layer
+underneath the answers, not the product on top of them. Every milestone is built. What it is
+waiting on is a Toronto rider, and that is the honest ending of this study rather than a
+hedge.
+
+---
 
 ## 1. Interrogating the premise before designing for it
 
@@ -89,8 +102,12 @@ Four rules make it work:
    usually an unexamined assumption.
 4. **Superseded, never deleted.** The reasoning history survives.
 
-Twelve decisions, twelve principles, thirteen pieces of evidence, twelve ranked rider
-problems.
+**Final count: 35 decisions, 9 principles, 14 ranked rider problems, 3 personas, 5
+journeys, 4 flows, and 39 pieces of evidence — 24 measured from the data, 13 from published
+research, 2 from market review. Each traceable to what produced it.**
+
+Two of those decisions are marked superseded and remain in the log with their reasoning
+errors visible. That is the part of this system I would defend hardest.
 
 ## 5. Cutting the personas down
 
@@ -119,7 +136,7 @@ an alternative?**
 A persona has to earn its place by producing a different design need, evidenced. Five
 personas felt thorough. Three were true.
 
-## 6. The system earning its keep
+## 6. The measurement that invalidated my own contract
 
 `D-01` staked the product on segment-level reliability. Before building on it, I tested
 whether reliability persists at that granularity — and split the question in two.
@@ -143,6 +160,24 @@ Severity is now pooled per mode and explicitly labelled `pooled-subway` /
 This is the case study's real argument: **the measurement changed the design, and the
 system made that cheap instead of embarrassing.**
 
+It kept happening. Six times, a thing I had reasoned my way to turned out to be wrong when
+measured:
+
+| I believed | The measurement said | What moved |
+|---|---|---|
+| per-segment severity is the headline | rho 0.10 — it does not persist | the engine contract, same morning |
+| Toronto's low redundancy means build a forecast, not a router | the brief asked for A-to-B twice; redundancy shapes what a router *says* | `D-13` superseded by `D-14` |
+| peak is much worse than the pooled average | am peak is **0.83x** — two of five bands are *better* | conditioning shipped for dispersion, not for a peak curve |
+| a trip in the worst tenth of its class is a bad trip | the reference class had median coverage 0.23 — mostly unmeasured and fake-safe | the benchmark was rebuilt twice |
+| a buffer should be sized to a percentile | that advises leaving 58 min early for a twice-a-year event | stopped recommending; state the rate and the price |
+| night is riskier, so build for the night rider | night is the **safest** band per trip (0.78x) — but 74.3% of its service runs every 20+ min | the feature survived; its justification changed entirely |
+
+That last row is the one I would put in front of a hiring manager. I proposed a feature on
+a hunch about night safety, wrote the audit to test the threshold rather than to confirm the
+hunch, and the audit said the hunch was backwards. Night is not more likely to go wrong — it
+is emptier, so the same failure costs half an hour instead of seven minutes. **Same feature,
+opposite reason, and the reason is what the interface says out loud.**
+
 ## 7. Designing for a product that mostly does not know
 
 The uncomfortable result: **86% of bus segments have too little data to score.** Only 3.1%
@@ -154,8 +189,16 @@ bus route is therefore a checkerboard of known and unknown.
 I did not soften it. Unknown segments are **hatched and labelled "no data"** — a different
 *kind* of thing, not a low value. A pale colour would have read as "fine".
 
-Whether that honesty builds trust or reads as broken is the single biggest open question,
-and it is not answerable from a desk. It goes to riders with the real screen in hand.
+The principle nearly failed anyway, in a way that is worth showing. A MapLibre colour ramp
+written as `coalesce(get(exposure), 0)` turns *missing* into *best*: for a whole milestone,
+the unmeasured stretches of a planned trip drew at the green end of the scale. On one
+Jane-to-Union itinerary, eight of eighteen stretches. Valid expression, correct data,
+invisible to a typechecker and to every test. **A principle is only as good as the last
+place someone forgot to apply it**, which is why unknown is now a separate layer that
+cannot sit on the ramp at all.
+
+Whether that honesty builds trust or reads as broken remains the single biggest open
+question, and it is not answerable from a desk.
 
 ## 8. Hiding the machinery without hiding the doubt
 
@@ -177,35 +220,97 @@ precisely the failure riders have already learned to expect, since official TTC 
 "hide more than they reveal". Hiding the method earns trust; hiding the uncertainty spends
 it.
 
-## 9. What I would do differently
+The interface expression of that line went through one full reversal. Four separate
+conditions — today's disruptions, a route that often does not turn up, thin history, what a
+step-free constraint cost — each shipped as its own paragraph, and they can all apply at
+once. Four stacked paragraphs pushed the actual answer off a phone screen. They are now
+**tags that open**, with one rule: *the label carries the claim, the tap carries only the
+detail.* A tag reads "Little data", never "Details". Anything that cannot be said in three
+words does not become a tag.
 
-- **Interview earlier — but not first.** The personas are still literature-derived. Yet
-  three of the four questions now blocking validation could only be written *after* there
-  was a screen. Building first was right; not scheduling interviews in parallel was not.
-- **I let a decision outrun the build.** `D-07` commits to accessibility as a hard routing
-  constraint for riders who depend on elevators. Nothing is implemented, and no elevator
-  data is ingested. Recorded as a gap rather than quietly carried — but it should not have
-  drifted.
-- **Two bugs were caught by looking at output, not by tests.** A U-turn pivot mislabelled
-  Line 1's direction; pooled severity mixed bus waits into subway numbers. Both passed a
-  typechecker and 50 tests. Rendering the thing found them in minutes. A third would have
-  shipped silently: GitHub fails Mermaid diagrams without an error, so every diagram is now
-  validated against the parser rather than assumed.
+## 9. What I refused to build
+
+A portfolio usually shows what was made. This project's clearer signal is what was declined,
+because each refusal cost a feature that would have demoed well.
+
+- **No safety score.** The product owner asked about solo travellers at night, and the delay
+  archive cannot speak to personal safety. `PR-11` is marked `OUT` for exactly this. I built
+  the measurable thing instead — how long you stand there — and said plainly why the other
+  was not on the table.
+- **No buffer recommendation.** The rider knows what being late costs them; we do not. The
+  app states the rate and the price and stops.
+- **No claim about shelter.** The app says a wait is *outside*. Whether that stop has a roof
+  is not in a dataset we ingest, so it says nothing about one.
+- **Accessibility never blended into a score.** Elevator failure is binary. It filters the
+  route set *before* ranking, and it never contributes a weight.
+- **No estimate in place of a gap.** Unattributed records stay unattributed. A
+  mis-attributed record is invisible and wrong; an unattributed one is visible.
+
+## 10. What the synthetic testers could and could not do
+
+I ran four agents through the app with distinct personas, driving it through a text harness.
+They found **eleven real defects**, six of them in code that was carefully argued and
+covered by tests — including one that white-screened the entire app on any segment tap,
+because MapLibre strips null properties and a `!== null` guard let `undefined` through.
+
+They also could not answer a single question in the research plan. **An agent's reaction is
+training data, not a rider's.** They are an excellent defect-finder and a categorically
+invalid substitute for the person the product is for, and conflating those two would be the
+easiest mistake to make with these tools available.
+
+## 11. Verification: the part that kept catching me
+
+Typechecks and tests passed on code that was visibly broken, three times. The habits that
+actually worked:
+
+- **Render it and look**, at street zoom downtown. The wide view flatters everything and hid
+  the blue POI icons, a muddy selection tint, and a "green" that read as black.
+- **Compute the colour, then look at it.** The palette validator checks separation, not
+  whether a colour still reads as the colour it is meant to be. It passed a near-black green.
+- **Read the canvas back before believing a screenshot.** Headless Chromium composites a
+  stale white band over the WebGL canvas; two independent checks proved the map was drawing
+  correctly and the capture was lying.
+- **Print times in the service day.** `% 24` turned a window of 03:28–30:35 into
+  "03:28 to 06:35", which read as a gap and got written into a decision as "we have not
+  ingested Blue Night". All 35 Blue Night routes were in the data. The decision was corrected
+  in place rather than deleted.
+
+## 12. What I would do differently
+
+- **Interview earlier — but not first.** The personas are still literature-derived. Yet six
+  of the seven questions now blocking validation could only be written *after* there was a
+  screen. Building first was right; not scheduling interviews in parallel was not, and it is
+  why this study ends with a protocol instead of findings.
+- **I let a decision outrun the build.** `D-07` committed to accessibility as a hard routing
+  constraint while nothing was implemented and no elevator data was ingested. It is closed
+  now — the planner routes *around* stations that are not step-free — but it should not have
+  drifted for as long as it did.
 - **I designed five user flows without asking the product owner what they wanted.** The
-  research was sound and the flows follow from it — but they were derived, not agreed. Two
-  drifts from the original brief went unexamined for too long: it asked for **A-to-B
-  routing**, which I argued into a forecast on evidence, and it asked twice for a **map**,
-  which does not exist. Both may be right calls. Neither was a shared one.
+  research was sound and the flows follow from it — but they were derived, not agreed. The
+  sharpest instance: the brief asked twice for **A-to-B routing**, and I argued it into a
+  forecast on redundancy evidence. The evidence was right; the conclusion was not. Low
+  redundancy is an argument about what a router should *say*, not a reason to withhold one.
+  Superseded on the product owner's direction, and kept in the log.
+- **I proposed a feature before measuring the thing it was for.** The night case in section
+  6. The audit that corrected it took twenty minutes and should have come first.
 
 ## Outcome
 
-A working reliability engine over public data with no API keys, an exploratory
-mobile-first interface, four reproducible audits that can fail the build, and a decision
-record explaining every choice and what would reverse it.
+A working reliability engine over public data with **no API keys**, a mobile-first trip
+planner that ranks routes by what actually happens, five reproducible audits with
+pre-registered thresholds, 171 tests, and a decision record explaining every choice and what
+would reverse it.
 
-Alongside it: an evidence base, a ranked problem inventory, nine principles, three personas,
-five journeys, four user flows and a system architecture — each traceable to the
-measurement that produced it.
+Alongside it: an evidence base of 24 own measurements plus 15 from literature and market
+review, a ranked problem inventory, nine
+principles, three personas, five journeys, four flows, and a pre-registered research
+protocol — each traceable to what produced it.
+
+**Every success criterion is met except one.** Rider validation is outstanding, and it is
+outstanding because it needs riders, not because it needs more building. The protocol names
+the trap it has to avoid: U-05 is easy to recruit and U-02 is not, so recruiting for
+convenience would produce a study that validates the persona this product was not built for.
 
 The most valuable output is not the interface. It is knowing **which half of the original
-hypothesis was true** — and having the trail to prove it.
+hypothesis was true** — and having the trail to prove it, including the six times I was the
+one who turned out to be wrong.

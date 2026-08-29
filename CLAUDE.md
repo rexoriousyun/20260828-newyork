@@ -22,6 +22,7 @@ npm run audit:gap         # M2 gate — is Min Gap trustworthy? (pre-registered 
 npm run audit:stability   # does segment reliability persist? (rho > 0.5 on exposure)
 npm run audit:coverage    # surface geocoding rate vs the 66.1% baseline
 npm run audit:headway     # is "runs every N min" discriminating, or wallpaper? (D-34)
+npm run check:diagrams    # every mermaid block parses — GitHub fails one silently
 npm test                  # vitest
 npm run typecheck
 npm run dev               # API on :3000 — /plan builds a ~6s graph on first request, then 6-12ms
@@ -58,7 +59,9 @@ measurement; that is the system working, not a failure.
   (`P-03`). An unattributed record is visible; a mis-attributed one is invisible and wrong.
 - **Commit messages carry the reasoning**, not just the change: what was wrong, what was
   measured, what was traded away. They are the second-best record after the docs.
-- **Do not spam artifacts.** One artifact per living document. If it already exists, publish
+- **Do not spam artifacts.** Two exist: *Fewer Surprises* (the interactive prototype) and
+  *Which Half Was True* (the case study, source at `docs/portfolio/case-study.html`).
+  One artifact per living document. If it already exists, publish
   to the same URL (pass `url`) so the link the user holds keeps working — use
   `action: "list"` to find it when the URL is not to hand. A new artifact is for a genuinely
   new document, never for a revision of one that exists.

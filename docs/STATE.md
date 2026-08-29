@@ -36,7 +36,8 @@ which no existing tool publishes. Reliability-aware TTC routing already exists
 | `docs/design/00-concept.md` | Design concept, and the design work still needed |
 | `docs/design/01-system.md` | The four design rules, encoding, tokens, validation |
 | `docs/product/PLAN.md` | v1 scope, milestones, engine contract |
-| `docs/portfolio/CASE-STUDY.md` | Portfolio narrative |
+| `docs/portfolio/CASE-STUDY.md` | Portfolio narrative — the full record |
+| `docs/portfolio/case-study.html` | The same, as a designed page ([published](https://claude.ai/code/artifact/304700bb-f9a5-40e7-a42b-16a92e780dd0)) |
 | `src/` | Engine: ingest, domain, api, audits |
 | `web/` | Mobile-first app: plan a trip, explore a route |
 

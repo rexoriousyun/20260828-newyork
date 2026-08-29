@@ -1,0 +1,720 @@
+<title>Which Half Was True</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+
+<style>
+/* ---------------------------------------------------------------------------
+   The page wears the palette it documents.
+
+   D-23 in this project's own decision log reserves colour for risk and nothing
+   else. So this case study has NO accent colour: hue appears only inside data,
+   links carry an underline, and focus rings are ink. That constraint is the
+   whole visual idea — a page about honest uncertainty should not spend a colour
+   channel on decoration.
+   ------------------------------------------------------------------------ */
+:root {
+  color-scheme: light;
+  --paper:  #eeede8;
+  --panel:  #ffffff;
+  --sunk:   #e6e5df;
+  --ink:    #1a1a18;
+  --ink-2:  #55554e;
+  --ink-3:  #7d7d74;
+  --rule:   #dedcd4;
+  --rule-2: #c9c7bd;
+  /* The product's own encoding tokens, validated for CVD separation. */
+  --scale-1: #1a7f4c;
+  --scale-2: #d9882c;
+  --scale-3: #c33f2b;
+
+  --measure: 34rem;
+  --gutter: 8.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:  #131315;
+    --panel:  #1b1b1e;
+    --sunk:   #202024;
+    --ink:    #f0f0ea;
+    --ink-2:  #a8a8a0;
+    --ink-3:  #83837b;
+    --rule:   #2e2e34;
+    --rule-2: #43434b;
+    --scale-1: #57c78a;
+    --scale-2: #eda545;
+    --scale-3: #e35f4e;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:  #131315;
+  --panel:  #1b1b1e;
+  --sunk:   #202024;
+  --ink:    #f0f0ea;
+  --ink-2:  #a8a8a0;
+  --ink-3:  #83837b;
+  --rule:   #2e2e34;
+  --rule-2: #43434b;
+  --scale-1: #57c78a;
+  --scale-2: #eda545;
+  --scale-3: #e35f4e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 17.5px/1.62 "Source Serif 4", Georgia, "Times New Roman", serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Layout ------------------------------------------------------------- */
+.doc { max-width: calc(var(--measure) + var(--gutter) + 3rem); margin: 0 auto; padding: 0 1.25rem 6rem; }
+section, header.masthead { display: grid; gap: 0 2rem; grid-template-columns: 1fr; }
+.body { max-width: var(--measure); display: flex; flex-direction: column; gap: 1.1rem; }
+.mark { grid-row: 1; }
+
+@media (min-width: 62rem) {
+  section, header.masthead { grid-template-columns: var(--gutter) minmax(0, 1fr); }
+  .mark { grid-column: 1; text-align: right; }
+  .body { grid-column: 2; }
+}
+
+/* --- Gutter marginalia --------------------------------------------------
+   The IDs are the project's real, stable identifiers, not ornament: every
+   claim on this page traces to one of them in the repository. That is why
+   they get structural position rather than a footnote. */
+.mark {
+  font: 500 11px/1.5 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--ink-3);
+  padding-top: 0.55rem;
+}
+.mark span { display: block; }
+.mark .num { color: var(--ink-2); font-weight: 600; }
+@media (max-width: 61.99rem) {
+  .mark { padding-top: 0; margin-bottom: -0.35rem; }
+  .mark span { display: inline; }
+  .mark span + span::before { content: " · "; color: var(--rule-2); }
+}
+
+/* --- Type --------------------------------------------------------------- */
+h1, h2, h3, .lede, .kicker, table, .fig, .stat, .pill, .refuse h3 {
+  font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+}
+h1 {
+  margin: 0 0 0.6rem;
+  font-size: clamp(2.35rem, 7.5vw, 3.6rem);
+  font-weight: 700; line-height: 1.02; letter-spacing: -0.032em;
+  text-wrap: balance;
+}
+h2 {
+  margin: 0 0 0.1rem;
+  font-size: 1.44rem; font-weight: 650; line-height: 1.18; letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+h3 {
+  margin: 1.1rem 0 -0.4rem;
+  font-size: 1.02rem; font-weight: 600; letter-spacing: -0.006em;
+}
+p { margin: 0; }
+strong { font-weight: 600; color: var(--ink); }
+em { font-style: italic; }
+a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: from-font; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
+.kicker {
+  font: 600 11.5px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-3);
+  margin: 0 0 1.1rem;
+}
+.lede {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 1.22rem; line-height: 1.5; color: var(--ink-2);
+}
+
+/* --- Masthead ----------------------------------------------------------- */
+header.masthead { padding: 4.5rem 0 2.2rem; }
+.meta {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  gap: 1.3rem 1.8rem;
+  margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--rule);
+}
+.meta div { display: flex; flex-direction: column; gap: 0.28rem; }
+.meta dt, .meta .k {
+  font: 500 10.5px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+}
+.meta .v { font-size: 0.94rem; line-height: 1.4; color: var(--ink); }
+
+/* --- Sections ----------------------------------------------------------- */
+section { padding: 2.4rem 0; border-top: 1px solid var(--rule); }
+section.plain { border-top: 0; padding-top: 0; }
+
+/* --- Pull quote — the single loudest thing on the page ------------------ */
+.pull {
+  margin: 0.5rem 0;
+  padding: 1.15rem 0 1.15rem 1.15rem;
+  border-left: 3px solid var(--ink);
+  font-family: Archivo, sans-serif;
+  font-size: 1.28rem; font-weight: 600; line-height: 1.28; letter-spacing: -0.018em;
+  text-wrap: balance;
+}
+.pull small {
+  display: block; margin-top: 0.5rem;
+  font: 400 12.5px/1.5 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.02em; text-transform: none; color: var(--ink-3);
+}
+
+/* The chain wraps rather than forcing the page sideways: non-breaking spaces
+   here pushed a 390px viewport to 544px of horizontal scroll. */
+.chain {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem 0.55rem;
+  font: 500 0.86rem/1.5 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.01em;
+}
+.chain i { font-style: normal; color: var(--ink-3); }
+
+/* --- Tables ------------------------------------------------------------- */
+.tw { overflow-x: auto; margin: 0.35rem 0; -webkit-overflow-scrolling: touch; }
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.87rem; line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+th {
+  text-align: left; font-weight: 600; color: var(--ink-3);
+  font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase;
+  padding: 0 0.85rem 0.5rem 0; border-bottom: 1px solid var(--rule-2);
+  white-space: nowrap;
+}
+td {
+  padding: 0.6rem 0.85rem 0.6rem 0; border-bottom: 1px solid var(--rule);
+  vertical-align: top; color: var(--ink-2);
+}
+td:last-child, th:last-child { padding-right: 0; }
+td strong { color: var(--ink); }
+.num-col { text-align: right; font-family: "IBM Plex Mono", monospace; font-weight: 500; }
+
+/* --- Figures ------------------------------------------------------------ */
+.fig {
+  margin: 0.6rem 0; padding: 1.15rem 1.15rem 1rem;
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 3px;
+}
+.fig-t {
+  font: 600 11px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+  margin: 0 0 0.9rem;
+}
+.fig-n {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 0.87rem; line-height: 1.5; color: var(--ink-2); margin: 0.9rem 0 0;
+}
+
+/* Headway bars */
+.bars { display: flex; flex-direction: column; gap: 0.5rem; }
+.bar-row { display: grid; grid-template-columns: 5.6rem 1fr 3rem; gap: 0.7rem; align-items: center; }
+.bar-l {
+  font: 500 11.5px/1 "IBM Plex Mono", monospace; color: var(--ink-2);
+  letter-spacing: 0.02em; white-space: nowrap;
+}
+.bar-t { position: relative; height: 11px; background: var(--sunk); border-radius: 2px; }
+.bar-f { display: block; height: 100%; border-radius: 0 3px 3px 0; background: var(--ink-3); }
+.bar-row.hot .bar-f { background: var(--scale-3); }
+.bar-v {
+  font: 600 12px/1 "IBM Plex Mono", monospace; color: var(--ink-2);
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+.bar-row.hot .bar-v { color: var(--ink); }
+
+/* The honesty grammar strip */
+.strip { display: block; width: 100%; height: auto; }
+.strip-key {
+  display: flex; flex-wrap: wrap; gap: 0.25rem 1.2rem; margin-top: 0.85rem;
+  font: 500 11px/1.4 "IBM Plex Mono", monospace; letter-spacing: 0.03em; color: var(--ink-3);
+}
+.strip-key span { display: flex; align-items: center; gap: 0.42rem; }
+.sw { display: block; width: 15px; height: 4px; border-radius: 2px; flex: 0 0 auto; }
+
+/* --- Refusals ----------------------------------------------------------- */
+.refuse {
+  margin: 0.5rem 0; padding: 1.2rem 1.25rem;
+  border: 1px dashed var(--rule-2); border-radius: 3px; background: transparent;
+}
+.refuse h3 {
+  margin: 0 0 0.85rem;
+  font: 600 11px/1.4 "IBM Plex Mono", ui-monospace, monospace;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+}
+.refuse ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.8rem; }
+.refuse li { font-size: 0.94rem; line-height: 1.52; color: var(--ink-2); }
+.refuse b { font-weight: 600; color: var(--ink); font-family: Archivo, sans-serif; font-size: 0.92rem; }
+
+/* --- Stat row ----------------------------------------------------------- */
+.stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 1.1rem 1.4rem; margin: 0.5rem 0;
+}
+.stat { display: flex; flex-direction: column; gap: 0.15rem; }
+.stat b {
+  font-size: 1.65rem; font-weight: 700; letter-spacing: -0.028em; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.stat span {
+  font: 400 11.5px/1.35 "IBM Plex Mono", monospace; letter-spacing: 0.03em; color: var(--ink-3);
+}
+
+ul.plain { margin: 0; padding-left: 1.05rem; display: flex; flex-direction: column; gap: 0.6rem; }
+ul.plain li { color: var(--ink-2); }
+ul.plain li::marker { color: var(--rule-2); }
+
+footer {
+  margin-top: 3rem; padding-top: 1.4rem; border-top: 1px solid var(--rule);
+  font: 400 12.5px/1.6 "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--ink-3); max-width: var(--measure);
+}
+@media (min-width: 62rem) { footer { margin-left: calc(var(--gutter) + 2rem); } }
+</style>
+
+<div class="doc">
+
+<header class="masthead">
+  <div class="mark"><span class="num">2026</span><span>Aug 28–29</span></div>
+  <div class="body">
+    <p class="kicker">TTC reliability · UX case study</p>
+    <h1>Which half was true</h1>
+    <p class="lede">A brief claimed Toronto's transit delays cluster on specific lanes because of
+    maintenance and infrastructure, and asked for a map of the fastest and most reliable way from
+    A to B. Half of that was right. Finding out which half took precedence over designing
+    anything — and then kept overturning what had already been designed.</p>
+
+    <div class="meta">
+      <div><span class="k">Role</span><span class="v">Research, product definition, interaction design, implementation</span></div>
+      <div><span class="k">Built</span><span class="v">Map-first TTC trip planner, mobile, no API keys</span></div>
+      <div><span class="k">Data</span><span class="v">163,725 delay records · Jan 2025 – Jul 2026</span></div>
+      <div><span class="k">Status</span><span class="v">v1 complete. Rider validation outstanding, protocol pre-registered</span></div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="mark"><span class="num">01</span><span>E-D01</span><span>E-D02</span></div>
+  <div class="body">
+    <h2>Interrogating the premise before designing for it</h2>
+    <p>Toronto publishes every TTC delay incident since 2014. The load-bearing question was not
+    what to build — it was whether unreliability is a stable property of a place or just noise.
+    If it is noise, there is nothing to predict and no product. I ranked stations independently
+    across two periods and correlated the rankings.</p>
+
+    <div class="pull">Spearman rho = 0.78. Bad places stay bad.
+      <small>The premise held. The explanation did not.</small></div>
+
+    <p>The brief blamed maintenance and infrastructure. The records say otherwise: injured or ill
+    customer 11.7%, disorderly patron 9.9%, unauthorised at track level 5.2%, security 5.2% —
+    <strong>roughly a third of subway delay is passenger and security incidents</strong>, with
+    equipment a much thinner slice.</p>
+    <p>That mattered for design, not just for accuracy. Infrastructure wear is opaque to a rider.
+    Crowding and time of day are <em>legible</em> — things a person can plan around. The product
+    got more useful the moment the real cause was known.</p>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">02</span><span>E-D09</span><span>P-02</span></div>
+  <div class="body">
+    <h2>The finding that relocated the whole product</h2>
+    <p>Every public tool reports <em>Min Delay</em> — how late the vehicle is. The same dataset
+    carries <em>Min Gap</em>: the headway hole left behind, which is what the rider actually
+    stands in.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>Mode</th><th class="num-col">Median delay</th><th class="num-col">Median gap</th><th class="num-col">Ratio</th></tr></thead>
+      <tbody>
+        <tr><td>Subway</td><td class="num-col">5 min</td><td class="num-col">8 min</td><td class="num-col">1.38×</td></tr>
+        <tr><td><strong>Bus</strong></td><td class="num-col">13 min</td><td class="num-col"><strong>26 min</strong></td><td class="num-col"><strong>1.58×</strong></td></tr>
+      </tbody>
+    </table></div>
+
+    <p><strong>83.8% of bus incidents carry the bunching signature.</strong> The industry-standard
+    metric understates bus pain by around 58%, and the correction is sitting unused in public
+    data.</p>
+    <p>It also settled the target. Subway: 117,924 delay-minutes. Bus: 2,052,791 — about
+    seventeen times as much. The subway gets the attention; the buses carry the pain. I had
+    already recommended a subway-first release. The data killed that recommendation, and the
+    reversal went in the log rather than being quietly corrected.</p>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">03</span><span>E-D03</span><span>P-04</span></div>
+  <div class="body">
+    <h2>The trap I nearly shipped</h2>
+    <p>20.7% of subway delay-minutes are attributed to twelve of about seventy stations — and they
+    are <strong>terminals and yards</strong>. Kipling is not dangerous to ride through. It is
+    where trains turn around and where the log entry gets written.</p>
+    <p>A naive "avoid the red stations" map would have been confidently wrong, and every competing
+    visualisation I reviewed appears to make exactly this mistake. The same artifact reappeared on
+    the surface network wearing different names — garages and loops, nearly 5% of surface delay
+    logged where no rider is ever waiting.</p>
+    <p>Cheap to get wrong. Invisible once shipped. This is the finding I am most glad the research
+    surfaced early, because no amount of interface craft recovers from it.</p>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">04</span><span>D-01 … D-35</span></div>
+  <div class="body">
+    <h2>A system, not a pile of opinions</h2>
+    <p>The client asked for a UX-driven project, so decisions needed to survive being questioned
+    six weeks later. Every claim in this study resolves to an identifier in a chain:</p>
+
+    <div class="pull chain">
+      <span>Evidence</span><i>→</i><span>Problem</span><i>→</i><span>Principle</span><i>→</i><span>Decision</span><i>→</i><span>Implementation</span>
+    </div>
+
+    <p>Four rules make it work. <strong>No orphan decisions</strong> — every decision cites a
+    principle, every principle cites evidence, and anything without a chain is labelled a
+    preference. <strong>Evidence expires</strong>, so each claim records when it was measured.
+    <strong>Every decision names its kill condition</strong>, because one nobody can imagine
+    reversing is usually an unexamined assumption. And <strong>superseded, never deleted</strong>.</p>
+
+    <div class="stats">
+      <div class="stat"><b>35</b><span>decisions</span></div>
+      <div class="stat"><b>9</b><span>principles</span></div>
+      <div class="stat"><b>39</b><span>pieces of evidence</span></div>
+      <div class="stat"><b>14</b><span>ranked problems</span></div>
+      <div class="stat"><b>2</b><span>superseded, kept</span></div>
+    </div>
+
+    <p>That last figure is the one I would defend hardest. Two decisions sit in the log marked
+    superseded, with their reasoning errors still readable. A log you can only add to is a
+    marketing document.</p>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">05</span><span>U-02</span><span>U-04</span><span>U-05</span></div>
+  <div class="body">
+    <h2>Cutting the personas down</h2>
+    <p>The first pass produced five. Three survived.</p>
+    <p><strong>The Deadline Commuter was not a persona.</strong> A hard arrival time changes how a
+    rider reads a number; it does not make them a different rider. The segmentation research
+    divides riders by regularity, not by deadline — and the two descriptions were plainly the same
+    human, since precarious work and unforgiving deadlines travel together in Toronto. Merged as a
+    modifier.</p>
+    <p><strong>The Regional Commuter had not earned its place.</strong> Its evidence described an
+    axis another persona already occupied — having an alternative — without showing a different
+    need. Demoted to a documented hypothesis with a revisit condition, so it does not get silently
+    reinvented.</p>
+    <p>What remained splits on the one axis the research actually supports: does this rider have an
+    alternative?</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>Persona</th><th>Alternative?</th><th>What they need</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Captive</strong><br>one bus, no car</td><td>no</td><td>a <strong>forecast</strong> — is this viable, when do I leave, when do I give up</td></tr>
+        <tr><td><strong>Downtown</strong><br>could walk it</td><td>yes, in the moment</td><td>a <strong>comparison</strong> — transit or walk</td></tr>
+        <tr><td><strong>Access-constrained</strong><br>depends on elevators</td><td>rarely, failure is binary</td><td>a <strong>constraint</strong> — routes that are certainly usable</td></tr>
+      </tbody>
+    </table></div>
+
+    <p>A persona has to earn its place by producing a different design need, evidenced. Five felt
+    thorough. Three were true.</p>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">06</span><span>E-D10</span><span>D-11</span></div>
+  <div class="body">
+    <h2>The measurement that invalidated my own contract</h2>
+    <p>The product was staked on reliability below the route level. Before building on that, I
+    tested whether it persists at that granularity — and split the question in two.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>Metric</th><th class="num-col">Split-half rho</th><th class="num-col">Ties</th></tr></thead>
+      <tbody>
+        <tr><td>Incident count</td><td class="num-col">0.762</td><td class="num-col">41%</td></tr>
+        <tr><td>Total gap-minutes <em>(exposure)</em></td><td class="num-col"><strong>0.681</strong></td><td class="num-col">7%</td></tr>
+        <tr><td>Median gap</td><td class="num-col">0.361</td><td class="num-col">94%</td></tr>
+        <tr><td>Mean gap <em>(severity)</em></td><td class="num-col"><strong>0.104</strong></td><td class="num-col">3%</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="pull">How <em>often</em> a segment costs you time is predictable. How <em>long</em>
+    you wait once it happens is not.
+      <small>3% ties, so the near-zero correlation is real rather than a compressed scale.</small></div>
+
+    <p>That invalidated an engine contract I had written the same morning, which promised
+    per-segment percentiles as the headline output. Publishing them would have been noise
+    formatted as precision. Severity is now pooled per mode and labelled as pooled; only exposure
+    is segment-specific.</p>
+    <p>This is the case study's real argument — the measurement changed the design, and the
+    system made that cheap instead of embarrassing.</p>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">07</span><span>six reversals</span></div>
+  <div class="body">
+    <h2>It kept happening</h2>
+    <p>Six times, something I had reasoned my way to turned out to be wrong when measured.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>I believed</th><th>The measurement said</th><th>What moved</th></tr></thead>
+      <tbody>
+        <tr><td>Per-segment severity is the headline</td><td>rho 0.10 — it does not persist</td><td>the engine contract, the same morning</td></tr>
+        <tr><td>Low redundancy means build a forecast, not a router</td><td>the brief asked for A-to-B twice; redundancy shapes what a router <em>says</em></td><td>a decision superseded, kept in the log</td></tr>
+        <tr><td>Peak is much worse than the pooled average</td><td>AM peak is <strong>0.83×</strong> — two of five bands are <em>better</em></td><td>conditioning shipped for dispersion, not a peak curve</td></tr>
+        <tr><td>A trip in the worst tenth of its class is a bad trip</td><td>the reference class had median coverage 0.23 — mostly unmeasured and fake-safe</td><td>the benchmark was rebuilt twice</td></tr>
+        <tr><td>A buffer should be sized to a percentile</td><td>that advises leaving 58 minutes early for a twice-a-year event</td><td>stopped recommending; state the rate and the price</td></tr>
+        <tr><td>Night is riskier, so build for the night rider</td><td>night is the <strong>safest</strong> band per trip</td><td>the feature survived; its reason changed entirely</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>The last row, in full</h3>
+    <p>The product owner asked about riders travelling alone at night. I proposed a feature on a
+    hunch, pre-registered its threshold in the source, and wrote an audit to test the threshold
+    rather than to confirm the hunch. The audit said the hunch was backwards.</p>
+
+    <div class="fig">
+      <p class="fig-t">Share of departures on service running every 20 min or worse</p>
+      <div class="bars">
+        <div class="bar-row hot">
+          <span class="bar-l">night</span>
+          <span class="bar-t"><span class="bar-f" style="width:74.3%"></span></span>
+          <span class="bar-v">74.3%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-l">evening</span>
+          <span class="bar-t"><span class="bar-f" style="width:21.3%"></span></span>
+          <span class="bar-v">21.3%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-l">midday</span>
+          <span class="bar-t"><span class="bar-f" style="width:19.6%"></span></span>
+          <span class="bar-v">19.6%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-l">am peak</span>
+          <span class="bar-t"><span class="bar-f" style="width:14.9%"></span></span>
+          <span class="bar-v">14.9%</span>
+        </div>
+        <div class="bar-row">
+          <span class="bar-l">pm peak</span>
+          <span class="bar-t"><span class="bar-f" style="width:14.2%"></span></span>
+          <span class="bar-v">14.2%</span>
+        </div>
+      </div>
+      <p class="fig-n">1,200,534 weekday departures, each segment-band weighted by the service that
+      runs on it. The median headway behind a departure is exactly 10.0 minutes — which is also the
+      TTC's own frequent-service standard, and therefore a threshold that would have fired on half
+      of all service and meant nothing.</p>
+    </div>
+
+    <div class="pull">Night is not more likely to go wrong. It is emptier — so the same failure
+    costs half an hour instead of seven minutes.
+      <small>Same feature. Opposite reason. And the reason is what the interface says out loud.</small></div>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">08</span><span>E-D12</span><span>P-03</span><span>D-26</span></div>
+  <div class="body">
+    <h2>Designing for a product that mostly does not know</h2>
+    <p>The uncomfortable result: <strong>86% of bus segments have too little data to score.</strong>
+    Only 3.1% reach high confidence. The principle says absence of data must never look like good
+    news, so the honest rendering of a real bus route is a checkerboard.</p>
+    <p>I did not soften it. Unknown is drawn as a different <em>kind</em> of thing — dashed, thinned,
+    outside the scale entirely — rather than as a low value at the reassuring end of it.</p>
+
+    <div class="fig">
+      <p class="fig-t">The grammar, on one route</p>
+      <svg class="strip" viewBox="0 0 620 74" role="img"
+           aria-label="A route drawn as five stretches: two measured as low risk, one high risk, one unmeasured and dashed, one measured as moderate risk.">
+        <g stroke-width="7" stroke-linecap="round" fill="none">
+          <line x1="14"  y1="30" x2="132" y2="30" stroke="var(--scale-1)"/>
+          <line x1="146" y1="30" x2="252" y2="30" stroke="var(--scale-3)"/>
+          <line x1="266" y1="30" x2="404" y2="30" stroke="var(--ink-3)" stroke-width="4"
+                stroke-dasharray="3 9" opacity="0.85"/>
+          <line x1="418" y1="30" x2="520" y2="30" stroke="var(--scale-2)"/>
+          <line x1="534" y1="30" x2="606" y2="30" stroke="var(--scale-1)"/>
+        </g>
+        <g fill="var(--ink-3)" font-family="IBM Plex Mono, monospace" font-size="10.5" letter-spacing="0.4">
+          <text x="14"  y="58">measured</text>
+          <text x="266" y="58">no data — never a shade of “fine”</text>
+        </g>
+      </svg>
+      <div class="strip-key">
+        <span><i class="sw" style="background:var(--scale-1)"></i>less waiting</span>
+        <span><i class="sw" style="background:var(--scale-2)"></i>more</span>
+        <span><i class="sw" style="background:var(--scale-3)"></i>most</span>
+        <span><i class="sw" style="background:var(--ink-3);height:3px;opacity:.8"></i>not enough data</span>
+      </div>
+      <p class="fig-n">Colour on this app means risk and nothing else. Unknown carries no position on
+      the ramp, because a position is a claim.</p>
+    </div>
+
+    <h3>The principle nearly failed anyway</h3>
+    <p>A map expression written as <code style="font:500 0.88em 'IBM Plex Mono',monospace">coalesce(get(exposure),&nbsp;0)</code>
+    turns <em>missing</em> into <em>best</em>. For a whole milestone, the unmeasured stretches of a
+    planned trip drew at the green end of the scale — eight of eighteen on one Jane-to-Union
+    itinerary. Valid expression, correct data, invisible to a typechecker and to every test.</p>
+
+    <div class="pull">A principle is only as good as the last place someone forgot to apply it.
+      <small>Unknown is now a separate layer that cannot sit on the ramp at all.</small></div>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">09</span><span>P-09</span><span>D-33</span></div>
+  <div class="body">
+    <h2>Hiding the machinery without hiding the doubt</h2>
+    <p>The client's principle was that magic is best when it is hidden. Adopted — the answer is the
+    product, and sample sizes, windows, filters and pooling rationale wait behind a quiet
+    <em>why this number</em>. But it needed one line drawn, because two things look identical in a
+    mock and are opposites in the hand.</p>
+
+    <div class="tw"><table>
+      <thead><tr><th>Hide until asked</th><th>Never hide</th></tr></thead>
+      <tbody>
+        <tr><td>Sample size, observation window</td><td>That a segment has <strong>no data</strong></td></tr>
+        <tr><td>Which filters were applied</td><td>That confidence is <strong>low</strong></td></tr>
+        <tr><td>Why severity is pooled, not per-segment</td><td>That severity is <strong>not segment-specific</strong></td></tr>
+        <tr><td>Persistence statistics, methodology</td><td>That a figure is an <strong>estimate, not a promise</strong></td></tr>
+      </tbody>
+    </table></div>
+
+    <p>Hiding how we know earns trust. Hiding that we do not know spends it — and it is precisely
+    the failure riders have already learned to expect, since official TTC metrics "hide more than
+    they reveal".</p>
+
+    <h3>One full reversal in how that line is drawn</h3>
+    <p>Four separate conditions — today's disruptions, a route that often does not turn up, thin
+    history, what a step-free constraint cost — each shipped as its own paragraph, and they can all
+    apply at once. Four stacked paragraphs pushed the actual answer off a phone screen. They are
+    now tags that open, under one rule: <strong>the label carries the claim, the tap carries only
+    the detail</strong>. A tag reads "Little data", never "Details". Anything that cannot be said in
+    three words does not become a tag.</p>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">10</span><span>PR-11 · OUT</span></div>
+  <div class="body">
+    <h2>What I refused to build</h2>
+    <p>A portfolio usually shows what was made. The clearer signal here is what was declined, since
+    each refusal cost a feature that would have demoed well.</p>
+
+    <div class="refuse">
+      <h3>Declined, with the reason on record</h3>
+      <ul>
+        <li><b>A safety score.</b> The product owner asked about solo travellers at night, and a
+        delay archive cannot speak to personal safety. I built the measurable thing instead — how
+        long you stand there — and said plainly why the other was not on the table.</li>
+        <li><b>A buffer recommendation.</b> The rider knows what being late costs them; we do not.
+        The app states the rate and the price and stops.</li>
+        <li><b>Any claim about shelter.</b> The app says a wait is <em>outside</em>. Whether that
+        stop has a roof is not in a dataset we ingest, so it says nothing about one.</li>
+        <li><b>Accessibility folded into a score.</b> Elevator failure is binary. It filters the
+        route set <em>before</em> ranking and never contributes a weight.</li>
+        <li><b>An estimate in place of a gap.</b> Records that cannot be placed stay unplaced. A
+        mis-attributed record is invisible and wrong; an unattributed one is visible.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">11</span><span>E-D22</span></div>
+  <div class="body">
+    <h2>What the synthetic testers could and could not do</h2>
+    <p>I ran four agents through the app with distinct personas, driving it through a text harness.
+    They found <strong>eleven real defects</strong>, six in code that was carefully argued and
+    covered by tests — including one that white-screened the entire app on any segment tap, because
+    the map library strips null properties and a strict-inequality guard let <em>undefined</em>
+    through.</p>
+    <p>They also could not answer a single question in the research plan.</p>
+
+    <div class="pull">An agent's reaction is training data, not a rider's.
+      <small>An excellent defect-finder; a categorically invalid substitute for the person the
+      product is for.</small></div>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">12</span><span>verification</span></div>
+  <div class="body">
+    <h2>The habits that kept catching me</h2>
+    <p>Typechecks and tests passed on visibly broken code three times. What actually worked:</p>
+    <ul class="plain">
+      <li><strong>Render it and look</strong>, at street zoom downtown. The wide view flatters
+      everything, and hid a muddy selection tint and a "green" that read as black.</li>
+      <li><strong>Compute the colour, then look at it.</strong> The palette validator checks
+      separation, not whether a colour still reads as the colour it is meant to be.</li>
+      <li><strong>Read the canvas back before believing a screenshot.</strong> Headless Chromium
+      composites a stale white band over the map; two independent checks proved the map was drawing
+      correctly and the capture was lying.</li>
+      <li><strong>Print times in the service day.</strong> A modulo-24 format turned a window of
+      03:28–30:35 into "03:28 to 06:35", which read as a gap and got written into a decision as
+      "we have not ingested the night network". All 35 night routes were in the data. The decision
+      was corrected in place rather than deleted.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">13</span><span>D-07</span><span>D-13</span></div>
+  <div class="body">
+    <h2>What I would do differently</h2>
+    <ul class="plain">
+      <li><strong>Interview earlier — but not first.</strong> Six of the seven questions now
+      blocking validation could only be written once there was a screen to react to. Building first
+      was right; not scheduling interviews in parallel was not, and it is why this study ends with
+      a protocol instead of findings.</li>
+      <li><strong>I let a decision outrun the build.</strong> Accessibility was committed to as a
+      hard routing constraint while nothing was implemented and no elevator data was ingested. It
+      is closed now — the planner routes <em>around</em> stations that are not step-free — but it
+      should not have drifted for as long as it did.</li>
+      <li><strong>I designed five user flows without asking the product owner what they wanted.</strong>
+      The research was sound and the flows follow from it, but they were derived, not agreed. The
+      sharpest instance: the brief asked twice for A-to-B routing, and I argued it into a forecast
+      on redundancy evidence. The evidence was right; the conclusion was not. Low redundancy is an
+      argument about what a router should <em>say</em>, not a reason to withhold one.</li>
+      <li><strong>I proposed a feature before measuring the thing it was for.</strong> The night
+      case above. The audit that corrected it took twenty minutes and should have come first.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="mark"><span class="num">14</span><span>D-08 · open</span></div>
+  <div class="body">
+    <h2>Where it stands</h2>
+    <p>A working reliability engine over public data with no API keys, a mobile-first trip planner
+    that ranks routes by what actually happens, five reproducible audits with thresholds
+    pre-registered in the source, 171 tests, and a decision record explaining every choice and what
+    would reverse it.</p>
+    <p><strong>Every success criterion is met except one.</strong> Rider validation is outstanding,
+    and it is outstanding because it needs riders — not because it needs more building. The
+    protocol is written, with the verdict condition for each question fixed before any session, the
+    same discipline the audits use.</p>
+    <p>It also names the trap it has to avoid: the downtown persona is easy to recruit and the
+    captive one is not, so recruiting for convenience would produce a study that validates the
+    rider this product was not built for.</p>
+
+    <div class="pull">The most valuable output is not the interface. It is knowing which half of the
+    original hypothesis was true — and having the trail to prove it, including the six times I was
+    the one who turned out to be wrong.</div>
+  </div>
+</section>
+
+<footer>
+  Toronto Open Data + TTC GTFS. No API keys anywhere.<br>
+  Every figure on this page is reproducible from the repository.
+</footer>
+
+</div>
