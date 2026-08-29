@@ -81,6 +81,13 @@ function Journey({
           </>
         )}
       </span>
+      {j.disruptions.length > 0 && (
+        <span className="journey-today">
+          {j.disruptions.some((d) => d.kind === "no-service" || d.kind === "bypass")
+            ? "Service disrupted today"
+            : "On detour today"}
+        </span>
+      )}
       {rel.comparison !== null && (
         <span className="journey-benchmark">
           <Benchmark comparison={{ ...rel.comparison, typicalOneInTrips: null }} />

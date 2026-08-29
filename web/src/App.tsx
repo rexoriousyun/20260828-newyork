@@ -6,6 +6,7 @@ import { JourneyDetail } from "./JourneyDetail.js";
 import { WhenControl } from "./WhenControl.js";
 import { DepartureAdvice } from "./DepartureAdvice.js";
 import { RouteKey } from "./RouteKey.js";
+import { Disruptions } from "./Disruptions.js";
 import { ViewToggle } from "./ViewToggle.js";
 import { bandLabel, exposureProperty, type View } from "./view.js";
 import { UNRELIABLE_THRESHOLD, stateOf } from "./map.js";
@@ -140,6 +141,7 @@ export function App(): JSX.Element {
     seconds: nextQuarterHour(new Date()),
   }));
   const [journeys, setJourneys] = useState<ScoredJourney[] | null>(null);
+  const [alerts, setAlerts] = useState<{ ageHours: number | null; stale: boolean } | undefined>();
   const [chosen, setChosen] = useState<string | null>(null);
   const [planning, setPlanning] = useState(false);
   const [planNote, setPlanNote] = useState<string | null>(null);
@@ -206,6 +208,7 @@ export function App(): JSX.Element {
       .then((r) => {
         if (r.journeys && r.journeys.length > 0) {
           setJourneys(r.journeys);
+          setAlerts(r.alerts);
           setChosen(r.journeys[0]!.id);
           setListOpen(r.journeys.length > 1);
           setFormOpen(false);
@@ -318,6 +321,16 @@ export function App(): JSX.Element {
               {!listOpen && chosenJourney !== null && <RouteKey journey={chosenJourney} />}
               {/* With a deadline the advice *is* the answer card; without one
                   the journey card is. Never both — they restate one trip. */}
+              {/* Today comes before the answer: a figure that does not cover
+                  the situation in front of the rider has to be qualified before
+                  it is read, not after (P-09). */}
+              {!listOpen && chosenJourney !== null && (
+                <Disruptions
+                  journey={chosenJourney}
+                  hasClearAlternative={journeys.some((j) => j.avoidsDisruption)}
+                  alerts={alerts}
+                />
+              )}
               {!listOpen && chosenJourney?.advice != null ? (
                 <DepartureAdvice journey={chosenJourney} view={view} />
               ) : (

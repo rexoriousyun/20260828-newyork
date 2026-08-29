@@ -206,8 +206,12 @@ Named so they are not silently carried:
 
 - **`D-07` is implemented as a filter, not as routing.** Blocked segments are marked; the
   planner does not yet route *around* them. U-04 is partially served.
-- **GTFS-Realtime alerts are consumed; trip updates and vehicle positions are not.** J-02
-  and J-03 need the latter two.
+- **GTFS-Realtime alerts are consumed for elevators and for route disruptions; trip updates
+  and vehicle positions are not.** J-02 (at-stop) and J-03 (mid-trip) need the latter two —
+  M11 serves J-01's "is today unusual" stage only.
+- **Alerts carry no `active_period`.** Presence in the latest snapshot is the only evidence
+  an alert is live, so the app reports the snapshot's age and stops claiming to know past
+  twelve hours. Silence would read as "nothing is wrong today".
 - **`D-08` is open.** Every persona is provisional — derived from research and data, never
   from talking to a Toronto rider. Q-A is the highest-value question: does a mostly-unknown
   map read as honest or as broken?

@@ -65,6 +65,7 @@ await run("long", "Jane St at Eglinton", "Union Station", {
   at: "09:00",
   zoom: { center: [-79.383, 43.650], zoom: 14.5 },
 });
+// A trip on a route the TTC has flagged today, so the "Today" block is in shot.
 await run("dt", "Spadina Ave At Queen", "Sherbourne Station", {
   at: "09:00",
   zoom: { center: [-79.383, 43.653], zoom: 14.5 },

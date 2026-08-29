@@ -95,7 +95,7 @@ predates `D-14` and describes a feature of a product that did not exist yet.
 | **M8** | Reliability ranking — **DONE** | Journeys ranked and rated by disruption rate | M9 |
 | **M9** | App shell — **DONE** | Search, origin/destination, results, trip detail | M10 |
 | **M10** | Departure advice — **DONE** | Arrive-by planning; both outcomes, buffer priced | ship |
-| **M11** | Day-of disruptions | Detours and bypasses change today's answer | ship |
+| **M11** | Day-of disruptions — **DONE** | Detours, bypasses and closures qualify today's answer | ship |
 | **M12** | Step-free routing | Routes *around* blocked stations, completing `D-07` | ship |
 
 **M7 is the long pole and unblocks the most.** Without routing there is no trip, and without

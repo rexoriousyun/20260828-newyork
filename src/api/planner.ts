@@ -14,6 +14,8 @@ import { buildConnections, type ConnectionSet } from "../domain/connections.js";
 import { displayStopName, displayStationName } from "../domain/stop-names.js";
 import { departureAdvice, latestDeparture } from "../domain/departure.js";
 import { inServiceDay, DAY_SECONDS } from "../domain/time-bands.js";
+import { clusterAlerts, isServiceAffecting, alertAgeHours, ALERTS_STALE_AFTER_HOURS,
+  type Disruption } from "../domain/disruption.js";
 import { BENCHMARK_PATH, MIN_COMPARABLE_COVERAGE, bucketFor, percentileOf, verdictFor,
   type BenchmarkTable, type Verdict } from "../benchmark/table.js";
 import { buildFootpaths, type Footpaths } from "../domain/footpaths.js";
@@ -152,6 +154,46 @@ function compare(
     verdict: verdictFor(saferThan, ratioToTypical),
     label: bucket.label,
   };
+}
+
+/**
+ * Today's disruptions, clustered into events and keyed by route.
+ *
+ * Re-read per request rather than cached with the graph: the alerts table is
+ * replaced on every ingest, and a plan that quotes a cleared incident is worse
+ * than one that quotes none. The table holds tens of rows.
+ */
+async function disruptionsByRoute(): Promise<{
+  byRoute: Map<string, Disruption[]>;
+  fetchedAt: Date | null;
+  ageHours: number | null;
+  stale: boolean;
+}> {
+  const rows = await prisma.serviceAlert.findMany({
+    select: { id: true, description: true, routeIds: true, isElevator: true, fetchedAt: true },
+  });
+  const fetchedAt = rows.length === 0 ? null
+    : rows.reduce((a, r) => (r.fetchedAt > a ? r.fetchedAt : a), rows[0]!.fetchedAt);
+  const ageHours = fetchedAt === null ? null : Number(alertAgeHours(fetchedAt, new Date()).toFixed(1));
+  const stale = ageHours === null || ageHours > ALERTS_STALE_AFTER_HOURS;
+  const events = clusterAlerts(rows.map((r) => ({
+    id: r.id,
+    description: r.description,
+    isElevator: r.isElevator,
+    routeIds: JSON.parse(r.routeIds) as string[],
+  })));
+  const byRoute = new Map<string, Disruption[]>();
+  for (const d of events) {
+    // Elevator alerts already drive the step-free filter (D-07); they name a
+    // station, not a route, and would attach to nothing here.
+    if (d.kind === "elevator") continue;
+    for (const r of d.routeIds) {
+      const list = byRoute.get(r);
+      if (list === undefined) byRoute.set(r, [d]);
+      else list.push(d);
+    }
+  }
+  return { byRoute: stale ? new Map() : byRoute, fetchedAt, ageHours, stale };
 }
 
 const planQuery = z.object({
@@ -297,9 +339,38 @@ export function registerPlanner(app: FastifyInstance): void {
       candidates.push(alt);
     }
 
+    // Today, on top of the history. A route the TTC has flagged is not running
+    // normally, and the reliability figure below is a record of normal days.
+    const { byRoute, ageHours, stale: alertsStale } = await disruptionsByRoute();
+    const disruptionsOn = (j: Journey): Disruption[] => {
+      const seen = new Map<string, Disruption>();
+      for (const l of j.legs) {
+        if (l.kind !== "ride" || l.routeId === undefined) continue;
+        for (const d of byRoute.get(l.routeId) ?? []) seen.set(d.id, d);
+      }
+      return [...seen.values()];
+    };
+
+    // Where a disruption actually stops service on the planned way, offer one
+    // that does not use those routes at all. We cannot say how much a detour
+    // costs — that number is not in the feed and inventing it is exactly what
+    // P-03 forbids — but we can offer a way that does not depend on it.
+    const blocked = new Set(
+      disruptionsOn(best).filter((d) => isServiceAffecting(d.kind)).flatMap((d) => d.routeIds),
+    );
+    if (blocked.size > 0) {
+      const clear = plan(connections, footpaths, parsed.data.from, parsed.data.to,
+                         searchFrom, ARRIVE_BY_WINDOW_S, blocked);
+      const signature = (j: Journey): string => j.legs.map((l) => `${l.kind}:${l.routeId ?? ""}`).join(">");
+      if (clear !== null && !candidates.some((c) => signature(c) === signature(clear))) {
+        candidates.push(clear);
+      }
+    }
+
     const scored = await Promise.all(
       candidates.map((j) => scoreJourney(j, segmentIndex, frequency, nameOf)),
     );
+    const byJourney = new Map(scored.map((j) => [j, disruptionsOn(j)]));
 
     // Ranked by expected door-to-door time — schedule plus what the history says
     // usually happens — not by the timetable alone (E-L02).
@@ -310,6 +381,13 @@ export function registerPlanner(app: FastifyInstance): void {
     );
 
     return {
+      /**
+       * When we last saw the live feed, and whether that is recent enough to
+       * report. Sent even when nothing is disrupted: a rider who sees no
+       * warning deserves to know whether that means "nothing wrong" or "we did
+       * not look" (P-03).
+       */
+      alerts: { ageHours, stale: alertsStale },
       journeys: scored.map((j) => ({
         id: j.legs.map((l) => `${l.kind}:${l.routeId ?? ""}`).join(">"),
         ...j,
@@ -394,7 +472,22 @@ export function registerPlanner(app: FastifyInstance): void {
           fromName: labelOf(l.fromStop), toName: labelOf(l.toStop),
           reliability: j.legRisks[i] ?? null,
           reliabilityAtTime: j.legRisksAtTime?.[i] ?? null,
+          disruptions: l.kind === "ride" && l.routeId !== undefined
+            ? (byRoute.get(l.routeId) ?? [])
+            : [],
         })),
+        /**
+         * Today's events on this way, deduplicated across its legs.
+         *
+         * Ranking is deliberately left alone. We know a flagged route is not
+         * running normally; we do not know whether the rider's own stretch of
+         * it is affected, or what it costs. Demoting on that would be deciding
+         * for them with a number we do not have — the same call D-24 makes
+         * about the departure buffer.
+         */
+        disruptions: byJourney.get(j) ?? [],
+        /** True when nothing the TTC has flagged today touches this way. */
+        avoidsDisruption: (byJourney.get(j) ?? []).length === 0,
       })),
       /** Stated so a single result is not mistaken for a shortlist. */
       alternativesFound: scored.length - 1,

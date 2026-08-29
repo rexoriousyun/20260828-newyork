@@ -700,6 +700,50 @@ number, which would make it a game about routes rather than information about th
 
 ---
 
+## D-29 — Today is stated, never estimated `ACCEPTED · IMPLEMENTED`
+**Cites:** P-03, P-09 · **Journeys:** J-01 · **Problems:** PR-04, PR-08 · **Evidence:** E-D15
+
+The reliability figures are a record of normal days. When the TTC has flagged a route on the
+rider's way, today is not one, and the number is quietly wrong in a direction they cannot
+see. Every trip now carries what the feed says about it:
+
+> **TODAY** — checked 3 hours ago
+> **No service on part of the 510** — due to the CNE.
+> *The figures below are from normal days and do not include this.*
+
+**We say what is happening and stop.** The feed says a route is on detour; it does not say by
+how many minutes, and no amount of history tells us what today's blocked track adds. A
+plausible number here would be the most trusted figure on the screen and the least earned —
+exactly what P-03 exists to prevent. Where a disruption actually stops service, the planner
+instead offers a way that does not use those routes, because an alternative is something we
+can produce honestly and a delay estimate is not.
+
+**Ranking is left alone.** We know a flagged route is not running normally; we do not know
+whether the rider's own stretch is affected. Demoting on that would be deciding for them with
+a number we do not have — the same call D-24 makes about the departure buffer.
+
+**One event, not one alert per route.** A single security incident at Scarborough Centre
+arrived as **18 separate alerts**, identical but for the route name. E-D15 predicted this;
+alerts whose text matches once the route prefix is stripped are now collapsed into one event.
+Eighteen warnings for one incident would bury the one that matters.
+
+**An unrecognised alert is a notice, not a disruption.** The feed carries real public-service
+announcements — "Have proof of payment ready for inspection", attached to eight routes at
+once. The kind is read from the description text because the TTC populates every alert with
+`UNKNOWN_EFFECT`, and anything unmatched is treated as a notice. The cost of that direction
+is a missed alert; the cost of the other is an app that cries wolf, which is how riders learn
+to stop reading warnings (PR-08).
+
+**Silence is a claim, so it is qualified.** The feed carries no `active_period` — an alert's
+presence in the latest snapshot is the only evidence it is live. Past twelve hours the app
+says it could not check, rather than showing nothing and letting that read as "nothing is
+wrong today". Even when fresh, the block carries its own age.
+
+**Reversed if:** riders act on the detour notice as though it carried a time cost we implied,
+which would mean the wording is doing the estimating we refused to do in the data.
+
+---
+
 ## Open questions
 
 | # | Question | Blocks | Owner |

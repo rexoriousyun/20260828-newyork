@@ -100,6 +100,17 @@ export interface LegRisk {
   isWorst: boolean;
 }
 
+export interface Disruption {
+  id: string;
+  kind: "no-service" | "bypass" | "detour" | "elevator" | "notice";
+  /** Every route this one event affects — the TTC publishes it once per route. */
+  routeIds: string[];
+  cause: string | null;
+  shuttle: boolean;
+  /** The alert text with its route prefix stripped. */
+  text: string;
+}
+
 export interface JourneyLeg {
   kind: "ride" | "walk";
   routeId?: string;
@@ -111,6 +122,8 @@ export interface JourneyLeg {
   reliability: LegRisk | null;
   /** The same leg on the band view. Null when it could not be conditioned. */
   reliabilityAtTime: LegRisk | null;
+  /** Flagged by the TTC today. Empty on a walk. */
+  disruptions: Disruption[];
 }
 
 export interface DepartureAdvice {
@@ -158,6 +171,10 @@ export interface BandReliability extends JourneyReliability {
 
 export interface ScoredJourney {
   advice: DepartureAdvice | null;
+  /** Today's events on this way, one per incident rather than one per route. */
+  disruptions: Disruption[];
+  /** Nothing the TTC has flagged today touches this way. */
+  avoidsDisruption: boolean;
   /** Measured only in the bands this trip runs in, or null when none could be. */
   atTime: BandReliability | null;
   id: string;
@@ -188,6 +205,8 @@ export interface ScoredJourney {
 }
 
 export interface PlanResult {
+  /** When the live alerts feed was last seen, and whether that is recent. */
+  alerts?: { ageHours: number | null; stale: boolean };
   journeys?: ScoredJourney[];
   alternativesFound?: number;
   journey?: null;

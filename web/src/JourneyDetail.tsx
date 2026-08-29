@@ -61,6 +61,15 @@ export function JourneyDetail({
                     </span>
                     <span className="leg-dur">{mins(l.departAt, l.arriveAt)} min</span>
                   </span>
+                  {l.disruptions.length > 0 && (
+                    <span className="leg-today">
+                      {l.disruptions[0]!.kind === "no-service"
+                        ? "No service on part of this route today"
+                        : l.disruptions[0]!.kind === "bypass"
+                          ? "Skipping some stops today"
+                          : "On detour today"}
+                    </span>
+                  )}
                   {legReliabilityFor(l, view) !== null && (
                     <span className="leg-risk">
                       {legReliabilityFor(l, view)!.oneInTrips === null ? (
