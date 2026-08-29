@@ -90,10 +90,19 @@ export function departureAdvice(input: {
   // The covered departure is only meaningful when a disruption would actually
   // make the rider late. If the normal arrival already leaves more slack than a
   // bad morning costs, there is nothing to buy.
+  //
+  // **And only when the trip works on an ordinary day.** With negative slack the
+  // arithmetic silently folded the trip's everyday shortfall into the figure: an
+  // option already 34 minutes late was offered a "93 min earlier" buffer sitting
+  // directly under the disruption it appeared to answer, when 34 of those
+  // minutes were owed every single morning and had nothing to do with it. An
+  // option that cannot make the deadline needs a different sentence, not a
+  // padded one — and it already has it, in the line saying nothing this way
+  // makes it.
   const coveredLeaveAt = input.departAt + (input.arriveBy - input.arriveAt) - input.severityCoveredMinutes * 60;
   const extraMinutes = Math.round((input.departAt - coveredLeaveAt) / 60);
   const covered =
-    input.disruptionRisk > 0 && extraMinutes > 0
+    input.disruptionRisk > 0 && extraMinutes > 0 && slackMinutes >= 0
       ? { leaveAt: coveredLeaveAt, extraMinutes }
       : null;
 
@@ -109,10 +118,9 @@ export function departureAdvice(input: {
 /**
  * The latest departure whose earliest arrival still meets the deadline.
  *
- * Earliest arrival is monotone non-decreasing in departure time, so this is a
- * binary search rather than a scan. The planner runs in single-digit
- * milliseconds warm, which makes a dozen probes cheaper than the alternative of
- * planning forward from an arbitrary time and hoping it lands.
+ * The planner runs in single-digit milliseconds warm, which makes a couple of
+ * dozen probes cheaper than the alternative of planning forward from an
+ * arbitrary time and hoping it lands.
  */
 export function latestDeparture(
   arriveBy: number,
@@ -120,21 +128,56 @@ export function latestDeparture(
   arrivalFor: (departAt: number) => number | null,
   toleranceSeconds = 60,
 ): { departAt: number; arriveAt: number } | null {
-  let lo = Math.max(0, arriveBy - searchWindowSeconds);
-  let hi = arriveBy;
+  // Widen until a departure is found, rather than searching one fixed lookback.
+  //
+  // **A fixed window broke monotonicity, and badly.** Looking back only three
+  // hours from the deadline meant that arriving by 03:34 found an overnight bus
+  // leaving at 00:34, and arriving by 03:34:01 found nothing at all — the same
+  // departure, now four seconds outside the window. Loosening a deadline was
+  // turning a working trip into "no journey", across the whole 03:34-06:00
+  // range on a route where service plainly existed. A later deadline is a
+  // strictly weaker constraint and must never return fewer options.
+  //
+  // Doubling keeps the common case at one probe and bounds the rare one: an
+  // overnight trip may sit many hours behind its deadline, and the caller's own
+  // service window stops the search running away.
+  for (let window = searchWindowSeconds; ; window *= 2) {
+    const lo = Math.max(0, arriveBy - window);
+    const at = arrivalFor(lo);
+    if (at !== null && at <= arriveBy) return bisect(lo, arriveBy, arriveBy, arrivalFor, toleranceSeconds);
+    if (lo === 0 || window > MAX_LOOKBACK_S) return null;
+  }
+}
 
+/** How far back a deadline may reach before we accept there is nothing. */
+const MAX_LOOKBACK_S = 24 * 3600;
+
+/**
+ * The latest departure in [lo, hi] that still arrives by the deadline.
+ *
+ * Earliest arrival is monotone non-decreasing in departure time, so this is a
+ * binary search rather than a scan.
+ */
+function bisect(
+  lo: number,
+  hi: number,
+  arriveBy: number,
+  arrivalFor: (departAt: number) => number | null,
+  toleranceSeconds: number,
+): { departAt: number; arriveAt: number } | null {
   const at = arrivalFor(lo);
   if (at === null || at > arriveBy) return null;
-
   let best = { departAt: lo, arriveAt: at };
-  while (hi - lo > toleranceSeconds) {
-    const mid = Math.floor((lo + hi) / 2);
+  let low = lo;
+  let high = hi;
+  while (high - low > toleranceSeconds) {
+    const mid = Math.floor((low + high) / 2);
     const arrival = arrivalFor(mid);
     if (arrival !== null && arrival <= arriveBy) {
       best = { departAt: mid, arriveAt: arrival };
-      lo = mid;
+      low = mid;
     } else {
-      hi = mid;
+      high = mid;
     }
   }
   return best;

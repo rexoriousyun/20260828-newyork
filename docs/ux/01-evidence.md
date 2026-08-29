@@ -570,3 +570,58 @@ this long" beside "1 in 218, typically 1 in 250" reads as overselling a rounding
 and a rider who checks our arithmetic and finds it strained stops believing the rest (PR-08).
 A verdict now needs an unusual rank **and** a ratio of at least 1.25 against the typical
 trip; otherwise the honest answer is that the trip is ordinary.
+
+### E-D22 — Four synthetic testers found eleven defects, most in the places we reasoned hardest
+*2026-08-29 · four Sonnet agents driving the running app through `scripts/drive.mjs`*
+
+Four agents were given personas deliberately **outside** U-02, U-04 and U-05 — a visitor with
+no Toronto vocabulary, a parent with a stroller and a soft step-free preference, a hospital
+cleaner on rotating night shifts, and a sceptic checking whether the numbers hold together.
+None was shown the persona docs. The point was independence: to find what the design assumes
+because of *who we chose to design for*.
+
+**What this is not.** These are not riders, and nothing here touches `D-08`. An agent playing
+a Toronto commuter produces plausible reactions from training data, and treating that as
+validation would be filling a data gap with a plausible estimate — the thing `P-03` forbids.
+Every finding below is a defect reproducible from the app's own output, not an opinion about
+how anyone feels. Where the agents offered usability reactions, they labelled them, and those
+are recorded as questions rather than findings.
+
+**The blocker.** Loosening a deadline could turn a working trip into "no journey". Arriving
+by 03:34 found an overnight bus; arriving by **03:34:01** found nothing, and the whole
+03:34–06:00 range was dead on a route with service. The arrive-by search looked back a fixed
+three hours from the deadline, so a departure further back than that fell out of the window.
+A later deadline is a strictly weaker constraint and must never return fewer options.
+
+**Ten more, verified and fixed:**
+
+| | Found by | Defect |
+|---|---|---|
+| 1 | night shift | Deadline monotonicity, above |
+| 2 | visitor | `contains` matched mid-word: "CN" → M**cN**icoll Ave, 25 km away, offered as the top hit |
+| 3 | visitor, parent | Default time read the device clock, not Toronto's — three hours out for a visitor |
+| 4 | sceptic | An option that misses the deadline was still offered a buffer, with its everyday shortfall folded in: "34 min late" then "leave 93 min earlier to cover that", where 34 of the 93 were owed daily |
+| 5 | sceptic | "Leave 07:37 to cover **that**" was sized to the 90th-percentile bad morning while "that" named the median one — 59 minutes against 24 |
+| 6 | sceptic | `disruptionRisk` stored at four decimals fed the benchmark while the displayed rate used full precision: "1 in 1323" ranked as 1 in 1250 |
+| 7 | parent | `blockedStations` was every inaccessible station in the city, identical on every trip, behind a comment promising "what that cost them" — and unwired to the interface |
+| 8 | parent | Flipping step-free and seeing nothing change was indistinguishable from a broken toggle |
+| 9 | parent | "3 ways to make this trip" counted options arriving after the deadline |
+| 10 | sceptic | A route partly out of service carried the same visual weight as thin history |
+| 11 | night shift | Times crossing midnight printed "23:33 → 00:22" with nothing marking the next day |
+
+**What survived checking.** The sceptic verified that per-leg risks compose into the trip
+figure exactly, that zero-coverage never fabricates a rate, that the time-of-day toggle moves
+rate, percentile and verdict consistently across eight pairs, and that dominance uses the
+runner-up ratio rather than the share test corrected earlier. The night tester found no
+service-day time leaking to screen and no unmeasured stretch drawn as measured.
+
+*Why it matters:* six of the eleven are in code written carefully, argued through the
+foundation, and covered by tests — the buffer arithmetic, the benchmark's precision, the
+step-free reporting. Tests written by the same reasoning that produced the code cannot catch
+the reasoning being wrong. Four cheap outside readers could.
+
+> **The finding underneath the findings.** Two of the eleven exist because every persona in
+> this project knows Toronto. Landmark search and device-versus-local time were never
+> considered, not because they were judged and dropped, but because nobody in `04-personas.md`
+> would ever hit them. That is what a persona set costs when it is never checked against
+> anyone outside it — which is `D-08`, again.

@@ -397,7 +397,13 @@ export async function scoreJourney(
     const ranked = [...from].sort((a, b) => b.risk - a.risk);
     return {
       reliability: {
-        disruptionRisk: Number(disruptionRisk.toFixed(4)),
+        // Six places, not four. `oneInTrips` is computed from the unrounded
+        // value while the benchmark comparison reads this field, so four places
+        // had the two disagreeing: a trip displaying "1 in 1323" was ranked on a
+        // risk that rounds to 1 in 1250. At these magnitudes four places keeps
+        // barely one significant figure, and the error can push a comparison
+        // across a verdict threshold.
+        disruptionRisk: Number(disruptionRisk.toFixed(6)),
         oneInTrips: disruptionRisk > 0 ? Math.round(1 / disruptionRisk) : null,
         minutesWhenDisrupted: severity.p50,
         minutesWhenBad: severity.p90,

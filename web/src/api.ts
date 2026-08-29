@@ -215,10 +215,12 @@ export interface PlanResult {
   alerts?: { ageHours: number | null; stale: boolean };
   /** Present when the rider asked for step-free. */
   stepFree?: {
-    /** Stations kept out of these results. */
+    /** Stations the fastest way would have used, and this one avoids. */
     blockedStations: StationAccessState[];
     /** The rider's own origin or destination, when it is not step-free. */
     endsBlocked: StationAccessState[];
+    /** The fastest way was already step-free, so the constraint cost nothing. */
+    changedNothing: boolean;
   } | null;
   journeys?: ScoredJourney[];
   alternativesFound?: number;

@@ -444,6 +444,12 @@ once per platform, and led with the wrong place — searching "Sherbourne" put a
 Esplanade above Sherbourne Station. The suffixes answer a question nobody asks while choosing
 a destination.
 
+> **Corrected 2026-08-29 (E-D22).** The match was a plain substring, so "CN" found
+> M**cN**icoll Ave and "ROM" found San **Rom**anoway — and since neither is a prefix match,
+> the ranking fell through to shortest-name and offered a stop 25 km away as the top hit,
+> with nothing to signal that nothing had really matched. The query must now land at the
+> start of a word; where nothing does, the honest output is an empty list.
+
 **Scoring still keys on the raw name.** The segment index was built from it, and a prettier
 string at that boundary would silently miss every lookup — the same class of bug that held
 journey coverage at 7.7% until it was found.
@@ -528,6 +534,17 @@ deferring it.
 > shift and a warning (U-02), and we do not know which. We know the rate and the price; they
 > know the penalty. So the advice states both numbers and stops — which is what U-02 needs
 > from us: an honest number and permission to act on it, not an instruction.
+
+> **Two corrections from E-D22.** The buffer was offered on options that miss the deadline
+> on an ordinary day, and the arithmetic folded that everyday shortfall in — "34 min late"
+> followed by "leave 93 min earlier to cover that", where 34 of the 93 were owed every
+> morning and had nothing to do with the disruption named above. Those options now get no
+> buffer; the line saying nothing this way makes it is the answer.
+>
+> And the sentence said "to cover **that**" while being sized to the worst tenth of bad
+> mornings rather than the median one it had just described — 59 minutes against 24. The
+> percentile basis stays deferred, as J-01 allows. The false antecedent does not: it now
+> reads "to be safe on almost any bad morning".
 
 The tail percentile the covered departure buys against is pre-registered in
 `src/domain/departure.ts`, not argued here, so it cannot be renegotiated after seeing a
@@ -777,6 +794,14 @@ trip came back five minutes longer by riding past and doubling back on the oppos
 They chose that station. What they need is to be told it is not step-free — which the results
 now say — not to be routed around their own destination (P-07: "no good option" is a valid
 answer).
+
+> **Corrected 2026-08-29 (E-D22).** The field reporting what the constraint cost was every
+> inaccessible station in the city — the same eighteen on every trip — behind a comment
+> promising the rider "what that cost them", and it was never rendered. It is now measured:
+> the trip is planned once without the constraint, and the blocked stations *that* way would
+> have boarded or alighted at are named. Riding through a station costs nothing and no longer
+> counts. Where the fastest way was already step-free the screen says so, because a rider who
+> flips the switch and sees nothing change cannot tell that from a broken toggle.
 
 **What it costs, measured.** Lower Sherbourne/Queens Quay to College St at Bay St: 20 minutes
 normally, **23 minutes step-free**, because College is not accessible and the trip now alights

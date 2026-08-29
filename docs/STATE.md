@@ -157,10 +157,11 @@ npm run audit:stability   # M4 — does segment reliability persist?
 npm run audit:coverage    # M5 — surface geocoding rate
 npm run audit:timeofday   # does pooling across the day misrepresent the risk?
 npm run benchmark         # what a typical trip looks like, for the comparison (D-28)
-npm test                  # 135 tests
+npm test                  # 143 tests
 npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
 node scripts/shot.mjs     # screenshot the app, including a downtown street zoom
+node scripts/drive.mjs '{"steps":[…]}'   # drive the app and report the screen as text
 ```
 
 All data is public Toronto Open Data + TTC GTFS. **No API keys.**

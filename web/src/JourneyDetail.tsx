@@ -1,9 +1,8 @@
 import { Fragment, useState } from "react";
+import { hhmm, hhmmDay } from "./clock.js";
 import type { ScoredJourney } from "./api.js";
 import { legReliabilityFor, type View } from "./view.js";
 
-const hhmm = (s: number): string =>
-  `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
 
 const mins = (a: number, b: number): number => Math.max(1, Math.round((b - a) / 60));
 
@@ -48,7 +47,7 @@ export function JourneyDetail({
                   </li>
                 )}
                 <li className={`leg leg-${l.kind}`}>
-                  <span className="leg-time">{hhmm(l.departAt)}</span>
+                  <span className="leg-time">{hhmmDay(l.departAt, journey.departAt)}</span>
                   <span className="leg-body">
                     <span className="leg-what">
                       {l.kind === "walk" ? (
@@ -93,7 +92,7 @@ export function JourneyDetail({
             );
           })}
           <li className="leg leg-end">
-            <span className="leg-time">{hhmm(journey.arriveAt)}</span>
+            <span className="leg-time">{hhmmDay(journey.arriveAt, journey.departAt)}</span>
             <span className="leg-body">
               <span className="leg-what">Arrive {journey.legs[journey.legs.length - 1]?.toName}</span>
             </span>

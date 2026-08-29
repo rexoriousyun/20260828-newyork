@@ -11,6 +11,11 @@
  *
  * Steps:
  *   {"do":"from"|"to","text":"…"}       type into a field and take the first hit
+ *
+ * The form collapses to a one-line summary once a plan lands, so "time",
+ * "mode" and "stepFree" only work while it is open — either before both
+ * endpoints are set, or after a {"do":"form"} step reopens it. Two testers hit
+ * this and had to start a fresh session per time, which is why the step exists.
  *   {"do":"time","at":"08:30"}           set the time
  *   {"do":"mode","value":"arriveBy"|"departAt"}
  *   {"do":"stepFree"}                    toggle step-free only
@@ -20,6 +25,7 @@
  *   {"do":"view","value":"atTime"|"allDay"}
  *   {"do":"explore"}                     switch to Explore a route
  *   {"do":"wait","ms":1000}
+ *   {"do":"form"}                        tap the collapsed trip summary back open
  *   {"do":"read"}                        report the screen without changing it
  *   {"do":"shot","path":"/tmp/x.png"}
  */
@@ -94,6 +100,7 @@ for (const [i, s] of steps.entries()) {
         await page.locator(".when-field select").selectOption(s.value);
         await page.waitForTimeout(2500);
         break;
+      case "form": await page.locator(".trip-summary").click(); await page.waitForTimeout(400); break;
       case "stepFree": await page.locator(".access-row").click(); await page.waitForTimeout(2500); break;
       case "pick": await page.locator(".journey").nth(s.index ?? 0).click(); await page.waitForTimeout(1800); break;
       case "expand": await page.locator(".grabber").click(); await page.waitForTimeout(900); break;

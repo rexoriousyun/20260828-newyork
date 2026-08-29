@@ -1,9 +1,8 @@
 import type { ScoredJourney } from "./api.js";
+import { hhmm, hhmmDay } from "./clock.js";
 import { reliabilityFor, type View } from "./view.js";
 import { Benchmark } from "./Benchmark.js";
 
-const hhmm = (s: number): string =>
-  `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
 
 interface Props {
   journeys: ScoredJourney[];
@@ -40,7 +39,7 @@ function Journey({
       <span className="journey-top">
         <span className="journey-time">{j.typicalMinutes} min</span>
         <span className="journey-clock">
-          {hhmm(j.departAt)} → {hhmm(j.arriveAt)}
+          {hhmm(j.departAt)} → {hhmmDay(j.arriveAt, j.departAt)}
           {j.advice !== null && (
             <span className={`journey-slack${j.advice.slackMinutes < 0 ? " is-late" : ""}`}>
               {j.advice.slackMinutes < 0
@@ -81,13 +80,19 @@ function Journey({
           </>
         )}
       </span>
-      {j.disruptions.length > 0 && (
-        <span className="journey-today">
-          {j.disruptions.some((d) => d.kind === "no-service" || d.kind === "bypass")
-            ? "Service disrupted today"
-            : "On detour today"}
-        </span>
-      )}
+      {/* A route that is partly not running is not the same kind of statement as
+          thin history, and carried the same weight as one until a tester
+          skimmed past it. Severity earns the emphasis; a detour does not. */}
+      {j.disruptions.length > 0 &&
+        (j.disruptions.some((d) => d.kind === "no-service" || d.kind === "bypass") ? (
+          <span className="journey-today is-severe">
+            {j.disruptions.some((d) => d.kind === "no-service")
+              ? "Part of this route is not running today"
+              : "Stops are being skipped today"}
+          </span>
+        ) : (
+          <span className="journey-today">On detour today</span>
+        ))}
       {rel.comparison !== null && (
         <span className="journey-benchmark">
           <Benchmark comparison={{ ...rel.comparison, typicalOneInTrips: null }} />
@@ -123,7 +128,6 @@ function Journey({
  * has picked, the answer stays and the comparison folds away.
  */
 export function JourneyList({ journeys, selected, view, onSelect, collapsed }: Props): JSX.Element {
-  const only = journeys.length === 1;
   const chosen = journeys.find((j) => j.id === selected) ?? journeys[0]!;
 
   // Severity is pooled across the network, not measured per route (D-11), so on
@@ -134,12 +138,24 @@ export function JourneyList({ journeys, selected, view, onSelect, collapsed }: P
   const shared = severities.size === 1 ? [...severities][0]! : null;
 
   const shownList = collapsed ? [chosen] : journeys;
+  // An option that arrives after the deadline is shown, but it is not a way to
+  // make the trip, and the heading should not count it as one.
+  const made = journeys.filter((j) => j.advice === null || j.advice.slackMinutes >= 0).length;
 
   return (
     <>
       {!collapsed && (
         <p className="results-head">
-          {only ? "One way to make this trip" : `${journeys.length} ways to make this trip`}
+          {/* Counting options that miss the deadline as "ways to make this
+              trip" reads, to someone skimming under time pressure, as "these
+              all get you there" — the opposite of what the red labels say. */}
+          {made === 0
+            ? `Nothing makes it — ${journeys.length} way${journeys.length > 1 ? "s" : ""} shown`
+            : made === journeys.length
+              ? made === 1
+                ? "One way to make this trip"
+                : `${made} ways to make this trip`
+              : `${made} of ${journeys.length} ways make it in time`}
         </p>
       )}
       <ul className="journeys">

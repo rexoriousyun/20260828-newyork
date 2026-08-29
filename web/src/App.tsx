@@ -28,9 +28,23 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
  * The rider is going somewhere, not planning to leave this instant. Rounding up
  * to the next quarter hour gives a target that is still true by the time they
  * have finished typing, and reads as a decision rather than a stopwatch.
+ *
+ * **Anchored to Toronto, not to the device.** `getHours()` reads whatever clock
+ * the phone is set to, which is right for a resident and wrong for everyone
+ * else: a visitor whose phone is still on Pacific time opens a Toronto transit
+ * app and is handed a default three hours out, with nothing on screen to say
+ * so. The network runs on Toronto time whoever is looking at it.
  */
 function nextQuarterHour(now: Date): number {
-  const s = now.getHours() * 3600 + now.getMinutes() * 60;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Toronto",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const at = (type: string): number => Number(parts.find((p) => p.type === type)?.value ?? "0");
+  // "24" appears at midnight in some implementations of hour12: false.
+  const s = (at("hour") % 24) * 3600 + at("minute") * 60;
   return Math.min(24 * 3600 - 60, Math.ceil((s + 15 * 60) / (15 * 60)) * 15 * 60);
 }
 
@@ -345,6 +359,24 @@ export function App(): JSX.Element {
               {/* Today comes before the answer: a figure that does not cover
                   the situation in front of the rider has to be qualified before
                   it is read, not after (P-09). */}
+              {/* What the constraint cost, or that it cost nothing. A rider who
+                  flips the switch and sees the screen not move cannot tell
+                  "nothing to change" from "broken toggle". */}
+              {!listOpen && stepFreeResult != null && (
+                <p className="access-note">
+                  {stepFreeResult.changedNothing ? (
+                    <>This way was already step-free.</>
+                  ) : (
+                    <>
+                      Routed around{" "}
+                      <strong>
+                        {stepFreeResult.blockedStations.map((b) => titleCase(b.station)).join(", ")}
+                      </strong>
+                      .
+                    </>
+                  )}
+                </p>
+              )}
               {/* Their own destination cannot be routed around. Saying so is
                   the answer; hiding the trip would not be (P-07). */}
               {stepFreeResult != null && stepFreeResult.endsBlocked.length > 0 && (

@@ -542,3 +542,13 @@ select {
   background: var(--ink); color: var(--panel); font-size: 10.5px; font-weight: 600;
   letter-spacing: 0.02em; vertical-align: 1px;
 }
+
+/* What the step-free constraint cost, or that it cost nothing. */
+.access-note {
+  margin: 0 0 var(--s3); font-size: 13px; line-height: 1.4; color: var(--ink-2);
+}
+.access-note strong { color: var(--ink); font-weight: 600; }
+/* Severity earns weight. A detour slows a trip; a closure can end it. */
+.journey-today.is-severe {
+  font-weight: 600; color: var(--scale-3);
+}

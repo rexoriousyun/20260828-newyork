@@ -263,7 +263,12 @@ const planQuery = z.object({
   stepFree: z.coerce.boolean().optional(),
 });
 
-/** How far back from a deadline to look for a departure. */
+/**
+ * The first lookback tried when working back from a deadline, and the horizon a
+ * single journey may span. `latestDeparture` widens the lookback on its own
+ * when nothing is found; this is the size that answers the common case in one
+ * probe.
+ */
 const ARRIVE_BY_WINDOW_S = 3 * 3600;
 
 /** Station codes come out of the incident feed upper-cased; riders read signs. */
@@ -323,9 +328,24 @@ export function registerPlanner(app: FastifyInstance): void {
     });
 
     const needle = q.data.q.toLowerCase();
+    /**
+     * Does the query land at the start of a word?
+     *
+     * Prisma's `contains` matches anywhere, so "CN" matched "M**cN**icoll" and
+     * "ROM" matched "San **Rom**anoway" — and because neither is a prefix match,
+     * the ranking below fell through to shortest-name and confidently offered a
+     * stop 25km from what was asked for. A tap on the first suggestion sent a
+     * rider across the city with no signal anything was wrong. Nobody typing
+     * two letters means the middle of a word.
+     */
+    const atWordStart = (name: string): boolean =>
+      new RegExp(`(^|[^a-z0-9])${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`, "i").test(name);
     const seen = new Map<string, { id: string; name: string; lat: number; lon: number }>();
     for (const s of raw) {
       if (!boardable.has(s.id)) continue;
+      // A mid-word match is noise, and offering it is worse than offering
+      // nothing: an empty result tells the rider to try different words.
+      if (!atWordStart(s.name)) continue;
       const name = displayStopName(s.name);
       // Platforms of one station, and the two sides of one corner, are the same
       // place to a rider. They sit metres apart, so the footpath graph joins
@@ -459,6 +479,38 @@ export function registerPlanner(app: FastifyInstance): void {
       }
     }
 
+    // What the constraint actually cost, measured rather than asserted.
+    //
+    // This field used to be every inaccessible station in the city — the same
+    // eighteen on every trip — behind a comment promising the rider "what that
+    // cost them". Planning once without the constraint and naming the blocked
+    // stations that way would have used is the honest version of the claim, and
+    // it is one extra plan on a request that already does several.
+    const costStations: StationAccess[] = [];
+    if (stepFree && blockedStops.size > 0) {
+      const unconstrained = plan(connections, footpaths, parsed.data.from, parsed.data.to,
+                                 searchFrom, ARRIVE_BY_WINDOW_S);
+      if (unconstrained !== null) {
+        const byStation = new Map(blockedStations.map((b) => [b.station, b]));
+        const seen = new Set<string>();
+        for (const leg of unconstrained.legs) {
+          // Leg ends only. A journey riding *through* College without getting
+          // off never uses the station, so listing it as a cost would blame the
+          // constraint for a route it did not change — which is how the first
+          // version of this measure reported two stations on a trip the toggle
+          // left byte-identical.
+          for (const id of [leg.fromStop, leg.toStop]) {
+            const station = stationFromPlatform(stopNames.get(id) ?? "");
+            const hit = byStation.get(station);
+            if (hit !== undefined && !seen.has(station)) {
+              seen.add(station);
+              costStations.push(hit);
+            }
+          }
+        }
+      }
+    }
+
     const scored = await Promise.all(
       candidates.map((j) => scoreJourney(j, segmentIndex, frequency, nameOf)),
     );
@@ -487,7 +539,7 @@ export function registerPlanner(app: FastifyInstance): void {
        */
       stepFree: stepFree
         ? {
-            blockedStations,
+            blockedStations: costStations,
             /**
              * The rider's own origin or destination, when it is not step-free.
              * Routing around it is not an option — it is where they are going —
@@ -495,6 +547,13 @@ export function registerPlanner(app: FastifyInstance): void {
              * is no good option" is a valid answer).
              */
             endsBlocked,
+            /**
+             * True when the fastest way was already step-free, so the constraint
+             * cost nothing. Worth saying: a rider who flips the switch and sees
+             * the screen not move cannot tell "nothing to change" from "broken
+             * toggle", and silence is the one reading we know is wrong.
+             */
+            changedNothing: costStations.length === 0,
           }
         : null,
       journeys: scored.map((j) => ({

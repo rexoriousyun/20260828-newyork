@@ -157,6 +157,27 @@ out as "03:28 to 06:35", which read as a gap and was written into a decision as 
 ingested Blue Night". All 35 Blue Night routes were in the data. Format service-day times as
 `30:35`, or say "the next morning".
 
+**A fixed search window breaks monotonicity.** Working back from a deadline over a fixed
+three-hour lookback meant arriving by 03:34 found a bus and 03:34:01 found nothing. A looser
+constraint must never return fewer answers — widen the window until something is found rather
+than bounding it once.
+
+**`contains` matches inside words.** "CN" found M**cN**icoll Ave and, because the ranking
+put prefix matches first and nothing was a prefix match, offered it as the top hit. Require a
+word boundary; an empty result is better than a confident wrong one.
+
+**Anchor times to `America/Toronto`, not the device.** `getHours()` is right for a resident
+and three hours wrong for a visitor whose phone is still on Pacific time.
+
+**Do not round a stored value that other code divides.** `disruptionRisk` was stored at four
+decimals while `oneInTrips` was computed from the unrounded number, so a trip displaying
+"1 in 1323" was ranked on a risk of 1 in 1250 — enough to cross a verdict threshold.
+
+**Synthetic testers find defects, never validate personas.** Four agents driving the app
+through `scripts/drive.mjs` found eleven real bugs (E-D22), six of them in code that was
+carefully argued and covered by tests. They cannot answer `D-08`: an agent's reaction is
+training data, not a rider.
+
 **GTFS service days run past midnight.** This feed's weekday service spans 03:28 to 30:35 —
 06:35 the next morning. Comparing a wall-clock 01:45 against that window made the planner
 report "no journey" for a 01:14 departure sitting in its own data. Put a wall-clock time in
