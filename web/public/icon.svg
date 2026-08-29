@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Reliable Transit">
+  <!-- Monotone, because colour on this app means risk and nothing else (D-23).
+       The mark is a route with one stretch missing: the product's whole claim is
+       that it shows you where it does not know (P-03). -->
+  <rect width="64" height="64" rx="14" fill="#1a1a18"/>
+  <path d="M14 47 L24 25" stroke="#f0f0ea" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <path d="M28 17 L40 17" stroke="#f0f0ea" stroke-width="6" stroke-linecap="round"
+        stroke-dasharray="2 7" fill="none" opacity="0.55"/>
+  <path d="M44 21 L50 45" stroke="#f0f0ea" stroke-width="6" stroke-linecap="round" fill="none"/>
+</svg>

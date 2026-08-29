@@ -190,6 +190,24 @@ rather than a forecast.
 **Ask a rider what they would do next**, having read it, and note whether the action is
 "wait" or "have a second plan". Do not ask what the number means.
 
+### Q-E — Do riders re-open the list after picking, or is the choice settled?
+**From:** D-20 · **Threatens:** D-20
+
+The sheet peeks so the map keeps the screen. If riders keep pulling the list back up, the
+peek is hiding something they needed in order to compare.
+
+**Observe, do not ask.** Whether the list is re-opened after a choice.
+
+### Q-F — Does the two-outcome answer read as honest, or as hedging?
+**From:** D-24, P-01 · **Threatens:** D-24, P-01
+
+The departure answer states a typical time and what it costs when the trip goes wrong, and
+deliberately stops short of recommending a buffer — because a threshold there produced
+absurd advice and expected value fails the other way.
+
+A rider who asks "so what time should I leave?" has not been given an answer. A rider who
+picks a time and stops has.
+
 ### Still open from the original framing
 - **U-02's core assumption is untested:** that rerouting is often not a real option in the
   suburbs. It drives the whole "permission to stop refreshing" design in J-02.
@@ -198,6 +216,12 @@ rather than a forecast.
 
 **Priority:** Q-A first, and with the real screen in hand rather than a description of it.
 Everything in `04-personas.md` stays provisional until this closes.
+
+> **The protocol is written and pre-registered: `docs/ux/08-research.md`.** Six to eight
+> sessions, at least four of them U-02, with the verdict conditions for every question above
+> fixed before the first rider is watched — the same discipline the audits use. One item
+> blocks it, and it is not a design item: the app runs on `localhost` and a rider needs it on
+> their own phone.
 
 ## D-09 — Stack: Fastify + Prisma/SQLite + React `ACCEPTED`
 **Cites:** — (engineering, not UX)
@@ -1035,3 +1059,31 @@ survived; its justification changed completely.
 **Reversed if:** riders read a headway as a promise about the next vehicle rather than as the
 cost of missing one — the failure mode `D-24` was rewritten to avoid. That is a question for
 `D-08`, and it is now on the list as **Q-G**.
+
+## D-35 — The app is called Reliable Transit, and the mark shows a gap `ACCEPTED · IMPLEMENTED`
+**Cites:** P-03, D-16, D-18 · **Problems:** PR-08
+
+The page title was `TTC Segment Reliability` — the name of the M6 explorer, written before
+`D-14` reframed the product as a trip planner. It is also the string a rider sees when they
+add the app to a home screen, which is how a testing session begins.
+
+**The name is the repository's own, not an invention.** `Reliable Transit` was already in
+`package.json`; adopting it costs nothing and asserts nothing. Naming is the product owner's
+call, and inventing one here would have been a preference wearing a decision's clothes — so
+this records the *problem* (the title named a feature that no longer exists) and takes the
+cheapest correct answer, rather than claiming the naming work item 10 of the design concept
+describes.
+
+**The mark is a route with a stretch missing** — two solid strokes and a dashed one between
+them, monotone, at the same dash rhythm the map uses for an unmeasured segment. `P-03` is
+the product's load-bearing principle and `D-26` gives it a visual form; the icon is the
+smallest possible statement of it. It takes no colour, because colour on this app means risk
+and nothing else (`D-23`).
+
+Also added, all of it for the phone this will be tested on: a description, `theme-color` for
+both palettes so the browser chrome matches the sheet rather than sitting in a strip of
+someone else's colour, and `apple-mobile-web-app-title` so the home-screen label is the
+product's name.
+
+**Reversed if:** the product owner picks a different name, which they should feel free to do
+— nothing downstream depends on this one.

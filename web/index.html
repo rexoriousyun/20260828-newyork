@@ -3,7 +3,21 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>TTC Segment Reliability</title>
+    <!-- The title still said "TTC Segment Reliability", which names the M6
+         explorer rather than the product D-14 describes. It is also the string a
+         rider sees when they add this to a home screen, which is how a testing
+         session starts. -->
+    <title>Reliable Transit</title>
+    <meta name="description" content="TTC trips ranked by what actually happens, not by the timetable." />
+    <meta name="apple-mobile-web-app-title" content="Reliable Transit" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <!-- Paints the phone's own chrome to match the sheet, so the app does not sit
+         in a strip of someone else's colour. Both themes, because the palette has
+         both (D-16). -->
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1c1c20" media="(prefers-color-scheme: dark)" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
   </head>
   <body>
     <div id="root"></div>

@@ -3,7 +3,8 @@
 **Read this first.** A single anchor for where the project stands, so no finding depends
 on anyone remembering a conversation. Everything below is reproducible from the repo.
 
-**Last updated:** 2026-08-28, after M6.
+**Last updated:** 2026-08-29. **Every milestone is built. The product is ready for rider
+testing, and that is now the only thing it is waiting on** — see `docs/ux/08-research.md`.
 
 ---
 
@@ -30,13 +31,14 @@ which no existing tool publishes. Reliability-aware TTC routing already exists
 | `docs/ux/05-journeys.md` | Moments of need (`J-01`..`J-05`) |
 | `docs/ux/06-decisions.md` | What we chose and what would reverse it (`D-*`) |
 | `docs/ux/07-flows.md` | Screen-level user flows (`F-*`), built vs proposed |
+| `docs/ux/08-research.md` | The protocol that closes `D-08`, verdicts pre-registered (`Q-*`) |
 | `docs/architecture/SYSTEM.md` | Data flow, filtering funnel, scoring model, audit gates |
 | `docs/design/00-concept.md` | Design concept, and the design work still needed |
 | `docs/design/01-system.md` | The four design rules, encoding, tokens, validation |
 | `docs/product/PLAN.md` | v1 scope, milestones, engine contract |
 | `docs/portfolio/CASE-STUDY.md` | Portfolio narrative |
 | `src/` | Engine: ingest, domain, api, audits |
-| `web/` | Mobile-first segment map |
+| `web/` | Mobile-first app: plan a trip, explore a route |
 
 **The chain:** `Evidence -> Problem -> Principle -> Decision -> Implementation`.
 No decision without a principle; no principle without evidence; every decision names what
@@ -66,6 +68,7 @@ would reverse it.
 | Vanishing service | **done** — the bus that never comes, separated from the one running late (D-32) |
 | Trip conditions as tags | **done** — several can apply at once, each opens (D-33) |
 | What one missed vehicle costs | **done** — headway under every wait, and minutes outside (D-34) |
+| Identity and mobile metadata | **done** — named, mark, home-screen title, theme colour (D-35) |
 
 ## The numbers that matter
 
@@ -124,30 +127,44 @@ a hypothesis; the gaps are deliberate, so existing citations stay valid.
 
 | | journey | built |
 |---|---|---|
-| J-01 | pre-trip: when do I leave? | no (M7) |
-| J-02 | at the stop: is it coming? | no — **most acute pain** |
-| J-03 | mid-trip disruption | no |
-| J-04 | exploratory: is this route always like this? | **yes (M6)** |
-| J-05 | downtown: transit or walk? | no |
+| J-01 | pre-trip: when do I leave? | **yes** — M10 (D-24), extended by D-27, D-28, D-29, D-33, D-34 |
+| J-02 | at the stop: is it coming? | **partly** — D-34 gives what a no-show costs; the countdown needs realtime |
+| J-03 | mid-trip disruption | no — needs realtime |
+| J-04 | exploratory: is this route always like this? | **yes (M6, D-31)** |
+| J-05 | downtown: transit or walk? | no — and nothing technical is blocking it |
 
 ## What is open
+
+**Seven questions, all of them for riders.** Each has a pre-registered verdict condition in
+`docs/ux/08-research.md`, written before any session so the result cannot be argued into
+whichever answer is convenient.
 
 | # | Question | Blocks |
 |---|---|---|
 | **Q-A** | Does a mostly-unknown map build trust or read as broken? | the interface |
-| Q-B | Is the segment or the corridor the rider's unit? | D-01 |
-| Q-C | Does "31 min/mo of wait caused" mean anything to a rider? | D-05 |
-| Q-D | Is compass direction the right handle, or headsigns? | polish |
-| Q-3 | Do riders want a verdict or the evidence? | D-05 |
-| Q-5 | Does per-segment severity persist over a longer window? | D-11 |
-| Q-6 | Is the segment or the corridor the rider's unit? | D-01 |
-
-| Q-E | Do riders re-open the list after picking, or is the choice settled? | D-20 |
-| Q-F | Does the two-outcome answer read as honest, or as hedging? | D-24, P-01 |
+| Q-C | Does "2,795 min/mo" mean anything to a rider? | D-05, P-06 |
 | Q-G | Does "runs every 27 min" read as a cost, or as a promise? | D-34, D-24 |
+| Q-F | Does the two-outcome answer read as honest, or as hedging? | D-24, P-01 |
+| Q-B | Is the segment or the corridor the rider's unit? | D-01 |
+| Q-E | Do riders re-open the list after picking, or is the choice settled? | D-20 |
+| Q-D | Is compass direction the right handle, or headsigns? | polish |
 
-**Known gap:** GTFS-RT trip updates and vehicle positions are **not fetched at all** — only
-the alerts feed is. J-02 (at-stop) and J-03 (mid-trip) both need them.
+Plus two persona assumptions that have never been tested: that U-02 usually has no real
+alternative, and that their tolerance for lateness is as asymmetric as assumed.
+
+One question is **not** for riders and is worth re-running when the archive grows: does
+per-segment severity persist over a longer window (`D-11`)? It failed at rho 0.10 on 19
+months.
+
+**Known gaps, carried deliberately:**
+
+- **GTFS-RT trip updates and vehicle positions are not fetched at all** — only the alerts
+  feed is. J-02's countdown and J-03 both need them.
+- **The app runs on `localhost`.** A rider needs it on their own phone, and the API carries
+  ~90 MB of data with a ~6 s cold start, which rules out serverless. **This is the single
+  blocking item for testing** — it is an operations task, not a design one.
+- **No shelter data.** The app says a wait is *outside* and claims nothing about cover,
+  because Toronto's 100 heated shelter kits over seven years are not in a dataset we ingest.
 
 > **Fixed 2026-08-29.** Arriving between roughly 03:30 and 06:00 used to return no journey:
 > the hour was read as this service day rather than the one still running from yesterday, so
@@ -172,6 +189,7 @@ npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
 node scripts/shot.mjs     # screenshot the app, including a downtown street zoom
 node scripts/drive.mjs '{"steps":[…]}'   # drive the app and report the screen as text
+npm run check:diagrams    # every mermaid block parses — GitHub fails one silently
 ```
 
 All data is public Toronto Open Data + TTC GTFS. **No API keys.**

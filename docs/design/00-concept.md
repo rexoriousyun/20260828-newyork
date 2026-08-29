@@ -90,6 +90,23 @@ The dashed line was a lucky instinct, not a system. Under the concept it becomes
 
 Ordered by what unblocks the most, not by visibility.
 
+> **Status pass, 2026-08-29.** Seven of the ten are built. What remains is either a genuine
+> open question (8) or the polish that a rider session should inform rather than precede
+> (9). Each item below carries its outcome.
+>
+> | | item | state |
+> |---|---|---|
+> | 1 | the confidence system | **done** — `D-26`: unknown is a separate dashed layer, never a stop on the ramp |
+> | 2 | the reliability scale, rebuilt | **done** — `D-23`, validated numerically; a near-black "green" got through by eye first |
+> | 3 | the answer-first component | **done** — `D-05`, `D-20`, `D-33` |
+> | 4 | information architecture | **done** — M9; explore is a mode, not the home screen |
+> | 5 | content design and voice | **mostly** — rider phrasing throughout (`D-21`, `D-24`, `D-34`), but `min/mo` survives in the ranking on purpose: it is what **Q-C** tests |
+> | 6 | disruption and day-of design | **done** — `D-29`, clustering 18 alerts into one event |
+> | 7 | accessibility as a designed path | **done** — `D-30` routes around, rather than warning |
+> | 8 | seasonal framing | **open** — `D-34` put minutes-outside on the card, which is the measurement a seasonal treatment would need. Whether the interface should change with the season is still undecided |
+> | 9 | motion and state | not started — low, and better informed by a session than before one |
+> | 10 | identity | **done** — `D-35` |
+
 ### 1. The confidence system `critical`
 One visual language for certainty, applied to map lines, list rows, numbers, itineraries
 and forecasts. Needs a redundant non-colour channel (pattern, weight, or an explicit mark)
@@ -134,9 +151,12 @@ the interface changes with the season is an open design question, not a decided 
 What changes when data refreshes, how staleness reads, and transitions between map, results
 and detail. Low priority but it is where "feels like a real app" is won.
 
-### 10. Identity `low`
+### 10. Identity `low` — **closed by D-35**
 The project has no name. For portfolio purposes it needs one, plus a mark and a typographic
 voice. Cheap, and it makes the case study read as a product rather than an exercise.
+
+*Resolved 2026-08-29:* **Reliable Transit**, taken from the repository rather than invented,
+with a monotone mark. See `D-35` — including why the name is the product owner's to change.
 
 ---
 

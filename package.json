@@ -18,7 +18,8 @@
     "audit:coverage": "tsx src/audit/surface-coverage.ts",
     "audit:timeofday": "tsx src/audit/time-of-day.ts",
     "benchmark": "tsx src/benchmark/build.ts",
-    "audit:headway": "tsx src/audit/headway.ts"
+    "audit:headway": "tsx src/audit/headway.ts",
+    "check:diagrams": "node scripts/check-diagrams.mjs"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",
@@ -31,6 +32,8 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
+    "jsdom": "^30.0.1",
+    "mermaid": "^11.17.2",
     "prisma": "^6.1.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",

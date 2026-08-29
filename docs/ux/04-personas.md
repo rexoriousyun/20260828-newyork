@@ -180,16 +180,27 @@ a **different design need**, evidenced. These do not, yet.
 
 ## How well the built product serves each of them
 
+*Refreshed 2026-08-29, after M10–M12, the benchmark, route ranking, vanishing service and
+D-34.*
+
 | | served today | gap |
 |---|---|---|
-| **U-02** captive rider | partially — segments exist and rank | 86% unknown (E-D12); no at-stop view; nothing seasonal; no "leave by" (M7) |
-| **U-05** downtown rider | partially — streetcar segments rank | no walk comparison, no realtime |
-| **U-04** access-constrained | partially — step-free filter with live outages | no routing yet, so it marks rather than re-routes; no station-entrance detail |
+| **U-02** captive rider | **yes** — arrive-by planning (D-24), today's disruptions (D-29), which leg carries the risk (D-26), whether waiting even works (D-32), what a missed vehicle costs and how long they are outside (D-34) | 86% of bus segments unknown (E-D12); no at-stop countdown (needs realtime); nothing seasonal |
+| **U-05** downtown rider | partially — streetcar segments rank, and their routes top the ranking (D-31) | **no walk comparison (J-05)** — the one thing this persona's own journey turns on |
+| **U-04** access-constrained | **yes** — the planner routes *around* stations that are not step-free (D-30), and minutes outside answers a rider who cannot stand for long (D-34) | no station-entrance detail; J-03 names them and does not serve them |
 
-U-04 was the uncomfortable one — a decision recorded that the build had not honoured. `D-07`
-is now implemented (`E-D17`): step-free is a filter, live outages included, and `unknown`
-counts as blocked. What is still missing is *routing around* a blocked station rather than
-just marking it.
+Two of the three gaps recorded here on 2026-08-28 have closed. U-04 was the uncomfortable
+one — a decision recorded that the build had not honoured — and `D-07` is now fully
+implemented through `D-30`: step-free filters the route set *before* ranking, live outages
+included, `unknown` counts as blocked, and the planner reroutes rather than warning.
+
+**U-05 is now the least-served persona,** which is a reversal worth stating plainly. Their
+journey (J-05, wait against walk) is the cheapest unbuilt thing in the product — D-34 already
+computes the headway and a walking time is geometry — and it is unbuilt because they are not
+primary, not because it is hard.
+
+**Every gap that remains needs either a realtime feed or a rider.** Nothing left on this
+table is blocked on more building against the data we have.
 
 ## Three personas, one axis
 

@@ -5,6 +5,9 @@ version was written when there were five personas and the product was still fram
 router; J-05 is new, and every journey now states what it shows versus what it defers
 under `P-09`.
 
+**Built status refreshed 2026-08-29,** after M10–M12, the benchmark, route ranking, vanishing
+service and D-34.
+
 Five moments of need. They demand **different products**, and conflating them is the most
 likely way to build something that serves nobody.
 
@@ -14,7 +17,9 @@ their decision matters most.**
 ---
 
 ## J-01 — Pre-trip: "when do I need to leave?"
-**Who:** U-02 · **Problems:** PR-03, PR-01, PR-05 · **Built:** **yes (M10)** — see D-24
+**Who:** U-02 · **Problems:** PR-03, PR-01, PR-05 · **Built:** **yes** — M10 (D-24), extended
+by D-27 (time of day), D-28 (benchmark), D-29 (today), D-33 (tags), D-34 (what a missed
+vehicle costs)
 
 The forecast journey, and the one `D-13` says is the product's centre. The rider works
 backwards from an arrival time — often one with a penalty attached.
@@ -35,8 +40,16 @@ backwards from an arrival time — often one with a penalty attached.
 gets them in trouble.
 
 ## J-02 — At the stop: "is it coming, or should I give up?"
-**Who:** U-02 · **Problems:** PR-01, PR-04, PR-13 · **Built:** no (needs realtime)
-*Most acute pain in the product.*
+**Who:** U-02 · **Problems:** PR-01, PR-04, PR-13 · **Built:** **partly** — the historical
+half only. *Most acute pain in the product.*
+
+> **What D-34 delivered here, and what it did not.** "Is *this* vehicle coming" needs
+> realtime and is still not built. "What does it cost me if it doesn't" needs only the
+> timetable, and now ships: every wait carries its headway, and a fragile one is tagged.
+> `E-D24` is why that is worth having on its own — three quarters of night departures are on
+> service running every 20 minutes or worse, so the cost of a no-show is the larger part of
+> this journey's pain and it was answerable without a feed. The abandon threshold below still
+> needs one.
 
 Already committed, standing outside, patience decaying — and for a third of the year, cold
 enough that this is a safety decision rather than a comfort one (E-L11). Median bus headway
@@ -141,18 +154,25 @@ does.
 
 | Journey | Shape | Needs realtime? | Persona | Built |
 |---|---|---|---|---|
-| J-01 pre-trip | Forecast + departure advice | no | U-02 | M7 |
-| J-02 at stop | Live gap, abandon threshold | **yes**, surface | U-02 | later |
-| J-03 mid-trip | Severity + one-tap options | **yes** | U-02, U-04 | later |
-| J-04 exploratory | Segment map + history | no | all | **done** |
-| J-05 downtown | Wait vs walk | yes, ideally | U-05 | later |
+| J-01 pre-trip | Forecast + departure advice | no | U-02 | **done** — M10, D-24 |
+| J-02 at stop | Live gap, abandon threshold | **yes**, surface | U-02 | **partly** — D-34 gives the cost, not the countdown |
+| J-03 mid-trip | Severity + one-tap options | **yes** | U-02, U-04 | no |
+| J-04 exploratory | Segment map + history | no | all | **done** — M6, D-31 |
+| J-05 downtown | Wait vs walk | yes, ideally | U-05 | no |
 
-**J-01 and J-04 need no realtime at all** — they are buildable today, they dodge the subway
-realtime gap entirely, and they carry the differentiation. J-04 shipped; J-01 is M7.
+**Everything buildable without a realtime feed is now built.** J-01 and J-04 both shipped,
+and D-34 took the part of J-02 that the timetable alone can answer. What remains behind the
+feed is genuinely behind it.
 
-**J-02 is the most acute pain and is not built.** That gap is deliberate: it needs realtime
-infrastructure and a much higher correctness bar, because a wrong number at a stop in
-January is worse than no number at all.
+**J-02's countdown and J-03 are the two real gaps,** and they are deliberate: both need GTFS-RT
+trip updates and vehicle positions, which are not fetched at all. The correctness bar is also
+higher there — a wrong number at a stop in January is worse than no number.
 
-**U-04 is served by no journey yet.** J-03 names them, but accessibility is unimplemented
-(`D-07`). Naming the persona in a journey is not serving them.
+**J-05 is unbuilt and is the cheapest of the three.** Wait against walk needs no feed to be
+useful in its rough form: D-34 already computes the headway a rider faces, and a walking time
+is geometry. It is unbuilt because U-05 is not the primary persona, not because it is hard.
+
+**U-04 is now served by J-01,** which was not true when this file was written: `D-30`
+routes *around* stations that are not step-free rather than marking them, and D-34's
+minutes-outside figure answers a rider who cannot stand for long. J-03 still names them
+without serving them.
