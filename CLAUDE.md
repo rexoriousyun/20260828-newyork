@@ -152,6 +152,11 @@ over the canvas and both change height. `chromePadding()` in `MapView.tsx` reads
 rects; the hardcoded insets it replaced drew half of every planned route underneath the
 results sheet.
 
+**Printing an hour with `% 24` hides which service day it is.** A window of 03:28–30:35 came
+out as "03:28 to 06:35", which read as a gap and was written into a decision as "we have not
+ingested Blue Night". All 35 Blue Night routes were in the data. Format service-day times as
+`30:35`, or say "the next morning".
+
 **GTFS service days run past midnight.** This feed's weekday service spans 03:28 to 30:35 —
 06:35 the next morning. Comparing a wall-clock 01:45 against that window made the planner
 report "no journey" for a 01:14 departure sitting in its own data. Put a wall-clock time in
@@ -212,6 +217,9 @@ Named so they are not silently carried:
 - **Alerts carry no `active_period`.** Presence in the latest snapshot is the only evidence
   an alert is live, so the app reports the snapshot's age and stops claiming to know past
   twelve hours. Silence would read as "nothing is wrong today".
+- **Arriving between ~03:30 and 06:00 returns nothing.** The hour is read as this service day
+  rather than the previous one still running, so the search covers a window with almost no
+  service. Both readings are valid there; only one is tried.
 - **`D-08` is open.** Every persona is provisional — derived from research and data, never
   from talking to a Toronto rider. Q-A is the highest-value question: does a mostly-unknown
   map read as honest or as broken?

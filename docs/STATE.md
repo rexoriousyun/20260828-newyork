@@ -139,12 +139,17 @@ a hypothesis; the gaps are deliberate, so existing citations stay valid.
 **Known gap:** `D-07` is half kept. Step-free access is a filter with live elevator outages,
 and blocked stations are marked — but the planner does not yet route *around* them (M12).
 
-**Known gap:** GTFS-RT trip updates and vehicle positions are ingested but unconsumed. J-02
-(at-stop) and J-03 (mid-trip) both need them.
+**Known gap:** GTFS-RT trip updates and vehicle positions are **not fetched at all** — only
+the alerts feed is. J-02 (at-stop) and J-03 (mid-trip) both need them.
 
-**Known gap:** only weekday GTFS service is loaded. Blue Night routes are a different service
-id, so the app correctly reports no *data* between roughly 06:35 and 03:28 — and says so
-rather than implying the network stops.
+**Known bug:** arriving between roughly **03:30 and 06:00** returns no journey. The hour is
+read as this service day rather than the previous one still running, so the search covers a
+window with almost no service. Both readings are valid there and only one is tried. It is
+U-02's shift-start window, so it matters more than its size suggests.
+
+> An earlier version of this file blamed those hours on Blue Night not being ingested. That
+> was wrong: **all 35 Blue Night routes are in the loaded weekday service**, and the claim
+> came from reading a service window whose hours had been printed modulo 24.
 
 ## Running it
 

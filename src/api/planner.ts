@@ -226,9 +226,14 @@ function named<T extends { worst: Array<{ from: string; to: string }>; dominant:
 /**
  * Why we found nothing, when the reason is us rather than the network.
  *
- * Only weekday service is loaded, so some hours are missing from the data and
- * not from Toronto. Saying "no journey" there would be absence of data dressed
- * as absence of service — the exact confusion P-03 forbids.
+ * A time outside the loaded schedule is missing from our data, not from
+ * Toronto. Saying "no journey" there would be absence of data dressed as
+ * absence of service — the confusion P-03 forbids.
+ *
+ * This fires rarely: the weekday service day runs 03:28 to 30:35 and covers
+ * every wall-clock hour. An earlier version of this message blamed the gap on
+ * Blue Night being un-ingested, which was false — all 35 of those routes are in
+ * the loaded service.
  */
 function outsideService(atSeconds: number, window: { from: number; to: number }): string | null {
   if (atSeconds >= window.from && atSeconds <= window.to) return null;
@@ -237,8 +242,8 @@ function outsideService(atSeconds: number, window: { from: number; to: number })
     return s >= DAY_SECONDS ? `${t} the next morning` : t;
   };
   return (
-    `We only have weekday service loaded, from ${hh(window.from)} to ${hh(window.to)}. ` +
-    "The TTC runs Blue Night routes outside that — we just do not have them yet."
+    `We have no scheduled service loaded outside ${hh(window.from)} to ${hh(window.to)}, ` +
+    "so we cannot answer for that hour."
   );
 }
 

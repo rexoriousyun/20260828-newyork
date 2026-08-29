@@ -642,10 +642,18 @@ promise the data cannot keep.
 > *now* ran the app at 01:34. `inServiceDay` now places a wall-clock time in the service day
 > the schedule uses.
 >
-> **And "no journey" was hiding a data gap.** Outside the loaded window the app said no
-> journey exists, when what is missing is our ingest: only weekday service is loaded, and the
-> TTC's Blue Night routes are a different GTFS service id we have not taken. It now says
-> which, because absence of data reading as absence of service is exactly what P-03 forbids.
+> **And a claim made here about Blue Night was wrong — corrected 2026-08-29.** This decision
+> originally said the overnight hours were missing because Blue Night runs on a GTFS service
+> id we had not ingested. That was asserted from a service window printed with hours wrapped
+> modulo 24, which made 30:35 read as 06:35 and looked like a gap. **All 35 Blue Night routes
+> (300–396) are in the weekday service already**, and every wall-clock hour is covered once
+> the service-day shift is applied. The "we do not have Blue Night" message was therefore
+> false, and is gone.
+>
+> A real defect remains, and it is narrower: a request to arrive between about **03:30 and
+> 06:00** is read as this service day rather than the previous one still running, so the
+> planner searches a window with almost no service and finds nothing. Both readings are
+> valid in those hours and only one is tried. This is exactly U-02's shift-start window.
 
 **Reversed if:** riders find two numbers for one trip confusing rather than clarifying, in
 which case the band figure stands alone and the all-day one moves behind "why this number".
