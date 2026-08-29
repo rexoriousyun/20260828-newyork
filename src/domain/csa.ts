@@ -56,6 +56,15 @@ function scan(
   departAt: number,
   horizonSeconds: number,
   bannedRoutes: ReadonlySet<string>,
+  /**
+   * Stops a rider may ride *through* but never use.
+   *
+   * A station with no step-free route is not a station this rider can board,
+   * alight or change at — but the train still passes through it, and blocking
+   * the hop entirely would sever lines that are perfectly usable end to end.
+   * So the flag suppresses arrivals and walks, not movement (D-07).
+   */
+  blockedStops: Uint8Array,
 ): Reached {
   const stops = c.stopIds.length;
   const arrival = new Int32Array(stops).fill(INF);
@@ -66,6 +75,7 @@ function scan(
   const relaxWalks = (stop: number): void => {
     for (let e = paths.offset[stop]!; e < paths.offset[stop + 1]!; e++) {
       const to = paths.target[e]!;
+      if (blockedStops[to] === 1) continue;
       const t = arrival[stop]! + paths.seconds[e]!;
       if (t < arrival[to]!) {
         arrival[to] = t;
@@ -96,16 +106,24 @@ function scan(
     const trip = c.trip[i]!;
     if (bannedRoutes.size > 0 && bannedRoutes.has(c.tripRoute[trip]!)) continue;
     const from = c.fromStop[i]!;
-    const boardable = onTrip[trip] === 1 || arrival[from]! + MIN_TRANSFER_S <= dep;
+    // Staying on a vehicle is always allowed; getting on is not, at a stop this
+    // rider cannot reach the platform of.
+    const boardable = onTrip[trip] === 1
+      || (blockedStops[from] === 0 && arrival[from]! + MIN_TRANSFER_S <= dep);
     if (!boardable) continue;
 
     onTrip[trip] = 1;
     const to = c.toStop[i]!;
     if (c.arrTime[i]! < arrival[to]!) {
+      // The arrival is recorded even at a blocked stop: the vehicle really does
+      // get there, and the path back through it is how a through-ride is
+      // reconstructed. What is withheld is every way of *leaving* on foot, and
+      // boarding is refused above — so a rider passes through without the stop
+      // ever becoming usable.
       arrival[to] = c.arrTime[i]!;
       viaConnection[to] = i;
       viaWalk[to] = -1;
-      relaxWalks(to);
+      if (blockedStops[to] === 0) relaxWalks(to);
     }
   }
 
@@ -188,12 +206,22 @@ export function plan(
   departAt: number,
   horizonSeconds = 3 * 3600,
   bannedRoutes: ReadonlySet<string> = new Set(),
+  /** Stop ids a rider cannot use — see `blockedStops` in `scan`. */
+  bannedStops: ReadonlySet<string> = new Set(),
 ): Journey | null {
   const origin = c.stopIndex.get(fromStopId);
   const target = c.stopIndex.get(toStopId);
   if (origin === undefined || target === undefined) return null;
 
-  const reached = scan(c, paths, origin, departAt, horizonSeconds, bannedRoutes);
+  const blocked = new Uint8Array(c.stopIds.length);
+  for (const id of bannedStops) {
+    const i = c.stopIndex.get(id);
+    // Never the rider's own ends: they chose them, and a trip they cannot
+    // complete is a real answer to give them, not a trip to hide.
+    if (i !== undefined && i !== origin && i !== target) blocked[i] = 1;
+  }
+
+  const reached = scan(c, paths, origin, departAt, horizonSeconds, bannedRoutes, blocked);
   const legs = reconstruct(c, reached, origin, target);
   if (legs === null || legs.length === 0) return null;
 

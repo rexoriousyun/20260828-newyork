@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { BANDS, bandOf, bandOfSeconds, inServiceDay } from "../time-bands.js";
+import { BANDS, bandOf, bandOfSeconds, inServiceDay, serviceDayTimes } from "../time-bands.js";
 
 describe("bands", () => {
   it("covers every hour exactly once", () => {
@@ -28,30 +28,40 @@ describe("bands", () => {
   });
 });
 
-describe("inServiceDay", () => {
+describe("serviceDayTimes", () => {
   // This feed's weekday service: 03:28 through 30:35 (06:35 next morning).
   const window = { from: 3 * 3600 + 28 * 60, to: 30 * 3600 + 35 * 60 };
 
-  it("leaves a time inside the window alone", () => {
+  it("gives one reading for an hour that can only mean one thing", () => {
+    expect(serviceDayTimes(9 * 3600, window)).toEqual([9 * 3600]);
+    expect(serviceDayTimes(18 * 3600, window)).toEqual([18 * 3600]);
+  });
+
+  it("gives both readings for an early-morning hour, later first", () => {
+    // 04:00 is service that has just started AND the tail of yesterday's,
+    // still running as 28:00. Trying only the first found nothing to catch.
+    expect(serviceDayTimes(4 * 3600, window)).toEqual([28 * 3600, 4 * 3600]);
+    expect(serviceDayTimes(5 * 3600, window)).toEqual([29 * 3600, 5 * 3600]);
+  });
+
+  it("gives only the previous service day before today's begins", () => {
+    expect(serviceDayTimes(1 * 3600 + 45 * 60, window)).toEqual([25 * 3600 + 45 * 60]);
+    expect(serviceDayTimes(0, window)).toEqual([24 * 3600]);
+  });
+
+  it("hands back the literal time when the schedule covers neither", () => {
+    // The caller says it cannot answer for that hour rather than quietly
+    // planning a different one.
+    const narrow = { from: 5 * 3600, to: 20 * 3600 };
+    expect(serviceDayTimes(2 * 3600, narrow)).toEqual([2 * 3600]);
+  });
+});
+
+describe("inServiceDay", () => {
+  const window = { from: 3 * 3600 + 28 * 60, to: 30 * 3600 + 35 * 60 };
+
+  it("takes the fuller service day when an hour has two readings", () => {
+    expect(inServiceDay(4 * 3600, window)).toBe(28 * 3600);
     expect(inServiceDay(9 * 3600, window)).toBe(9 * 3600);
-    expect(inServiceDay(window.from, window)).toBe(window.from);
-  });
-
-  it("shifts an early-hours time onto the previous service day", () => {
-    // 01:45 is served by the 25:45 running the planner already holds.
-    expect(inServiceDay(1 * 3600 + 45 * 60, window)).toBe(25 * 3600 + 45 * 60);
-    expect(inServiceDay(0, window)).toBe(24 * 3600);
-  });
-
-  it("shifts right up to the last minute of service", () => {
-    const narrow = { from: 5 * 3600, to: 26 * 3600 };
-    expect(inServiceDay(2 * 3600, narrow)).toBe(26 * 3600);
-  });
-
-  it("keeps a time the previous service day cannot reach", () => {
-    // Shifted, 02:00 would be 26:00 — past the end. It stays put, and the
-    // caller reports it as outside the loaded data rather than inventing a trip.
-    const narrow = { from: 5 * 3600, to: 25 * 3600 };
-    expect(inServiceDay(2 * 3600, narrow)).toBe(2 * 3600);
   });
 });

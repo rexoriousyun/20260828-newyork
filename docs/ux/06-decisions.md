@@ -101,7 +101,7 @@ having no map.
 **Reversed if:** analysis shows terminal incidents do propagate to through-riders in a
 measurable way — in which case model the propagation rather than simply re-including them.
 
-## D-07 — Accessibility filters before ranking `ACCEPTED · IMPLEMENTED`
+## D-07 — Accessibility filters before ranking `ACCEPTED · IMPLEMENTED (M12)`
 **Cites:** P-05 · **Personas:** U-04 · **Evidence:** E-L09
 
 Accessibility constraints reduce the candidate route set before any reliability ranking.
@@ -650,10 +650,13 @@ promise the data cannot keep.
 > the service-day shift is applied. The "we do not have Blue Night" message was therefore
 > false, and is gone.
 >
-> A real defect remains, and it is narrower: a request to arrive between about **03:30 and
-> 06:00** is read as this service day rather than the previous one still running, so the
-> planner searches a window with almost no service and finds nothing. Both readings are
-> valid in those hours and only one is tried. This is exactly U-02's shift-start window.
+> **A second, narrower defect was found alongside it, and is now fixed.** A request to arrive
+> between about **03:30 and 06:00** was read as this service day rather than the one still
+> running from yesterday morning, so the planner searched a window with almost no service and
+> reported nothing. Both readings are valid in those hours; only one was tried. That is
+> U-02's shift-start window. `serviceDayTimes` now returns every reading an hour can have and
+> the planner tries each, keeping whichever leaves as late as possible and still makes the
+> deadline. Every hour of the clock now plans.
 
 **Reversed if:** riders find two numbers for one trip confusing rather than clarifying, in
 which case the band figure stands alone and the all-day one moves behind "why this number".
@@ -749,6 +752,39 @@ wrong today". Even when fresh, the block carries its own age.
 
 **Reversed if:** riders act on the detour notice as though it carried a time cost we implied,
 which would mean the wording is doing the estimating we refused to do in the data.
+
+---
+
+## D-30 — Step-free routes around a station, not just past it `ACCEPTED · IMPLEMENTED`
+**Cites:** P-05, P-07 · **Personas:** U-04 · **Journeys:** J-01 · **Problems:** PR-06 · **Completes:** D-07
+
+D-07 has said since the beginning that accessibility filters the route set before anything is
+ranked. Until now the build only *marked* blocked stations and kept routing through them —
+the one promise in this log the code did not keep. The planner now excludes them.
+
+**A blocked station is one a rider cannot use, not one a train cannot pass.** The flag
+suppresses boarding, alighting and walking at that stop; the vehicle still runs through it.
+Severing the hop instead would cut lines that are perfectly usable end to end — a rider who
+cannot use Museum can still ride Line 1 through it.
+
+**Unknown counts as unusable.** `isUsable` already held that absence of an alert is not
+evidence an elevator works, and routing now honours it: we would rather offer a longer trip
+than send U-04 somewhere we could not verify.
+
+**The rider's own ends are exempt, by station and not by stop.** Exempting only the single
+stop id they picked left the other platforms of the same station blocked, and a Greenwood
+trip came back five minutes longer by riding past and doubling back on the opposite platform.
+They chose that station. What they need is to be told it is not step-free — which the results
+now say — not to be routed around their own destination (P-07: "no good option" is a valid
+answer).
+
+**What it costs, measured.** Lower Sherbourne/Queens Quay to College St at Bay St: 20 minutes
+normally, **23 minutes step-free**, because College is not accessible and the trip now alights
+elsewhere and walks. 18 stations are excluded network-wide — 16 built without step-free access
+and 2 with elevators out today.
+
+**Reversed if:** the constraint proves too coarse, most likely because station-level access
+hides that one entrance of a station works and another does not.
 
 ---
 

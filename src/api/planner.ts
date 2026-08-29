@@ -13,9 +13,11 @@ import { prisma } from "../db/client.js";
 import { buildConnections, type ConnectionSet } from "../domain/connections.js";
 import { displayStopName, displayStationName } from "../domain/stop-names.js";
 import { departureAdvice, latestDeparture } from "../domain/departure.js";
-import { inServiceDay, DAY_SECONDS } from "../domain/time-bands.js";
+import { inServiceDay, serviceDayTimes, DAY_SECONDS } from "../domain/time-bands.js";
 import { clusterAlerts, isServiceAffecting, alertAgeHours, ALERTS_STALE_AFTER_HOURS,
   type Disruption } from "../domain/disruption.js";
+import { stationAccessMap, isUsable, type StationAccess } from "../domain/accessibility.js";
+import { stationFromPlatform } from "../domain/stations.js";
 import { BENCHMARK_PATH, MIN_COMPARABLE_COVERAGE, bucketFor, percentileOf, verdictFor,
   type BenchmarkTable, type Verdict } from "../benchmark/table.js";
 import { buildFootpaths, type Footpaths } from "../domain/footpaths.js";
@@ -196,6 +198,57 @@ async function disruptionsByRoute(): Promise<{
   return { byRoute: stale ? new Map() : byRoute, fetchedAt, ageHours, stale };
 }
 
+/**
+ * Stops a step-free rider cannot use, and the stations behind them.
+ *
+ * D-07 makes accessibility a filter applied before anything is ranked, and
+ * until now the planner only *marked* blocked stations while still routing
+ * through them. A station is unusable when it is not built step-free or its
+ * elevator is out — and, per `isUsable`, when we simply do not know: absence of
+ * an alert is not evidence an elevator works, and U-04 abandons us the first
+ * time we send them somewhere we could not verify.
+ *
+ * Surface stops are not gated by this. A street corner has no elevator, so it
+ * is not "accessibility unknown" — it is simply not a station.
+ */
+async function stepFreeBlocks(
+  stopNames: Map<string, string>,
+  ends: readonly string[],
+): Promise<{ stops: Set<string>; stations: StationAccess[]; endsBlocked: StationAccess[] }> {
+  const { states } = await stationAccessMap();
+
+  // The rider's own ends are exempt *by station, not by stop*. Exempting only
+  // the one stop id they picked left the other platforms of the same station
+  // blocked, and the planner answered a Greenwood trip by riding past and
+  // doubling back on the opposite platform — five minutes longer and plainly
+  // absurd. They chose that station; what they need is to be told it is not
+  // step-free, not to be routed around their own destination.
+  const exempt = new Set(
+    ends.map((id) => stationFromPlatform(stopNames.get(id) ?? "")).filter((x) => x !== ""),
+  );
+
+  const stops = new Set<string>();
+  const stations = new Map<string, StationAccess>();
+  const endsBlocked = new Map<string, StationAccess>();
+  for (const [stopId, name] of stopNames) {
+    const station = stationFromPlatform(name);
+    if (station === "") continue;
+    const state = states.get(station);
+    if (state === undefined || isUsable(state.state)) continue;
+    if (exempt.has(station)) {
+      endsBlocked.set(station, state);
+      continue;
+    }
+    stops.add(stopId);
+    stations.set(station, state);
+  }
+  return {
+    stops,
+    stations: [...stations.values()],
+    endsBlocked: [...endsBlocked.values()],
+  };
+}
+
 const planQuery = z.object({
   from: z.string().min(1),
   to: z.string().min(1),
@@ -206,6 +259,8 @@ const planQuery = z.object({
    * knows their arrival time, not their departure time. Wins over departAt.
    */
   arriveBy: z.coerce.number().int().min(0).max(36 * 3600).optional(),
+  /** Plan only through stations a rider needing step-free access can use. */
+  stepFree: z.coerce.boolean().optional(),
 });
 
 /** How far back from a deadline to look for a departure. */
@@ -307,21 +362,52 @@ export function registerPlanner(app: FastifyInstance): void {
     // Working backwards from a deadline is a search, not a single plan: earliest
     // arrival is monotone in departure time, so the latest departure that still
     // makes it is found by bisection over the planner.
-    let searchFrom = inServiceDay(departAt, serviceWindow);
+    // An early-morning hour is two positions in the schedule — 04:00 today and
+    // 28:00 on the service day still running — and only one of them carries any
+    // service. Both are tried, and the better result wins.
+    const stepFree = parsed.data.stepFree ?? false;
+    const { stops: blockedStops, stations: blockedStations, endsBlocked } = stepFree
+      ? await stepFreeBlocks(stopNames, [parsed.data.from, parsed.data.to])
+      : { stops: new Set<string>(), stations: [] as StationAccess[], endsBlocked: [] as StationAccess[] };
+
+    const departCandidates = serviceDayTimes(departAt, serviceWindow);
+    let searchFrom = departCandidates[0]!;
+    let arriveByUsed: number | null = null;
+
     if (parsed.data.arriveBy !== undefined) {
-      const arriveBy = inServiceDay(parsed.data.arriveBy, serviceWindow);
-      const found = latestDeparture(arriveBy, ARRIVE_BY_WINDOW_S, (t) => {
-        const j = plan(connections, footpaths, parsed.data.from, parsed.data.to, t);
-        return j === null ? null : j.arriveAt;
-      });
-      if (found === null) {
-        return { journey: null, reason: outsideService(arriveBy, serviceWindow)
+      let best: { departAt: number; arriveAt: number; arriveBy: number } | null = null;
+      for (const arriveBy of serviceDayTimes(parsed.data.arriveBy, serviceWindow)) {
+        const found = latestDeparture(arriveBy, ARRIVE_BY_WINDOW_S, (t) => {
+          const j = plan(connections, footpaths, parsed.data.from, parsed.data.to, t,
+                         ARRIVE_BY_WINDOW_S, new Set(), blockedStops);
+          return j === null ? null : j.arriveAt;
+        });
+        if (found === null) continue;
+        // Door to door, deadline included: leave as late as possible and arrive
+        // as close to the deadline as the schedule allows. Comparable across
+        // readings because each is measured against its own deadline.
+        const cost = arriveBy - found.departAt;
+        if (best === null || cost < best.arriveBy - best.departAt) best = { ...found, arriveBy };
+      }
+      if (best === null) {
+        return { journey: null, reason: outsideService(departCandidates[0]!, serviceWindow)
           ?? "No journey arrives by then, starting from up to three hours before." };
       }
-      searchFrom = found.departAt;
+      searchFrom = best.departAt;
+      arriveByUsed = best.arriveBy;
+    } else {
+      // Without a deadline, take the first reading that can actually be planned.
+      for (const t of departCandidates) {
+        if (plan(connections, footpaths, parsed.data.from, parsed.data.to, t,
+                 ARRIVE_BY_WINDOW_S, new Set(), blockedStops) !== null) {
+          searchFrom = t;
+          break;
+        }
+      }
     }
 
-    const best = plan(connections, footpaths, parsed.data.from, parsed.data.to, searchFrom);
+    const best = plan(connections, footpaths, parsed.data.from, parsed.data.to, searchFrom,
+                      ARRIVE_BY_WINDOW_S, new Set(), blockedStops);
     if (best === null) {
       // A failed plan is a real answer, not an error: no service in the window
       // is exactly what a rider at 3am needs to be told.
@@ -337,7 +423,8 @@ export function registerPlanner(app: FastifyInstance): void {
     const candidates: Journey[] = [best];
     const usedRoutes = [...new Set(best.legs.filter((l) => l.kind === "ride").map((l) => l.routeId!))];
     for (const banned of usedRoutes.slice(0, 3)) {
-      const alt = plan(connections, footpaths, parsed.data.from, parsed.data.to, searchFrom, 3 * 3600, new Set([banned]));
+      const alt = plan(connections, footpaths, parsed.data.from, parsed.data.to, searchFrom,
+        3 * 3600, new Set([banned]), blockedStops);
       if (alt === null) continue;
       const signature = (j: Journey): string => j.legs.map((l) => `${l.kind}:${l.routeId ?? ""}`).join(">");
       if (candidates.some((c) => signature(c) === signature(alt))) continue;
@@ -365,7 +452,7 @@ export function registerPlanner(app: FastifyInstance): void {
     );
     if (blocked.size > 0) {
       const clear = plan(connections, footpaths, parsed.data.from, parsed.data.to,
-                         searchFrom, ARRIVE_BY_WINDOW_S, blocked);
+                         searchFrom, ARRIVE_BY_WINDOW_S, blocked, blockedStops);
       const signature = (j: Journey): string => j.legs.map((l) => `${l.kind}:${l.routeId ?? ""}`).join(">");
       if (clear !== null && !candidates.some((c) => signature(c) === signature(clear))) {
         candidates.push(clear);
@@ -393,6 +480,23 @@ export function registerPlanner(app: FastifyInstance): void {
        * not look" (P-03).
        */
       alerts: { ageHours, stale: alertsStale },
+      /**
+       * Stations kept out of these results. Named rather than silently
+       * excluded: a rider who asked for step-free deserves to see what that
+       * cost them, and an outage may clear within the hour (P-09).
+       */
+      stepFree: stepFree
+        ? {
+            blockedStations,
+            /**
+             * The rider's own origin or destination, when it is not step-free.
+             * Routing around it is not an option — it is where they are going —
+             * so the honest output is to plan the trip and say so (P-07: "there
+             * is no good option" is a valid answer).
+             */
+            endsBlocked,
+          }
+        : null,
       journeys: scored.map((j) => ({
         id: j.legs.map((l) => `${l.kind}:${l.routeId ?? ""}`).join(">"),
         ...j,
@@ -463,7 +567,7 @@ export function registerPlanner(app: FastifyInstance): void {
             : departureAdvice({
                 departAt: j.departAt,
                 arriveAt: j.arriveAt,
-                arriveBy: inServiceDay(parsed.data.arriveBy, serviceWindow),
+                arriveBy: arriveByUsed ?? inServiceDay(parsed.data.arriveBy, serviceWindow),
                 disruptionRisk: j.reliability.disruptionRisk,
                 oneInTrips: j.reliability.oneInTrips,
                 severityCoveredMinutes: j.reliability.minutesWhenBad,

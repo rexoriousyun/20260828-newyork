@@ -55,20 +55,42 @@ export const MIN_EXPECTED_IN_BAND = 3;
 export const DAY_SECONDS = 24 * 3600;
 
 /**
- * A wall-clock time, placed in the service day the schedule actually uses.
+ * Every service-day time a wall-clock hour could mean, latest first.
  *
- * GTFS runs a service day past midnight: this feed's weekday service spans
- * 03:28 to 30:35, meaning 06:35 the following morning. A rider asking at 01:45
- * is asking about 25:45, and comparing 01:45 against the window directly made
- * the planner refuse trips that exist — it reported "no journey" for a 01:14
- * departure that was right there in the data.
+ * GTFS runs a service day past midnight — this feed's weekday service spans
+ * 03:28 to 30:35, meaning 06:35 the following morning. So 04:00 is *two* valid
+ * positions in the schedule: 04:00 at the start of this service day, and 28:00
+ * near the end of the one still running from yesterday morning. Both are real
+ * service a rider can catch at 4am.
  *
- * Anything still before the window after the shift is genuinely outside the
- * loaded service, and the caller says so rather than implying the network
- * stops there (P-03).
+ * **Returning only one of them was a defect.** Shifting a time only when it fell
+ * before the window covered 01:45, which has no other reading, but left 04:00
+ * and 05:00 read as this service day alone — a window carrying almost nothing,
+ * because service has just started. The planner reported no journey for the
+ * hours a shift worker leaves.
+ *
+ * Later first, because a caller looking for the latest departure that makes a
+ * deadline should try the fuller service day before falling back.
+ */
+export function serviceDayTimes(
+  seconds: number,
+  window: { from: number; to: number },
+): number[] {
+  const shifted = seconds + DAY_SECONDS;
+  const times: number[] = [];
+  if (shifted >= window.from && shifted <= window.to) times.push(shifted);
+  if (seconds >= window.from && seconds <= window.to) times.push(seconds);
+  // Outside the schedule entirely: hand back the literal time so the caller can
+  // say so, rather than silently planning for a different hour.
+  return times.length > 0 ? times : [seconds];
+}
+
+/**
+ * The single best service-day reading of a wall-clock time.
+ *
+ * Kept for callers that need one number rather than a search — the departure
+ * advice, which has to state the deadline it worked back from.
  */
 export function inServiceDay(seconds: number, window: { from: number; to: number }): number {
-  return seconds < window.from && seconds + DAY_SECONDS <= window.to
-    ? seconds + DAY_SECONDS
-    : seconds;
+  return serviceDayTimes(seconds, window)[0]!;
 }

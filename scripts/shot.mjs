@@ -20,6 +20,10 @@ async function run(name, fromText, toText, opts = {}) {
   // capture that moves with the clock cannot be compared with the last one.
   await p.locator('.when-field input[type="time"]').fill(opts.at ?? "09:00");
   await p.waitForTimeout(300);
+  if (opts.stepFree === true) {
+    await p.locator(".access-row").click();
+    await p.waitForTimeout(200);
+  }
   await pick("From", fromText);
   await pick("To", toText);
   await p.waitForTimeout(3500);
@@ -66,6 +70,11 @@ await run("long", "Jane St at Eglinton", "Union Station", {
   zoom: { center: [-79.383, 43.650], zoom: 14.5 },
 });
 // A trip on a route the TTC has flagged today, so the "Today" block is in shot.
+// Step-free on, into a station that is not step-free: the constraint is
+// applied to the route and stated where it cannot be.
+await run("access", "Lower Sherbourne St at Queens Quay", "College St at Bay St", {
+  at: "09:00", stepFree: true, zoom: { center: [-79.383, 43.657], zoom: 14.5 },
+});
 await run("dt", "Spadina Ave At Queen", "Sherbourne Station", {
   at: "09:00",
   zoom: { center: [-79.383, 43.653], zoom: 14.5 },

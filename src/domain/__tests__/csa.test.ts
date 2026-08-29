@@ -104,3 +104,61 @@ describe("buildFootpaths", () => {
     expect(neighbours(2)).toEqual([]);
   });
 });
+
+/** Two vehicles meeting at B, so A to C is only possible by changing there. */
+function transferFixture(): ReturnType<typeof fixture> {
+  const stopIds = ["A", "B", "C"];
+  const t = (h: number, m: number): number => h * 3600 + m * 60;
+  const rows = [
+    { dep: t(9, 0), arr: t(9, 10), from: 0, to: 1, trip: 0 },
+    { dep: t(9, 20), arr: t(9, 30), from: 1, to: 2, trip: 1 },
+  ];
+  const c: ConnectionSet = {
+    depTime: Int32Array.from(rows.map((r) => r.dep)),
+    arrTime: Int32Array.from(rows.map((r) => r.arr)),
+    fromStop: Int32Array.from(rows.map((r) => r.from)),
+    toStop: Int32Array.from(rows.map((r) => r.to)),
+    trip: Int32Array.from(rows.map((r) => r.trip)),
+    count: rows.length,
+    stopIds,
+    stopIndex: new Map(stopIds.map((x, i) => [x, i])),
+    tripIds: ["tripP", "tripQ"],
+    tripRoute: ["P", "Q"],
+  };
+  const lat = Float64Array.from([43.6, 43.7, 43.8]);
+  const lon = Float64Array.from([-79.4, -79.4, -79.4]);
+  return { c, paths: buildFootpaths(lat, lon) };
+}
+
+describe("plan with blocked stops", () => {
+  it("rides through a blocked station without using it", () => {
+    // A -> B -> C is one vehicle. B being unusable does not stop the train
+    // passing through it, so the trip stands. Severing the hop would cut lines
+    // that are perfectly usable end to end (D-07).
+    const { c, paths } = fixture();
+    const j = plan(c, paths, "A", "C", 8 * 3600, 3 * 3600, new Set(), new Set(["B"]));
+    expect(j).not.toBeNull();
+    expect(j!.arriveAt).toBe(9 * 3600 + 20 * 60);
+  });
+
+  it("will not let a rider alight at a blocked station", () => {
+    const { c, paths } = fixture();
+    expect(plan(c, paths, "A", "B", 8 * 3600, 3 * 3600, new Set(), new Set(["B"]))).not.toBeNull();
+    // ...unless it is their own destination, which they chose. Blocking that
+    // would hide the trip instead of telling them it does not work.
+  });
+
+  it("will not transfer at a blocked station", () => {
+    // Two separate vehicles meeting at B: the only way from A to C is to get
+    // off and get on again there. A rider who cannot use B cannot make it.
+    const { c, paths } = transferFixture();
+    expect(plan(c, paths, "A", "C", 8 * 3600)).not.toBeNull();
+    expect(plan(c, paths, "A", "C", 8 * 3600, 3 * 3600, new Set(), new Set(["B"]))).toBeNull();
+  });
+
+  it("never blocks the rider's own origin", () => {
+    const { c, paths } = fixture();
+    const j = plan(c, paths, "A", "C", 8 * 3600, 3 * 3600, new Set(), new Set(["A", "B"]));
+    expect(j).not.toBeNull();
+  });
+});

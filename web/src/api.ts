@@ -204,9 +204,22 @@ export interface ScoredJourney {
   };
 }
 
+export interface StationAccessState {
+  station: string;
+  state: "accessible" | "outage" | "not-accessible" | "unknown";
+  note?: string;
+}
+
 export interface PlanResult {
   /** When the live alerts feed was last seen, and whether that is recent. */
   alerts?: { ageHours: number | null; stale: boolean };
+  /** Present when the rider asked for step-free. */
+  stepFree?: {
+    /** Stations kept out of these results. */
+    blockedStations: StationAccessState[];
+    /** The rider's own origin or destination, when it is not step-free. */
+    endsBlocked: StationAccessState[];
+  } | null;
   journeys?: ScoredJourney[];
   alternativesFound?: number;
   journey?: null;
@@ -227,7 +240,8 @@ export function planTrip(
   from: string,
   to: string,
   when: { mode: "arriveBy" | "departAt"; seconds: number },
+  stepFree = false,
 ): Promise<PlanResult> {
-  const q = `${when.mode}=${when.seconds}`;
+  const q = `${when.mode}=${when.seconds}${stepFree ? "&stepFree=true" : ""}`;
   return get(`/plan?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&${q}`);
 }

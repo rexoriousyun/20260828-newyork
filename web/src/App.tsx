@@ -19,6 +19,7 @@ import {
   type SegmentFeature,
   type ScoredJourney,
   type StopHit,
+  type PlanResult,
 } from "./api.js";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -32,6 +33,10 @@ function nextQuarterHour(now: Date): number {
   const s = now.getHours() * 3600 + now.getMinutes() * 60;
   return Math.min(24 * 3600 - 60, Math.ceil((s + 15 * 60) / (15 * 60)) * 15 * 60);
 }
+
+/** Station names arrive upper-cased from the incident feed; riders read signs. */
+const titleCase = (v: string): string =>
+  v.toLowerCase().replace(/(^|[\s\-/])([a-z])/g, (_m, a: string, b: string) => a + b.toUpperCase());
 
 const hhmm = (s: number): string =>
   `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
@@ -156,6 +161,11 @@ export function App(): JSX.Element {
   // compare against, not the one to be quoted by default — it misstates a
   // morning commute by around 20% (E-D20).
   const [view, setView] = useState<View>("atTime");
+  // A hard constraint, not a preference: for U-04 a station without step-free
+  // access is unusable, so it filters the route set before anything is ranked
+  // (D-07, P-05).
+  const [planStepFree, setPlanStepFree] = useState(false);
+  const [stepFreeResult, setStepFreeResult] = useState<PlanResult["stepFree"]>(null);
   const [data, setData] = useState<RouteMap | null>(null);
   const [feature, setFeature] = useState<SegmentFeature | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -204,11 +214,12 @@ export function App(): JSX.Element {
     if (mode !== "plan" || from === null || to === null) return;
     setPlanning(true);
     setPlanNote(null);
-    planTrip(from.id, to.id, when)
+    planTrip(from.id, to.id, when, planStepFree)
       .then((r) => {
         if (r.journeys && r.journeys.length > 0) {
           setJourneys(r.journeys);
           setAlerts(r.alerts);
+          setStepFreeResult(r.stepFree ?? null);
           setChosen(r.journeys[0]!.id);
           setListOpen(r.journeys.length > 1);
           setFormOpen(false);
@@ -219,7 +230,7 @@ export function App(): JSX.Element {
       })
       .catch((e: unknown) => setPlanNote(String(e)))
       .finally(() => setPlanning(false));
-  }, [mode, from, to, when]);
+  }, [mode, from, to, when, planStepFree]);
 
   const chosenJourney = journeys?.find((j) => j.id === chosen) ?? null;
 
@@ -246,6 +257,15 @@ export function App(): JSX.Element {
               <StopSearch label="From" value={from} onChange={setFrom} />
               <StopSearch label="To" value={to} onChange={setTo} />
               <WhenControl mode={when.mode} seconds={when.seconds} onChange={setWhen} />
+              <button
+                className="access-row"
+                aria-pressed={planStepFree}
+                onClick={() => setPlanStepFree(!planStepFree)}
+              >
+                <span className="field-label">Access</span>
+                <span className="access-label">Step-free only</span>
+                <span className="switch" aria-hidden="true" />
+              </button>
             </div>
           ) : (
             <button className="planner trip-summary" onClick={() => setFormOpen(true)}>
@@ -257,6 +277,7 @@ export function App(): JSX.Element {
                 <span className="trip-end">{to?.name}</span>
               </span>
               <span className="trip-when">
+                {planStepFree && <span className="trip-flag">step-free</span>}
                 {when.mode === "arriveBy" ? "by" : "from"} {hhmm(when.seconds)}
               </span>
             </button>
@@ -324,6 +345,25 @@ export function App(): JSX.Element {
               {/* Today comes before the answer: a figure that does not cover
                   the situation in front of the rider has to be qualified before
                   it is read, not after (P-09). */}
+              {/* Their own destination cannot be routed around. Saying so is
+                  the answer; hiding the trip would not be (P-07). */}
+              {stepFreeResult != null && stepFreeResult.endsBlocked.length > 0 && (
+                <div className="today today-severe">
+                  <p className="today-head">Step-free</p>
+                  <ul className="today-list">
+                    {stepFreeResult.endsBlocked.map((e) => (
+                      <li key={e.station}>
+                        <strong>{titleCase(e.station)}</strong> is{" "}
+                        {e.state === "outage" ? "not usable today" : "not step-free"}.
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="today-note">
+                    It is where this trip starts or ends, so no route avoids it. The rest of the
+                    way is planned step-free.
+                  </p>
+                </div>
+              )}
               {!listOpen && chosenJourney !== null && (
                 <Disruptions
                   journey={chosenJourney}

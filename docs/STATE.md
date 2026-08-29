@@ -61,6 +61,7 @@ would reverse it.
 | Time-of-day conditioning | **done** — one toggle, defaulted to the rider's own window (D-27) |
 | Benchmark | **done** — every trip ranked against typical ones of its length (D-28) |
 | M11 day-of disruptions | **done** — detours, bypasses and closures qualify today's answer (D-29) |
+| M12 step-free routing | **done** — the planner routes *around* blocked stations (D-30) |
 
 ## The numbers that matter
 
@@ -136,19 +137,14 @@ a hypothesis; the gaps are deliberate, so existing citations stay valid.
 | Q-E | Do riders re-open the list after picking, or is the choice settled? | D-20 |
 | Q-F | Does the two-outcome answer read as honest, or as hedging? | D-24, P-01 |
 
-**Known gap:** `D-07` is half kept. Step-free access is a filter with live elevator outages,
-and blocked stations are marked — but the planner does not yet route *around* them (M12).
-
 **Known gap:** GTFS-RT trip updates and vehicle positions are **not fetched at all** — only
 the alerts feed is. J-02 (at-stop) and J-03 (mid-trip) both need them.
 
-**Known bug:** arriving between roughly **03:30 and 06:00** returns no journey. The hour is
-read as this service day rather than the previous one still running, so the search covers a
-window with almost no service. Both readings are valid there and only one is tried. It is
-U-02's shift-start window, so it matters more than its size suggests.
-
-> An earlier version of this file blamed those hours on Blue Night not being ingested. That
-> was wrong: **all 35 Blue Night routes are in the loaded weekday service**, and the claim
+> **Fixed 2026-08-29.** Arriving between roughly 03:30 and 06:00 used to return no journey:
+> the hour was read as this service day rather than the one still running from yesterday, so
+> the search covered a window with almost no service. Every hour of the clock now plans.
+> An earlier version of this file blamed those hours on Blue Night not being ingested, which
+> was wrong — **all 35 Blue Night routes are in the loaded weekday service**, and the claim
 > came from reading a service window whose hours had been printed modulo 24.
 
 ## Running it
@@ -161,7 +157,7 @@ npm run audit:stability   # M4 — does segment reliability persist?
 npm run audit:coverage    # M5 — surface geocoding rate
 npm run audit:timeofday   # does pooling across the day misrepresent the risk?
 npm run benchmark         # what a typical trip looks like, for the comparison (D-28)
-npm test                  # 130 tests
+npm test                  # 135 tests
 npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
 node scripts/shot.mjs     # screenshot the app, including a downtown street zoom
