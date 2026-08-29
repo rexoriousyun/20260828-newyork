@@ -29,6 +29,8 @@ export interface RouteHarmInput {
   measuredSegments: number;
   /** Leading cause by weighted gap minutes, as the TTC describes it. */
   leadingCause: string | null;
+  /** Share of the waiting where the vehicle never came, or null if unmeasured. */
+  neverCameShare: number | null;
   name: string;
 }
 

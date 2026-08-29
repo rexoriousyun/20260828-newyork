@@ -3,7 +3,7 @@ import { rankRoutes, PARTIAL_COVERAGE, type RouteHarmInput } from "../route-rank
 
 const route = (o: Partial<RouteHarmInput> & { routeId: string }): RouteHarmInput => ({
   mode: "bus", segmentCount: 100, gapMinutesPerMonth: 0, measuredSegments: 100,
-  leadingCause: null, name: o.routeId, ...o,
+  leadingCause: null, neverCameShare: null, name: o.routeId, ...o,
 });
 
 describe("rankRoutes", () => {

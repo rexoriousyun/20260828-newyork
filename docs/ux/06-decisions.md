@@ -868,6 +868,52 @@ their own route, which would make it a reason not to ride rather than informatio
 
 ---
 
+## D-32 — Separate the bus that is late from the bus that never comes `ACCEPTED · IMPLEMENTED`
+**Cites:** P-01, P-03 · **Journeys:** J-01, J-04 · **Problems:** PR-01, PR-04, PR-13 · **Evidence:** E-D23, E-L07
+
+One number said how often a trip goes wrong. Two different failures were inside it, and a
+rider answers them differently: a late vehicle arrives eventually, so waiting works; a
+cancelled, diverted, shuttled or unstaffed one never arrives, so waiting is wasted and the
+only response is a second plan.
+
+**36% of all rider-waiting is the second kind** (E-D23), and on some routes near three
+quarters of it. Trains are late; buses disappear. The app now says so — on the route ranking,
+in its own "where waiting does not help" list, and on a planned trip where the share passes
+the point at which waiting stops being the right move more often than not.
+
+The bar is 50%, registered in `src/domain/vanishing.ts`. The network average is 36%, so a
+lower one would fire everywhere and mean nothing.
+
+**Weighted by minutes, not by incidents.** One cancellation on a half-hourly route costs a
+rider more than three small delays, and counting events would flatter exactly the routes this
+exists to expose.
+
+**Ranked separately from total harm.** The costliest routes are the busy ones and they sit
+near the network average, so a rider looking at that list would never see this. The routes
+where the bus simply does not come are quieter and need their own question asked.
+
+### On using this as a safety signal
+
+> Asked for during the build: could these metrics help a solo traveller pick a safer route at
+> certain hours? **No, and the app must not imply it.** `PR-11` is marked `OUT` for exactly
+> this reason — we cannot measure or predict personal safety, and a route labelled "safer"
+> from delay data would be a claim the data cannot carry and a harmful one to act on.
+>
+> The measurement also declines the premise: vanishing service is **flat across the day**,
+> 33% to 38% in every band, so there is no night-time effect to surface even if we wanted to.
+>
+> What survives is `PR-13`, which is the honest version of the same instinct: "your bus is 26
+> minutes away" is information in July and a decision about physical safety in January. The
+> product's job is to make the wait legible and let the rider judge what it means, which is
+> the same stance `D-24` takes on the departure buffer. Naming an open-ended wait as
+> open-ended — this route may simply not turn up — serves that directly, without grading a
+> street we have never measured.
+
+**Reversed if:** the distinction turns out not to change what riders do, in which case it is
+detail rather than advice and belongs behind "why this number".
+
+---
+
 ## Open questions
 
 | # | Question | Blocks | Owner |

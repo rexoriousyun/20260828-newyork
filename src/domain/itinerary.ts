@@ -24,6 +24,7 @@ import type { Journey, Leg } from "./csa.js";
 import { key, type SegmentFrequency } from "./frequency.js";
 import { stationFromPlatform } from "./stations.js";
 import { bandOf, bandOfSeconds, BANDS, MIN_EXPECTED_IN_BAND, type Band } from "./time-bands.js";
+import { neverCameShare } from "./vanishing.js";
 
 /** Subway route ids, whose segments key on station names rather than stop ids. */
 const SUBWAY_ROUTES = new Set(["1", "2", "4"]);
@@ -66,6 +67,16 @@ export interface JourneyReliability {
   expectedAddedMinutes: number;
   /** Share of the journey's segments we could score. */
   coverage: number;
+  /**
+   * Share of this trip's waiting caused by a vehicle that never turned up —
+   * cancelled, diverted, taken for a shuttle, or never staffed — rather than
+   * one that ran late. Null where nothing was measured.
+   *
+   * It changes what a rider should do, which is why it is separated from the
+   * disruption rate rather than folded into it: waiting out a late bus works,
+   * and waiting out one that was cancelled does not.
+   */
+  neverCame: number | null;
   /** Worst segments on this journey, for "why this number". */
   worst: SegmentRisk[];
   /**
@@ -286,9 +297,9 @@ export async function scoreJourney(
   const segIds = [...new Set(traversed.map((s) => s.id))];
   const allRows = segIds.length === 0 ? [] : await prisma.delayIncident.findMany({
     where: { segmentId: { in: segIds }, minDelay: { gt: 0 } },
-    select: { segmentId: true, minGap: true, occurredAt: true },
+    select: { segmentId: true, minGap: true, occurredAt: true, code: true },
   });
-  const bySegment = new Map<string, Array<{ minGap: number; occurredAt: Date }>>();
+  const bySegment = new Map<string, Array<{ minGap: number; occurredAt: Date; code: string }>>();
   for (const r of allRows) {
     const list = bySegment.get(r.segmentId!);
     if (list === undefined) bySegment.set(r.segmentId!, [r]);
@@ -409,12 +420,19 @@ export async function scoreJourney(
         minutesWhenBad: severity.p90,
         expectedAddedMinutes: Number((disruptionRisk * severity.p50).toFixed(2)),
         coverage: expectedSegments === 0 ? 0 : Number((from.length / expectedSegments).toFixed(2)),
+        neverCame: vanishShare,
         dominant: dominantStretch(from),
         worst: ranked.slice(0, 3),
       },
       legRisks,
     };
   };
+
+  // Weighted the same way the exposure is, so the share describes the minutes
+  // a rider actually loses rather than the number of events.
+  const vanishShare = neverCameShare(
+    allRows.map((r) => ({ code: r.code, weightedMinutes: r.minGap * recencyWeight(r.occurredAt, now) })),
+  );
 
   const pooled = assemble(risks);
 

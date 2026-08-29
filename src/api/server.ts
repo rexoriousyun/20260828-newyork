@@ -3,6 +3,7 @@ import { z } from "zod";
 import { scoreSegment, scoreRoute } from "../domain/score.js";
 import { prisma } from "../db/client.js";
 import { rankRoutes } from "../domain/route-ranking.js";
+import { neverCame } from "../domain/vanishing.js";
 import { recencyWeight, effectiveMonths } from "../domain/score.js";
 import { registerTiles } from "./tiles.js";
 import { registerPlanner } from "./planner.js";
@@ -98,15 +99,16 @@ app.get("/routes/ranking", async () => {
   const causes = new Map(codes.map((c) => [c.code, c.description]));
   const denominator = effectiveMonths(WINDOW_MONTHS);
 
-  interface Acc { gap: number; measured: Set<string>; cause: Map<string, number>; mode: string }
+  interface Acc { gap: number; never: number; measured: Set<string>; cause: Map<string, number>; mode: string }
   const acc = new Map<string, Acc>();
   for (const r of rows) {
     const seg = segById.get(r.segmentId!);
     if (seg === undefined) continue;
     let a = acc.get(seg.routeId);
-    if (a === undefined) { a = { gap: 0, measured: new Set(), cause: new Map(), mode: seg.mode }; acc.set(seg.routeId, a); }
+    if (a === undefined) { a = { gap: 0, never: 0, measured: new Set(), cause: new Map(), mode: seg.mode }; acc.set(seg.routeId, a); }
     const weighted = r.minGap * recencyWeight(r.occurredAt, now);
     a.gap += weighted;
+    if (neverCame(r.code)) a.never += weighted;
     a.measured.add(r.segmentId!);
     a.cause.set(r.code, (a.cause.get(r.code) ?? 0) + weighted);
   }
@@ -123,6 +125,12 @@ app.get("/routes/ranking", async () => {
       segmentCount: segmentCount.get(routeId) ?? 0,
       measuredSegments: a.measured.size,
       gapMinutesPerMonth: Math.round(a.gap / denominator),
+      /**
+       * Share of this route's waiting caused by a vehicle that never turned up
+       * rather than one that ran late. A rider mitigates the two differently:
+       * waiting works for one and not at all for the other.
+       */
+      neverCameShare: a.gap > 0 ? Number((a.never / a.gap).toFixed(3)) : null,
       leadingCause: top[0] === undefined ? null : (causes.get(top[0][0]) ?? top[0][0]),
       /** Every cause on this route, so "why" is one tap rather than a query. */
       causes: top.slice(0, 5).map(([code, gap]) => ({

@@ -625,3 +625,56 @@ the reasoning being wrong. Four cheap outside readers could.
 > considered, not because they were judged and dropped, but because nobody in `04-personas.md`
 > would ever hit them. That is what a persona set costs when it is never checked against
 > anyone outside it — which is `D-08`, again.
+
+### E-D23 — A third of all rider-waiting is a vehicle that never comes
+*Measured 2026-08-29 · `src/domain/vanishing.ts`*
+
+Every reliability figure in this app had been one undifferentiated number: how often a trip
+"goes wrong". Two failures hide inside it, and a rider mitigates them differently. A *late*
+vehicle arrives eventually and waiting works. A vehicle that is **cancelled, sent on
+diversion, taken away to run a shuttle, or never staffed** does not arrive at all, and waiting
+does nothing.
+
+Splitting the archive on the TTC's own codes:
+
+**36.1% of all rider-waiting is a vehicle that never came** — 40,012 of 110,771 minutes a
+month.
+
+**It is not a night-time problem.** The share is flat across the day, which was the opposite
+of the expectation that prompted the measurement:
+
+| Band | never came | all waiting | share |
+|---|---|---|---|
+| am peak | 5,703 | 15,004 | 38.0% |
+| midday | 11,802 | 33,249 | 35.5% |
+| pm peak | 9,905 | 27,119 | 36.5% |
+| evening | 8,382 | 22,634 | 37.0% |
+| night | 4,221 | 12,764 | 33.1% |
+
+**It varies enormously by route, and that is where the value is.**
+
+| Route | share of waiting where the vehicle never came |
+|---|---|
+| 31 Greenwood | **74%** |
+| 33 Forest Hill | 71% |
+| 65 Parliament | 71% |
+| 120 Calvington | 68% |
+| 75 Sherbourne | 64% |
+| 510 Spadina | 17% |
+| 512 St Clair | 9% |
+| Line 1, Line 2 | **0%** |
+
+Trains are late; buses disappear. On the 31 Greenwood, three quarters of the time a rider
+spends waiting is for a bus that was never going to arrive.
+
+*Why it matters:* it changes the advice, not just the number. On a route where waiting works,
+the answer is to leave earlier. On the 65 Parliament it is to have a second plan. No public
+tool distinguishes these, and riders describe the second one to each other constantly —
+"sometimes the bus just doesn't come" — without any way to know which routes do it.
+
+> **What this is not.** It is not a safety measure, and it is not evidence about personal
+> safety at any hour. `PR-11` is marked `OUT` precisely because we cannot measure or predict
+> that, and a route labelled "safer" from delay data would be a claim the data cannot carry.
+> What the flat night figure does say is that an open-ended wait is no more likely after dark
+> than at noon — the wait itself is what changes meaning at 2am, which is `PR-13`, and the
+> product's job there is to make the wait legible, not to grade the street.

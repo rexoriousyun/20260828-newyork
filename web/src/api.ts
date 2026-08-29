@@ -153,6 +153,8 @@ export interface JourneyReliability {
   minutesWhenDisrupted: number;
   minutesWhenBad: number;
   coverage: number;
+  /** Share of this trip's waiting where the vehicle never turned up at all. */
+  neverCame: number | null;
   worst: Array<{ from: string; to: string; risk: number }>;
   /** The one stretch that dominates, or null when the risk is spread. */
   dominant: { from: string; to: string; risk: number } | null;
@@ -258,6 +260,8 @@ export interface RankedRoute {
   /** Much of the route is unmeasured, so the figure is a floor, not a total. */
   partial: boolean;
   leadingCause: string | null;
+  /** Share of this route's waiting where the vehicle never turned up at all. */
+  neverCameShare: number | null;
   causes: Array<{ code: string; cause: string; minutesPerMonth: number }>;
 }
 

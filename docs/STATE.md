@@ -63,6 +63,7 @@ would reverse it.
 | M11 day-of disruptions | **done** — detours, bypasses and closures qualify today's answer (D-29) |
 | M12 step-free routing | **done** — the planner routes *around* blocked stations (D-30) |
 | Route ranking + causes | **done** — costliest routes for riders, and why (D-31) |
+| Vanishing service | **done** — the bus that never comes, separated from the one running late (D-32) |
 
 ## The numbers that matter
 
@@ -82,6 +83,8 @@ would reverse it.
 | TTC riders who are equity-deserving | **66.6%** | E-L10 |
 | Scarborough transit access score | **20.97** vs 102.8 affluent | E-L10 |
 | Ice/snow incident average duration | **68.8 min** | E-D02 |
+| Rider-waiting where the vehicle never came | **36.1%** | E-D23 |
+| Worst route for vanishing service | **31 Greenwood, 74%** | E-D23 |
 | Downtown vs Scarborough route density | **26 vs 17** routes per box | E-D14 |
 | Worst surface route by rider-wait | **504 King**, 105,302 min | E-D14 |
 
@@ -158,7 +161,7 @@ npm run audit:stability   # M4 — does segment reliability persist?
 npm run audit:coverage    # M5 — surface geocoding rate
 npm run audit:timeofday   # does pooling across the day misrepresent the risk?
 npm run benchmark         # what a typical trip looks like, for the comparison (D-28)
-npm test                  # 148 tests
+npm test                  # 154 tests
 npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
 node scripts/shot.mjs     # screenshot the app, including a downtown street zoom

@@ -1,6 +1,13 @@
 import type { RankedRoute } from "./api.js";
 
 /**
+ * Where waiting stops being the right response more often than not. The network
+ * average is 36%, so a lower bar would fire everywhere and mean nothing.
+ * Mirrors NEVER_CAME_NOTABLE in src/domain/vanishing.ts.
+ */
+const NEVER_CAME_NOTABLE = 0.5;
+
+/**
  * Which routes cost riders the most time.
  *
  * `PR-02` is that unreliability is unevenly distributed and nobody publishes
@@ -50,6 +57,21 @@ export function RouteRanking({
     { key: "surface", title: "Surface routes", rows: (modes.surface ?? []).slice(0, 6) },
     { key: "subway", title: "Subway", rows: (modes.subway ?? []).slice(0, 3) },
   ].filter((x) => x.rows.length > 0);
+
+  /**
+   * A second question, and a different answer.
+   *
+   * The costliest routes are the busy ones, and they sit near the network
+   * average for vanishing service. The routes where the bus simply does not
+   * come are quieter and never reach that list — so the metric would be
+   * invisible exactly where it matters. Ranked separately, among routes with
+   * enough waiting recorded to say anything.
+   */
+  const vanishing = (modes.surface ?? [])
+    .filter((r) => r.neverCameShare !== null && r.neverCameShare >= NEVER_CAME_NOTABLE
+                   && r.gapMinutesPerMonth >= 300)
+    .sort((a, b) => (b.neverCameShare ?? 0) - (a.neverCameShare ?? 0))
+    .slice(0, 5);
   if (sections.length === 0) return null;
   const anyPartial = sections.some((x) => x.rows.some((r) => r.partial));
 
@@ -86,6 +108,42 @@ export function RouteRanking({
           </ol>
         </div>
       ))}
+      {vanishing.length > 0 && (
+        <div className="ranking-section">
+          <p className="ranking-mode">Where waiting does not help</p>
+          <ol className="ranking-list">
+            {vanishing.map((r) => (
+              <li key={r.routeId}>
+                <button
+                  className="ranking-row"
+                  aria-pressed={r.routeId === selected}
+                  onClick={() => onSelect(r.routeId)}
+                >
+                  <span className="ranking-rank" />
+                  <span className="ranking-body">
+                    <span className="ranking-name">
+                      <span className="route-chip">{r.routeId}</span> {r.name}
+                    </span>
+                    <span className="ranking-cause">
+                      of {r.gapMinutesPerMonth.toLocaleString()} min/mo waiting
+                    </span>
+                  </span>
+                  <span className="ranking-figure">
+                    <strong className="ranking-never">{Math.round(r.neverCameShare! * 100)}%</strong>
+                    <span className="ranking-unit">never comes</span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ol>
+          <p className="ranking-note">
+            Cancelled, sent on diversion, taken away to run a shuttle, or no operator rostered —
+            the vehicle does not turn up at all, so waiting longer does not get you one. Across
+            the network this is <strong>36%</strong> of all waiting, and none of it on the
+            subway.
+          </p>
+        </div>
+      )}
       {anyPartial && (
         <p className="ranking-note">
           Minutes of waiting caused across everyone riding, per month. A <strong>+</strong> means

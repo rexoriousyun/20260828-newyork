@@ -601,3 +601,16 @@ select {
 .ranking-mode {
   margin: 0 0 2px; font-size: 12px; font-weight: 600; color: var(--ink-2);
 }
+/* A route where the vehicle often simply does not come. Weighted, because it
+   changes what a rider should do rather than just how long they wait. */
+.ranking-never { color: var(--scale-3); font-weight: 500; }
+
+/* Waiting will not fix this one. Weighted like a caveat on the number above,
+   because it changes the response rather than the figure. */
+.advice-never {
+  margin: var(--s3) 0 0; padding: var(--s3);
+  border: 1px solid var(--rule); border-left: 3px solid var(--scale-3);
+  border-radius: 4px;
+  font-size: 13.5px; line-height: 1.45; color: var(--ink-2);
+}
+.advice-never strong { color: var(--ink); font-weight: 600; }
