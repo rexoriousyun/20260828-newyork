@@ -3,12 +3,6 @@ import { hhmm, hhmmDay } from "./clock.js";
 import { reliabilityFor, type View } from "./view.js";
 import { Benchmark } from "./Benchmark.js";
 
-/**
- * Where waiting stops being the right response more often than not. Mirrors
- * NEVER_CAME_NOTABLE in src/domain/vanishing.ts; the network average is 36%.
- */
-const NEVER_CAME_NOTABLE = 0.5;
-
 
 /**
  * "When do I need to leave?" — the answer, once.
@@ -40,7 +34,6 @@ export function DepartureAdvice({
   const late = a.slackMinutes < 0;
   const routes = journey.legs.filter((l) => l.kind === "ride").map((l) => l.routeId ?? "?");
   const rel = reliabilityFor(journey, view);
-  const thin = rel.coverage < 0.5;
 
   return (
     <div className={`advice${late ? " advice-late" : ""}`}>
@@ -95,29 +88,8 @@ export function DepartureAdvice({
         </p>
       )}
 
-      {/* A different failure needing a different response. The rate above says
-          how often this trip goes wrong; this says whether waiting is any use
-          when it does. Cancelled, diverted, taken for a shuttle or never
-          staffed — none of those end with a vehicle arriving, so the mitigation
-          is a second plan rather than more patience. Shown only past the point
-          where waiting stops being the right move more often than not; the
-          network sits at 36%, so saying it everywhere would say nothing. */}
-      {rel.neverCame !== null && rel.neverCame >= NEVER_CAME_NOTABLE && (
-        <p className="advice-never">
-          <strong>Most of the waiting here is a bus that never comes</strong> — cancelled or
-          diverted, not running late. Waiting it out will not help.
-        </p>
-      )}
-
       <Benchmark comparison={rel.comparison} />
 
-      {/* Low confidence sits with the claim, never behind a tap (P-09, J-01). */}
-      {thin && (
-        <p className="advice-thin">
-          Based on {Math.round(rel.coverage * 100)}% of this route — treat as
-          rough.
-        </p>
-      )}
     </div>
   );
 }

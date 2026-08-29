@@ -614,3 +614,39 @@ select {
   font-size: 13.5px; line-height: 1.45; color: var(--ink-2);
 }
 .advice-never strong { color: var(--ink); font-weight: 600; }
+
+/* ---- Trip tags -----------------------------------------------------------
+   Conditions on a trip, several of which can hold at once. Status, not
+   decoration: square-ish corners, no fill on the quiet ones, and colour only
+   where a condition costs a rider something (D-16, D-23). */
+.tags { margin: 0 0 var(--s3); }
+.tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  padding: 5px 9px; border-radius: 5px;
+  border: 1px solid var(--rule); background: none;
+  font: inherit; font-size: 12.5px; font-weight: 500; color: var(--ink-2);
+  cursor: pointer; white-space: nowrap;
+}
+.tag::after { content: " ›"; color: var(--ink-3); }
+.tag[aria-expanded="true"] {
+  color: var(--panel); background: var(--ink); border-color: var(--ink);
+}
+.tag[aria-expanded="true"]::after { content: " ⌄"; color: var(--panel); }
+.tag:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* Severity earns the colour. A closure can end the trip; a detour slows it. */
+.tag-severe { color: var(--scale-3); border-color: var(--scale-3); font-weight: 600; }
+.tag-severe[aria-expanded="true"] { background: var(--scale-3); border-color: var(--scale-3); }
+.tag-warn { color: var(--ink); }
+/* Unknown is dashed here as it is on the map, so the two read as one idea. */
+.tag-unknown { border-style: dashed; }
+
+.tag-body {
+  margin-top: var(--s2); padding: var(--s3);
+  border: 1px solid var(--rule); border-radius: 5px;
+  font-size: 13.5px; line-height: 1.45; color: var(--ink-2);
+}
+.tag-body p { margin: 0; }
+.tag-body p + p { margin-top: var(--s2); }
+.tag-body strong { color: var(--ink); font-weight: 600; }
+.tag-note { color: var(--ink-3); font-size: 12.5px; }

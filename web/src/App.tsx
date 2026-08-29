@@ -7,7 +7,7 @@ import { WhenControl } from "./WhenControl.js";
 import { DepartureAdvice } from "./DepartureAdvice.js";
 import { RouteKey } from "./RouteKey.js";
 import { RouteRanking } from "./RouteRanking.js";
-import { Disruptions } from "./Disruptions.js";
+import { TripTags } from "./TripTags.js";
 import { ViewToggle } from "./ViewToggle.js";
 import { bandLabel, exposureProperty, type View } from "./view.js";
 import { UNRELIABLE_THRESHOLD, stateOf } from "./map.js";
@@ -385,23 +385,11 @@ export function App(): JSX.Element {
               {/* Today comes before the answer: a figure that does not cover
                   the situation in front of the rider has to be qualified before
                   it is read, not after (P-09). */}
-              {/* What the constraint cost, or that it cost nothing. A rider who
-                  flips the switch and sees the screen not move cannot tell
-                  "nothing to change" from "broken toggle". */}
-              {!listOpen && stepFreeResult != null && (
-                <p className="access-note">
-                  {stepFreeResult.changedNothing ? (
-                    <>This way was already step-free.</>
-                  ) : (
-                    <>
-                      Routed around{" "}
-                      <strong>
-                        {stepFreeResult.blockedStations.map((b) => titleCase(b.station)).join(", ")}
-                      </strong>
-                      .
-                    </>
-                  )}
-                </p>
+              {/* Kept as prose: "nothing changed" is not a condition on the
+                  trip, it is reassurance that the switch did something, and a
+                  tag saying it would be a tag about the absence of a tag. */}
+              {!listOpen && stepFreeResult != null && stepFreeResult.changedNothing && (
+                <p className="access-note">This way was already step-free.</p>
               )}
               {/* Their own destination cannot be routed around. Saying so is
                   the answer; hiding the trip would not be (P-07). */}
@@ -422,11 +410,13 @@ export function App(): JSX.Element {
                   </p>
                 </div>
               )}
+              {/* Every condition on this trip, as tags that open (D-05). */}
               {!listOpen && chosenJourney !== null && (
-                <Disruptions
+                <TripTags
                   journey={chosenJourney}
-                  hasClearAlternative={journeys.some((j) => j.avoidsDisruption)}
+                  view={view}
                   alerts={alerts}
+                  stepFree={stepFreeResult}
                 />
               )}
               {!listOpen && chosenJourney?.advice != null ? (

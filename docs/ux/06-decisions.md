@@ -914,6 +914,36 @@ detail rather than advice and belongs behind "why this number".
 
 ---
 
+## D-33 — Conditions on a trip are tags that open `ACCEPTED · IMPLEMENTED`
+**Cites:** P-09, D-05, D-15, D-17 · **Journeys:** J-01 · **Problems:** PR-04
+
+A trip can carry several conditions at once — a route not running today, a route that often
+does not turn up, thin history, stations the step-free constraint routed around — and each
+was a paragraph. Four blocks of qualification pushed the answer and the map off a phone
+screen, and a rider skimming could not see at a glance how many things were wrong.
+
+They are now tags in one row, each opening to its explanation. `D-05`'s shape: the verdict
+first, the detail one interaction beneath.
+
+> **510 not running** ›  **Often doesn't turn up** ›  **Little data** ›
+
+**The label carries the claim; the tap only carries the detail.** `P-09` permits deferring
+how we know and forbids deferring what we do not know — "that confidence is low" and "that a
+segment has no data" are both in its never-hide column. So a tag reads "Little data", never
+"Details", and anything that cannot be said in three words does not become a tag.
+
+**Tags sit above the answer, not below it.** A figure that does not cover the situation in
+front of the rider has to be qualified before it is read.
+
+**Severity earns the colour, and unknown keeps its dash.** A closure can end the trip and is
+red; a detour slows it and is not. The "little data" tag is dashed, the same treatment
+unknown segments get on the map, so the two read as one idea rather than two conventions.
+
+**Reversed if:** riders do not open them, which would mean the labels are carrying the whole
+message and the explanations should be somewhere they will actually be found.
+
+---
+
 ## Open questions
 
 | # | Question | Blocks | Owner |

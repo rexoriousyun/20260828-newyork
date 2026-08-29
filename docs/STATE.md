@@ -64,6 +64,7 @@ would reverse it.
 | M12 step-free routing | **done** — the planner routes *around* blocked stations (D-30) |
 | Route ranking + causes | **done** — costliest routes for riders, and why (D-31) |
 | Vanishing service | **done** — the bus that never comes, separated from the one running late (D-32) |
+| Trip conditions as tags | **done** — several can apply at once, each opens (D-33) |
 
 ## The numbers that matter
 
