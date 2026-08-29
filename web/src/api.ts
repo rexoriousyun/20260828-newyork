@@ -247,3 +247,25 @@ export function planTrip(
   const q = `${when.mode}=${when.seconds}${stepFree ? "&stepFree=true" : ""}`;
   return get(`/plan?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&${q}`);
 }
+
+export interface RankedRoute {
+  routeId: string;
+  name: string;
+  mode: string;
+  rank: number;
+  gapMinutesPerMonth: number;
+  coverage: number;
+  /** Much of the route is unmeasured, so the figure is a floor, not a total. */
+  partial: boolean;
+  leadingCause: string | null;
+  causes: Array<{ code: string; cause: string; minutesPerMonth: number }>;
+}
+
+export interface Ranking {
+  modes: { subway?: RankedRoute[]; surface?: RankedRoute[] };
+}
+
+/** Which routes cost riders the most time. Static between ingests. */
+export function fetchRanking(): Promise<Ranking> {
+  return get("/routes/ranking");
+}

@@ -813,6 +813,61 @@ hides that one entrance of a station works and another does not.
 
 ---
 
+## D-31 — Rank routes by what they cost riders, and say why `ACCEPTED · IMPLEMENTED`
+**Cites:** P-03, D-05, D-11 · **Journeys:** J-04 · **Problems:** PR-02, PR-08 · **Evidence:** E-D14, E-D02
+
+`PR-02` says unreliability is unevenly distributed and nobody publishes where. Until now this
+app answered that one route at a time, through a dropdown of 404 entries in arbitrary order:
+a rider could see their route was bad and had nothing to measure it against, which is exactly
+where `J-04` begins. Explore mode now leads with the costliest routes, and the picker is
+ordered by the same figure.
+
+**Total harm, not per-trip risk.** Both are honest and they answer different questions. Per-trip
+risk is what the planner ranks on — how likely *your* ride goes wrong, with frequency
+normalised away. Total harm is minutes of waiting a route causes across everyone riding it,
+which is the civic question and the one `PR-02` actually poses. A busy route dominates because
+it carries more people through more failures; that is the finding, not a distortion. The unit
+is the one the map already draws, so the list and the map say the same thing.
+
+| # | Surface | min/month | Mostly |
+|---|---|---|---|
+| 1 | 504 King | 2,795 | on diversion |
+| 2 | 52 Lawrence West | 2,557 | unclassified |
+| 3 | 501 Queen | 2,410 | on diversion |
+| 4 | 102 Markham Rd | 2,284 | unclassified |
+
+Cross-checks against `E-D14`, which found 504 King the worst surface route by rider-wait. It
+also lands on **U-02's own routes** — 52, 102 and 86 are all in the top ten, which is the
+first time the persona and the ranking have been derived independently and agreed.
+
+**Ranked within mode, never across it.** Surface delay is only partly geocodable (`E-D07`)
+while every subway incident names a station, so the modes are measured to different standards
+— 100% coverage against 51% across the top of the list. One combined ranking would put the
+subway above the buses *for being better recorded* and present it as being worse to ride.
+`D-11` already refuses to compare modes on severity; this is the same refusal for exposure.
+
+**A partly measured route is a floor, not a total.** Marked with a `+`. Dividing by coverage
+would invent the minutes we failed to attribute, which is the estimate `P-03` forbids.
+
+### The cause breakdown, seven weeks late
+
+> `J-04` has specified "wants why → cause breakdown" since the research, and it was never
+> built. The data was there the whole time: 271 delay codes with descriptions, and every
+> incident carries one. Across the network the leading causes by rider-wait are **on diversion**
+> (439,076 min), **other** (285,536), **no operator available** (144,254) and **used as shuttle
+> bus** (104,043).
+>
+> The TTC's own words are used rather than categories of ours — "No operator available" is a
+> better sentence than anything we would invent. With one exception: their single largest
+> bucket on several routes is the code `OTHER`, and "Mostly other" is faithful and useless. It
+> reads as **unclassified**, which keeps the fact that the biggest cause is a shrug — itself
+> worth knowing, and squarely `PR-08` — without dressing it up as an explanation.
+
+**Reversed if:** riders read the ranking as a league table to avoid rather than context for
+their own route, which would make it a reason not to ride rather than information about riding.
+
+---
+
 ## Open questions
 
 | # | Question | Blocks | Owner |

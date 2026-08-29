@@ -552,3 +552,52 @@ select {
 .journey-today.is-severe {
   font-weight: 600; color: var(--scale-3);
 }
+
+/* ---- Costliest routes ----------------------------------------------------
+   A ranked answer to "is my route bad, or is it just me" — the question the
+   segment map could never answer on its own. Sits above the legend because it
+   is the thing to read first; the colours only mean something once you know
+   which route you are looking at (D-05). */
+.ranking { margin-bottom: var(--s4); }
+.ranking-head {
+  margin: 0 0 var(--s2); font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.ranking-list { list-style: none; margin: 0; padding: 0; }
+.ranking-row {
+  display: flex; align-items: baseline; gap: var(--s3);
+  width: 100%; padding: 8px 0; border: 0; border-top: 1px solid var(--rule);
+  background: none; font: inherit; text-align: left; cursor: pointer;
+}
+.ranking-list li:first-child .ranking-row { border-top: 0; }
+.ranking-rank {
+  flex: 0 0 auto; width: 1.3rem; font-size: 12px; font-weight: 600; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.ranking-body { flex: 1 1 auto; min-width: 0; }
+.ranking-name {
+  display: flex; align-items: baseline; gap: 6px;
+  font-size: 14px; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ranking-cause { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-3); }
+.ranking-figure { flex: 0 0 auto; text-align: right; }
+.ranking-figure strong {
+  display: block; font-size: 15px; font-weight: 600; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.ranking-unit { font-size: 10.5px; color: var(--ink-3); }
+/* The route being looked at, marked without colour — it is a position in a
+   list, not a value on the scale. */
+.ranking-row[aria-pressed="true"] .ranking-name { font-weight: 650; }
+.ranking-row[aria-pressed="true"] .ranking-rank { color: var(--ink); }
+.ranking-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ranking-note {
+  margin: var(--s3) 0 0; padding-top: var(--s2); border-top: 1px solid var(--rule);
+  font-size: 12px; line-height: 1.45; color: var(--ink-3);
+}
+.ranking-note strong { color: var(--ink-2); font-weight: 600; }
+.ranking-section + .ranking-section { margin-top: var(--s3); }
+.ranking-mode {
+  margin: 0 0 2px; font-size: 12px; font-weight: 600; color: var(--ink-2);
+}

@@ -6,16 +6,19 @@ import { JourneyDetail } from "./JourneyDetail.js";
 import { WhenControl } from "./WhenControl.js";
 import { DepartureAdvice } from "./DepartureAdvice.js";
 import { RouteKey } from "./RouteKey.js";
+import { RouteRanking } from "./RouteRanking.js";
 import { Disruptions } from "./Disruptions.js";
 import { ViewToggle } from "./ViewToggle.js";
 import { bandLabel, exposureProperty, type View } from "./view.js";
 import { UNRELIABLE_THRESHOLD, stateOf } from "./map.js";
 import {
   fetchRoutes,
+  fetchRanking,
   fetchRouteMap,
   planTrip,
   type RouteSummary,
   type RouteMap,
+  type Ranking,
   type SegmentFeature,
   type ScoredJourney,
   type StopHit,
@@ -146,6 +149,7 @@ function Sheet({ feature, onClose }: { feature: SegmentFeature; onClose: () => v
 
 export function App(): JSX.Element {
   const [routes, setRoutes] = useState<RouteSummary[]>([]);
+  const [ranking, setRanking] = useState<Ranking | null>(null);
   const [selected, setSelected] = useState("");
   const [day, setDay] = useState("");
   const [hour, setHour] = useState("");
@@ -189,6 +193,10 @@ export function App(): JSX.Element {
   const [data, setData] = useState<RouteMap | null>(null);
   const [feature, setFeature] = useState<SegmentFeature | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchRanking().then(setRanking).catch(() => setRanking(null));
+  }, []);
 
   useEffect(() => {
     fetchRoutes()
@@ -254,6 +262,15 @@ export function App(): JSX.Element {
 
   const chosenJourney = journeys?.find((j) => j.id === chosen) ?? null;
 
+  const harmRank = new Map<string, number>();
+  for (const list of Object.values(ranking?.modes ?? {})) {
+    for (const r of list ?? []) harmRank.set(r.routeId, r.gapMinutesPerMonth);
+  }
+  const byHarm = [...routes].sort(
+    (a, b) => (harmRank.get(b.routeId) ?? -1) - (harmRank.get(a.routeId) ?? -1),
+  );
+  const selectedRouteId = selected.split("|")[0] ?? "";
+
   return (
     <div className="app">
       <MapView
@@ -304,8 +321,11 @@ export function App(): JSX.Element {
           )
         ) : (
           <>
+            {/* Ordered by what each route costs riders. Four hundred entries in
+                arbitrary order is a list nobody can read; ordered, the first
+                screenful is itself the answer to PR-02. */}
             <select value={selected} onChange={(e) => setSelected(e.target.value)} aria-label="Route">
-              {routes.map((r) => (
+              {byHarm.map((r) => (
                 <option key={`${r.routeId}|${r.direction}`} value={`${r.routeId}|${r.direction}`}>
                   {r.name} · {r.direction}
                 </option>
@@ -452,6 +472,14 @@ export function App(): JSX.Element {
       ) : (
         data !== null && (
           <div className="sheet legend-sheet">
+            <RouteRanking
+              modes={ranking?.modes ?? {}}
+              selected={selectedRouteId}
+              onSelect={(routeId) => {
+                const match = routes.find((r) => r.routeId === routeId);
+                if (match !== undefined) setSelected(`${match.routeId}|${match.direction}`);
+              }}
+            />
             <div className="coverage-line">
               <strong>{data.coverage.scored}</strong> of <strong>{data.coverage.segments}</strong>{" "}
               stretches have enough data

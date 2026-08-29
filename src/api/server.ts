@@ -2,6 +2,8 @@ import Fastify from "fastify";
 import { z } from "zod";
 import { scoreSegment, scoreRoute } from "../domain/score.js";
 import { prisma } from "../db/client.js";
+import { rankRoutes } from "../domain/route-ranking.js";
+import { recencyWeight, effectiveMonths } from "../domain/score.js";
 import { registerTiles } from "./tiles.js";
 import { registerPlanner } from "./planner.js";
 import { stationAccessMap, endpointState, isUsable } from "../domain/accessibility.js";
@@ -53,6 +55,88 @@ app.get("/health", async () => ({ ok: true }));
  * equally would send most riders to an empty map. Routes are ranked by how much
  * of them we can actually speak to (P-03, P-06).
  */
+/** The observation window the score model normalises over. */
+const WINDOW_MONTHS = 19;
+
+/**
+ * Which routes cost riders the most time, and why.
+ *
+ * `PR-02`: unreliability is unevenly distributed and nobody publishes where.
+ * The segment map answers that one route at a time; this answers it across the
+ * network, which is where `J-04` starts — a rider suspects their route is bad
+ * and has nothing to compare it against.
+ *
+ * The cause breakdown is the "wants why" stage of that same journey, specified
+ * since the research and never built until now. The feed's own words are used:
+ * "NO OPERATOR AVAILABLE" is a better sentence than any category of ours.
+ */
+/**
+ * Held after the first build. The ranking is a property of the archive, which
+ * changes on ingest and not on request, and computing it scans every attributed
+ * incident — two thirds of a second that no rider should pay twice.
+ */
+let rankingCache: unknown = null;
+
+app.get("/routes/ranking", async () => {
+  if (rankingCache !== null) return rankingCache;
+  const [segments, routes, codes, latest] = await Promise.all([
+    prisma.segment.findMany({ select: { id: true, routeId: true, mode: true } }),
+    prisma.route.findMany({ select: { id: true, shortName: true, longName: true } }),
+    prisma.delayCode.findMany({ select: { code: true, description: true } }),
+    prisma.delayIncident.aggregate({ _max: { occurredAt: true } }),
+  ]);
+  const now = latest._max.occurredAt;
+  if (now === null) return { modes: {} };
+
+  const rows = await prisma.delayIncident.findMany({
+    where: { segmentId: { not: null }, minDelay: { gt: 0 } },
+    select: { segmentId: true, minGap: true, occurredAt: true, code: true },
+  });
+
+  const segById = new Map(segments.map((s) => [s.id, s]));
+  const names = new Map(routes.map((r) => [r.id, r.longName || r.shortName]));
+  const causes = new Map(codes.map((c) => [c.code, c.description]));
+  const denominator = effectiveMonths(WINDOW_MONTHS);
+
+  interface Acc { gap: number; measured: Set<string>; cause: Map<string, number>; mode: string }
+  const acc = new Map<string, Acc>();
+  for (const r of rows) {
+    const seg = segById.get(r.segmentId!);
+    if (seg === undefined) continue;
+    let a = acc.get(seg.routeId);
+    if (a === undefined) { a = { gap: 0, measured: new Set(), cause: new Map(), mode: seg.mode }; acc.set(seg.routeId, a); }
+    const weighted = r.minGap * recencyWeight(r.occurredAt, now);
+    a.gap += weighted;
+    a.measured.add(r.segmentId!);
+    a.cause.set(r.code, (a.cause.get(r.code) ?? 0) + weighted);
+  }
+
+  const segmentCount = new Map<string, number>();
+  for (const s of segments) segmentCount.set(s.routeId, (segmentCount.get(s.routeId) ?? 0) + 1);
+
+  const ranked = rankRoutes([...acc.entries()].map(([routeId, a]) => {
+    const top = [...a.cause.entries()].sort((x, y) => y[1] - x[1]);
+    return {
+      routeId,
+      mode: a.mode,
+      name: names.get(routeId) ?? routeId,
+      segmentCount: segmentCount.get(routeId) ?? 0,
+      measuredSegments: a.measured.size,
+      gapMinutesPerMonth: Math.round(a.gap / denominator),
+      leadingCause: top[0] === undefined ? null : (causes.get(top[0][0]) ?? top[0][0]),
+      /** Every cause on this route, so "why" is one tap rather than a query. */
+      causes: top.slice(0, 5).map(([code, gap]) => ({
+        code,
+        cause: causes.get(code) ?? code,
+        minutesPerMonth: Math.round(gap / denominator),
+      })),
+    };
+  }));
+
+  rankingCache = { modes: Object.fromEntries(ranked) };
+  return rankingCache;
+});
+
 app.get("/routes", async () => {
   const rows = await prisma.$queryRawUnsafe<
     Array<{ routeId: string; direction: string; mode: string; segments: number; scored: number }>

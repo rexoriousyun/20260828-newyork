@@ -62,6 +62,7 @@ would reverse it.
 | Benchmark | **done** — every trip ranked against typical ones of its length (D-28) |
 | M11 day-of disruptions | **done** — detours, bypasses and closures qualify today's answer (D-29) |
 | M12 step-free routing | **done** — the planner routes *around* blocked stations (D-30) |
+| Route ranking + causes | **done** — costliest routes for riders, and why (D-31) |
 
 ## The numbers that matter
 
@@ -157,7 +158,7 @@ npm run audit:stability   # M4 — does segment reliability persist?
 npm run audit:coverage    # M5 — surface geocoding rate
 npm run audit:timeofday   # does pooling across the day misrepresent the risk?
 npm run benchmark         # what a typical trip looks like, for the comparison (D-28)
-npm test                  # 143 tests
+npm test                  # 148 tests
 npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
 node scripts/shot.mjs     # screenshot the app, including a downtown street zoom
