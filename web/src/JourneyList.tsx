@@ -39,6 +39,15 @@ function Journey({
         <span className="journey-time">{j.typicalMinutes} min</span>
         <span className="journey-clock">
           {hhmm(j.departAt)} → {hhmm(j.arriveAt)}
+          {j.advice !== null && (
+            <span className={`journey-slack${j.advice.slackMinutes < 0 ? " is-late" : ""}`}>
+              {j.advice.slackMinutes < 0
+                ? `${Math.abs(j.advice.slackMinutes)} min late`
+                : j.advice.slackMinutes === 0
+                  ? "just makes it"
+                  : `${j.advice.slackMinutes} min spare`}
+            </span>
+          )}
         </span>
       </span>
       <span className="journey-routes">

@@ -14,7 +14,7 @@ their decision matters most.**
 ---
 
 ## J-01 — Pre-trip: "when do I need to leave?"
-**Who:** U-02 · **Problems:** PR-03, PR-01, PR-05 · **Built:** no (M7)
+**Who:** U-02 · **Problems:** PR-03, PR-01, PR-05 · **Built:** **yes (M10)** — see D-24
 
 The forecast journey, and the one `D-13` says is the product's centre. The rider works
 backwards from an arrival time — often one with a penalty attached.

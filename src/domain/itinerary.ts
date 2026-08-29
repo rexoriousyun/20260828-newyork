@@ -56,6 +56,12 @@ export interface ScoredJourney extends Journey {
     oneInTrips: number | null;
     /** Typical added wait *when* disrupted — pooled per mode (D-11). */
     minutesWhenDisrupted: number;
+    /**
+     * Added wait on a bad disruption rather than a typical one. Departure
+     * advice buys buffer against this, not against the median: a rider with a
+     * deadline has asymmetric tolerance and plans by the tail (E-L03).
+     */
+    minutesWhenBad: number;
     /** risk x severity. Small by nature; used for ranking, not for display. */
     expectedAddedMinutes: number;
     /** Share of the journey's segments we could score. */
@@ -211,6 +217,7 @@ export async function scoreJourney(
       disruptionRisk: Number(disruptionRisk.toFixed(4)),
       oneInTrips: disruptionRisk > 0 ? Math.round(1 / disruptionRisk) : null,
       minutesWhenDisrupted: severity.p50,
+      minutesWhenBad: severity.p90,
       expectedAddedMinutes: Number(expected.toFixed(2)),
       coverage: expectedSegments === 0 ? 0 : Number((risks.length / expectedSegments).toFixed(2)),
       worst: risks.sort((a, b) => b.risk - a.risk).slice(0, 3),

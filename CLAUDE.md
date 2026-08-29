@@ -152,6 +152,12 @@ over the canvas and both change height. `chromePadding()` in `MapView.tsx` reads
 rects; the hardcoded insets it replaced drew half of every planned route underneath the
 results sheet.
 
+**A threshold that produces absurd advice is the wrong shape of answer, not a wrong number.**
+Departure advice first recommended a buffer above a disruption rate — and told riders to
+leave 58 minutes early for a twice-a-year event. Expected value fails the other way. The fix
+was to stop recommending: state the rate and the price, and let the rider weigh a penalty
+only they know. Kept visible in `D-24`.
+
 **Never prettify a name on the path into a lookup.** `displayStopName` runs on the way to
 the screen only. Scoring keys on the raw GTFS name because the segment index was built from
 it — the same shape of mistake that pinned journey coverage at 7.7%.

@@ -484,6 +484,75 @@ thinned, because it is a claim about measurement — walking is not.
 
 ---
 
+## D-24 — Work backwards from the deadline `ACCEPTED · IMPLEMENTED`
+**Cites:** P-01, P-09 · **Journeys:** J-01 · **Problems:** PR-01, PR-03, PR-05 · **Evidence:** E-L03
+
+"Arrive by" is the default, not "leave at". The rider this is built for knows their arrival
+time and not their departure time — a shift, a clinic slot, a daycare that charges by the
+minute. A planner that asks for a departure time asks them to solve the problem before it
+will answer it.
+
+The planner searches backwards: earliest arrival is monotone in departure time, so the
+latest departure that still makes the deadline is found by bisection over the existing
+Connection Scan. Eleven probes, ~50ms warm.
+
+**The answer is a departure time and both outcomes**, never one number:
+
+> **Leave 08:33** — arrives 08:57, 2 min to spare
+> About **1 morning in 181** this runs long — you would arrive 09:21.
+> Leaving **07:37** covers that — at 57 min earlier every day.
+
+J-01's named failure is a single confident ETA; for a rider with a penalty attached to being
+late, that is the number that gets them in trouble. Each option in the list is also scored
+against the deadline directly — "2 min spare", "16 min late" — because arrival time alone
+does not answer the question being asked.
+
+**What the model does not cover, stated on screen.** The reliability layer measures *logged*
+TTC disruptions, not whether an undisrupted bus keeps its timetable. So the advice is never
+phrased as a percentile of arrival time: a model that sees only large events puts the 90th
+percentile at the scheduled time and tells a rider with a deadline to leave with no buffer at
+all — the failure case dressed as statistics. The footer says so in one line rather than
+deferring it.
+
+### The buffer is priced, never prescribed
+
+> **Reversed during implementation, and the first attempt is left here on purpose.**
+> The first build had a threshold: recommend the earlier departure above roughly one
+> disruption in two hundred trips. It shipped advice no honest person would give — *leave 58
+> minutes earlier every morning* to cover something that happens twice a year. Rewriting it
+> as expected value fails the other way: the expected cost of a disruption is a fraction of a
+> minute, so no buffer is ever "worth it".
+>
+> Neither is bad arithmetic. **The recommendation is the wrong act.** What a buffer is worth
+> depends on what being late costs *this* rider, which ranges from an annoyance to a missed
+> shift and a warning (U-02), and we do not know which. We know the rate and the price; they
+> know the penalty. So the advice states both numbers and stops — which is what U-02 needs
+> from us: an honest number and permission to act on it, not an instruction.
+
+The tail percentile the covered departure buys against is pre-registered in
+`src/domain/departure.ts`, not argued here, so it cannot be renegotiated after seeing a
+number. A rider with a hard deadline plans by the tail (E-L03), so "covered" means covered on
+all but the worst tenth of bad mornings, not on the median one.
+
+**Reversed if:** riders read the two-outcome answer as hedging and want to be told what to do,
+which would be a real finding about P-01 and not just about this screen.
+
+
+## D-25 — The trip form folds once the trip is stated `ACCEPTED · IMPLEMENTED`
+**Cites:** D-15, D-20 · **Problems:** PR-04
+
+Origin, destination and time are one card, and once a plan lands it collapses to a single
+summary line that taps back open.
+
+*Why:* three input rows is 195px of an 844px phone, and adding the time control for D-24 took
+that space directly from the map. D-20 already established the map cannot do its job through a
+slot. A form that has been filled in is reference, not input — it earns one line, not three.
+
+Red is this app's single "this costs you" colour: the scale's top end and a missed deadline
+share it deliberately, because to a rider scanning three options they mean the same thing.
+
+---
+
 ## Open questions
 
 | # | Question | Blocks | Owner |

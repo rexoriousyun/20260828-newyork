@@ -100,7 +100,16 @@ export interface JourneyLeg {
   toName: string;
 }
 
+export interface DepartureAdvice {
+  leaveAt: number;
+  arriveAt: number;
+  slackMinutes: number;
+  disrupted: { arriveAt: number; oneInTrips: number | null } | null;
+  covered: { leaveAt: number; extraMinutes: number } | null;
+}
+
 export interface ScoredJourney {
+  advice: DepartureAdvice | null;
   id: string;
   typicalMinutes: number;
   disruptedMinutes: number;
@@ -112,6 +121,7 @@ export interface ScoredJourney {
     disruptionRisk: number;
     oneInTrips: number | null;
     minutesWhenDisrupted: number;
+    minutesWhenBad: number;
     coverage: number;
     worst: Array<{ from: string; to: string; risk: number }>;
   };
@@ -137,6 +147,16 @@ export interface StopHit { id: string; name: string; lat: number; lon: number }
 export const searchStops = (q: string): Promise<{ stops: StopHit[] }> =>
   get(`/stops/search?q=${encodeURIComponent(q)}`);
 
-export function planTrip(from: string, to: string, departAt: number): Promise<PlanResult> {
-  return get(`/plan?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&departAt=${departAt}`);
+/**
+ * `when.mode` is how the rider stated the trip, not a detail of the request:
+ * a deadline makes the planner search backwards for the latest departure that
+ * still makes it, which is a different question from "what leaves at 08:30".
+ */
+export function planTrip(
+  from: string,
+  to: string,
+  when: { mode: "arriveBy" | "departAt"; seconds: number },
+): Promise<PlanResult> {
+  const q = `${when.mode}=${when.seconds}`;
+  return get(`/plan?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&${q}`);
 }

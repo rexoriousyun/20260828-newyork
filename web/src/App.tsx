@@ -3,6 +3,8 @@ import { MapView } from "./MapView.js";
 import { StopSearch } from "./StopSearch.js";
 import { JourneyList } from "./JourneyList.js";
 import { JourneyDetail } from "./JourneyDetail.js";
+import { WhenControl } from "./WhenControl.js";
+import { DepartureAdvice } from "./DepartureAdvice.js";
 import { UNRELIABLE_THRESHOLD, stateOf } from "./map.js";
 import {
   fetchRoutes,
@@ -16,6 +18,9 @@ import {
 } from "./api.js";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+const hhmm = (s: number): string =>
+  `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
 
 /** The answer, and only the answer. Everything behind it waits for a tap (P-09). */
 function Sheet({ feature, onClose }: { feature: SegmentFeature; onClose: () => void }): JSX.Element {
@@ -112,6 +117,12 @@ export function App(): JSX.Element {
   const [mode, setMode] = useState<"plan" | "explore">("plan");
   const [from, setFrom] = useState<StopHit | null>(null);
   const [to, setTo] = useState<StopHit | null>(null);
+  // Arrive-by is the default: the rider this is built for knows their arrival
+  // time, not their departure time (J-01).
+  const [when, setWhen] = useState<{ mode: "arriveBy" | "departAt"; seconds: number }>({
+    mode: "arriveBy",
+    seconds: 9 * 3600,
+  });
   const [journeys, setJourneys] = useState<ScoredJourney[] | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
   const [planning, setPlanning] = useState(false);
@@ -119,6 +130,10 @@ export function App(): JSX.Element {
   // Results arrive expanded so the choice is real; picking one folds the sheet
   // back so the map — the retrieval mechanism (D-14) — gets the screen.
   const [listOpen, setListOpen] = useState(true);
+  // Once the trip is stated, the form has done its job. It folds to one line so
+  // the map gets the height back — three input rows is 195px of an 844px phone,
+  // and the map is the retrieval mechanism, not the form (D-20).
+  const [formOpen, setFormOpen] = useState(true);
   const [data, setData] = useState<RouteMap | null>(null);
   const [feature, setFeature] = useState<SegmentFeature | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -167,14 +182,13 @@ export function App(): JSX.Element {
     if (mode !== "plan" || from === null || to === null) return;
     setPlanning(true);
     setPlanNote(null);
-    // A weekday morning peak until a time picker exists — stated in the UI
-    // rather than left for a rider to assume.
-    planTrip(from.id, to.id, 8 * 3600 + 30 * 60)
+    planTrip(from.id, to.id, when)
       .then((r) => {
         if (r.journeys && r.journeys.length > 0) {
           setJourneys(r.journeys);
           setChosen(r.journeys[0]!.id);
           setListOpen(r.journeys.length > 1);
+          setFormOpen(false);
         } else {
           setJourneys(null);
           setPlanNote(r.reason ?? "No journey found.");
@@ -182,7 +196,7 @@ export function App(): JSX.Element {
       })
       .catch((e: unknown) => setPlanNote(String(e)))
       .finally(() => setPlanning(false));
-  }, [mode, from, to]);
+  }, [mode, from, to, when]);
 
   const chosenJourney = journeys?.find((j) => j.id === chosen) ?? null;
 
@@ -203,10 +217,26 @@ export function App(): JSX.Element {
         </div>
 
         {mode === "plan" ? (
-          <div className="planner">
-            <StopSearch label="From" value={from} onChange={setFrom} />
-            <StopSearch label="To" value={to} onChange={setTo} />
-          </div>
+          formOpen || journeys === null ? (
+            <div className="planner">
+              <StopSearch label="From" value={from} onChange={setFrom} />
+              <StopSearch label="To" value={to} onChange={setTo} />
+              <WhenControl mode={when.mode} seconds={when.seconds} onChange={setWhen} />
+            </div>
+          ) : (
+            <button className="planner trip-summary" onClick={() => setFormOpen(true)}>
+              {/* Both ends truncate. Ellipsising the line as a whole ate the
+                  destination, which is the half a rider is checking. */}
+              <span className="trip-ends">
+                <span className="trip-end">{from?.name}</span>
+                <span className="arrow">→</span>
+                <span className="trip-end">{to?.name}</span>
+              </span>
+              <span className="trip-when">
+                {when.mode === "arriveBy" ? "by" : "from"} {hhmm(when.seconds)}
+              </span>
+            </button>
+          )
         ) : (
           <>
             <select value={selected} onChange={(e) => setSelected(e.target.value)} aria-label="Route">
@@ -259,17 +289,32 @@ export function App(): JSX.Element {
             <p className="answer">{planNote}</p>
           ) : journeys !== null ? (
             <>
-              <JourneyList
-                journeys={journeys}
-                selected={chosen}
-                collapsed={!listOpen}
-                onSelect={(id) => {
-                  setChosen(id);
-                  setListOpen(false);
-                }}
-              />
+              {/* With a deadline the advice *is* the answer card; without one
+                  the journey card is. Never both — they restate one trip. */}
+              {!listOpen && chosenJourney?.advice != null ? (
+                <DepartureAdvice journey={chosenJourney} />
+              ) : (
+                <JourneyList
+                  journeys={journeys}
+                  selected={chosen}
+                  collapsed={!listOpen}
+                  onSelect={(id) => {
+                    setChosen(id);
+                    setListOpen(false);
+                  }}
+                />
+              )}
               {!listOpen && chosenJourney !== null && <JourneyDetail journey={chosenJourney} />}
-              <p className="quiet">Departing 08:30 on a weekday.</p>
+              {!listOpen && chosenJourney?.advice != null && (
+                <p className="advice-basis">
+                  An estimate from recorded disruptions — not a promise about today&rsquo;s
+                  vehicle.
+                </p>
+              )}
+              <p className="quiet">
+                {when.mode === "arriveBy" ? "Arriving by" : "Leaving at"} {hhmm(when.seconds)} on a
+                weekday.
+              </p>
             </>
           ) : null}
         </div>

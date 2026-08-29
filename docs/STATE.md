@@ -56,7 +56,7 @@ would reverse it.
 | M7 routing engine | **done** — Connection Scan, 1.2M connections, 6–12ms |
 | M8 reliability ranking | **done** — disruption rate per journey, 53ms |
 | M9 app shell | **done** — plan/explore, stop search, results, trip detail on a map |
-| M10 departure advice | not started |
+| M10 departure advice | **done** — arrive-by search, both outcomes, buffer priced |
 
 ## The numbers that matter
 
@@ -130,6 +130,7 @@ a hypothesis; the gaps are deliberate, so existing citations stay valid.
 | Q-6 | Is the segment or the corridor the rider's unit? | D-01 |
 
 | Q-E | Do riders re-open the list after picking, or is the choice settled? | D-20 |
+| Q-F | Does the two-outcome answer read as honest, or as hedging? | D-24, P-01 |
 
 **Known gap:** `D-07` is half kept. Step-free access is a filter with live elevator outages,
 and blocked stations are marked — but the planner does not yet route *around* them (M12).
@@ -145,7 +146,7 @@ npm run ingest            # downloads TTC open data + GTFS, builds segments, att
 npm run audit:gap         # M2 gate — is Min Gap trustworthy?
 npm run audit:stability   # M4 — does segment reliability persist?
 npm run audit:coverage    # M5 — surface geocoding rate
-npm test                  # 75 tests
+npm test                  # 86 tests
 npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
 node scripts/shot.mjs     # screenshot the app, including a downtown street zoom

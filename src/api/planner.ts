@@ -11,6 +11,7 @@ import { z } from "zod";
 import { prisma } from "../db/client.js";
 import { buildConnections, type ConnectionSet } from "../domain/connections.js";
 import { displayStopName, displayStationName } from "../domain/stop-names.js";
+import { departureAdvice, latestDeparture } from "../domain/departure.js";
 import { buildFootpaths, type Footpaths } from "../domain/footpaths.js";
 import { plan, type Journey } from "../domain/csa.js";
 import { buildFrequency, type SegmentFrequency } from "../domain/frequency.js";
@@ -82,7 +83,15 @@ const planQuery = z.object({
   to: z.string().min(1),
   /** Seconds since midnight. Defaults to a weekday morning peak. */
   departAt: z.coerce.number().int().min(0).max(36 * 3600).optional(),
+  /**
+   * Seconds since midnight. The J-01 entry point: a rider with an obligation
+   * knows their arrival time, not their departure time. Wins over departAt.
+   */
+  arriveBy: z.coerce.number().int().min(0).max(36 * 3600).optional(),
 });
+
+/** How far back from a deadline to look for a departure. */
+const ARRIVE_BY_WINDOW_S = 3 * 3600;
 
 export function registerPlanner(app: FastifyInstance): void {
   // The graph takes a few seconds to build; warm it now so the first search
@@ -140,7 +149,25 @@ export function registerPlanner(app: FastifyInstance): void {
     /** The same stop, named for a rider rather than for the index. */
     const labelOf = (id: string): string => displayStopName(nameOf(id));
 
-    const best = plan(connections, footpaths, parsed.data.from, parsed.data.to, departAt);
+    // Working backwards from a deadline is a search, not a single plan: earliest
+    // arrival is monotone in departure time, so the latest departure that still
+    // makes it is found by bisection over the planner.
+    let searchFrom = departAt;
+    if (parsed.data.arriveBy !== undefined) {
+      const found = latestDeparture(parsed.data.arriveBy, ARRIVE_BY_WINDOW_S, (t) => {
+        const j = plan(connections, footpaths, parsed.data.from, parsed.data.to, t);
+        return j === null ? null : j.arriveAt;
+      });
+      if (found === null) {
+        return {
+          journey: null,
+          reason: "No journey arrives by then, starting from up to three hours before.",
+        };
+      }
+      searchFrom = found.departAt;
+    }
+
+    const best = plan(connections, footpaths, parsed.data.from, parsed.data.to, searchFrom);
     if (best === null) {
       // A failed plan is a real answer, not an error: no service in the window
       // is exactly what a rider at 3am needs to be told.
@@ -158,7 +185,7 @@ export function registerPlanner(app: FastifyInstance): void {
     const candidates: Journey[] = [best];
     const usedRoutes = [...new Set(best.legs.filter((l) => l.kind === "ride").map((l) => l.routeId!))];
     for (const banned of usedRoutes.slice(0, 3)) {
-      const alt = plan(connections, footpaths, parsed.data.from, parsed.data.to, departAt, 3 * 3600, new Set([banned]));
+      const alt = plan(connections, footpaths, parsed.data.from, parsed.data.to, searchFrom, 3 * 3600, new Set([banned]));
       if (alt === null) continue;
       const signature = (j: Journey): string => j.legs.map((l) => `${l.kind}:${l.routeId ?? ""}`).join(">");
       if (candidates.some((c) => signature(c) === signature(alt))) continue;
@@ -221,6 +248,21 @@ export function registerPlanner(app: FastifyInstance): void {
             ...w, from: displayStationName(w.from), to: displayStationName(w.to),
           })),
         },
+        // Only present when the rider gave a deadline: without one there is
+        // nothing to work backwards from, and inventing a target would be
+        // answering a question they did not ask.
+        advice:
+          parsed.data.arriveBy === undefined
+            ? null
+            : departureAdvice({
+                departAt: j.departAt,
+                arriveAt: j.arriveAt,
+                arriveBy: parsed.data.arriveBy,
+                disruptionRisk: j.reliability.disruptionRisk,
+                oneInTrips: j.reliability.oneInTrips,
+                severityCoveredMinutes: j.reliability.minutesWhenBad,
+                severityTypicalMinutes: j.reliability.minutesWhenDisrupted,
+              }),
         typicalMinutes: j.durationMinutes,
         /** What it costs on the trips that do go wrong. */
         disruptedMinutes: j.durationMinutes + j.reliability.minutesWhenDisrupted,
