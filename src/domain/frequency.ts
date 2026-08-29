@@ -11,14 +11,11 @@
  */
 
 import type { ConnectionSet } from "./connections.js";
-import { stationFromPlatform } from "./stations.js";
+import { isSubwayRoute, stationFromPlatform } from "./stations.js";
 import { bandOfSeconds } from "./time-bands.js";
 
-/** Subway segments key on station names, not stop ids — see below. */
-const SUBWAY_ROUTES = new Set(["1", "2", "4"]);
-
 /** Weekday service days in an average month. */
-const WEEKDAYS_PER_MONTH = 21.7;
+export const WEEKDAYS_PER_MONTH = 21.7;
 
 export interface SegmentFrequency {
   /** Key: `routeId|fromStopId|toStopId`. */
@@ -56,7 +53,7 @@ export function buildFrequency(c: ConnectionSet, stopName: (id: string) => strin
     // identifies subway locations by station and never by platform. Without a
     // station-keyed entry here, every subway segment fails its frequency lookup
     // and drops out of scoring entirely — which is what happened.
-    if (SUBWAY_ROUTES.has(route)) {
+    if (isSubwayRoute(route)) {
       const a = stationFromPlatform(stopName(fromId));
       const b = stationFromPlatform(stopName(toId));
       if (a !== "" && b !== "" && a !== b) {

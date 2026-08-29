@@ -22,12 +22,12 @@
 import { prisma } from "../db/client.js";
 import type { Journey, Leg } from "./csa.js";
 import { key, type SegmentFrequency } from "./frequency.js";
-import { stationFromPlatform } from "./stations.js";
+import { isSubwayRoute, stationFromPlatform } from "./stations.js";
 import { bandOf, bandOfSeconds, BANDS, MIN_EXPECTED_IN_BAND, type Band } from "./time-bands.js";
 import { neverCameShare } from "./vanishing.js";
+import { outsideMinutes, waitsOn, type WaitAtStop } from "./wait.js";
 
 /** Subway route ids, whose segments key on station names rather than stop ids. */
-const SUBWAY_ROUTES = new Set(["1", "2", "4"]);
 
 /** Cached: the archive's edge does not move between requests. */
 let latestCache: Date | null = null;
@@ -122,6 +122,13 @@ export interface ScoredJourney extends Journey {
   legRisks: Array<LegRisk | null>;
   /** The same, on the band view. Null when nothing could be conditioned. */
   legRisksAtTime: Array<LegRisk | null> | null;
+  /**
+   * Every wait on the trip, with the headway behind it — what a rider is
+   * actually in for if the vehicle the plan named does not turn up (D-34).
+   */
+  waits: WaitAtStop[];
+  /** Minutes of the trip spent at a street stop or walking (D-34). */
+  outsideMinutes: number;
 }
 
 interface SegmentRow {
@@ -187,7 +194,7 @@ function lookup(
 ): SegmentRow | undefined {
   const direct = index.get(key(routeId, fromStop, toStop));
   if (direct !== undefined) return direct;
-  if (!SUBWAY_ROUTES.has(routeId)) return undefined;
+  if (!isSubwayRoute(routeId)) return undefined;
   return index.get(
     key(routeId, stationFromPlatform(stopName(fromStop)), stationFromPlatform(stopName(toStop))),
   );
@@ -450,6 +457,8 @@ export async function scoreJourney(
   const blendedExposure = new Map(blended.map((r) => [r.segmentId, r.gapMinutesPerMonth]));
   const legRisks = pooled.legRisks;
 
+  const waits = waitsOn(journey.legs, frequency);
+
   const bandsRidden: Array<{ id: string; label: string }> = [];
   for (const leg of journey.legs) {
     if (leg.kind !== "ride") continue;
@@ -485,6 +494,8 @@ export async function scoreJourney(
           },
     legRisks,
     legRisksAtTime: atTimeView?.legRisks ?? null,
+    waits,
+    outsideMinutes: outsideMinutes(journey.legs, waits, stopName),
   };
 }
 

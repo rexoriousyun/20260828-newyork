@@ -179,6 +179,17 @@ The UI offers N/S/E/W because that is what the delay data records. Riders say "t
 Finch" or "going downtown". GTFS carries trip headsigns, so this is fixable — but only
 worth fixing if it is actually a barrier.
 
+### Q-G — Does "runs every 27 min" read as a cost, or as a promise?
+**From:** D-34 · **Threatens:** D-34, D-24
+
+The number is on screen to say what a vehicle failing to arrive costs. It could just as
+easily be read as "one will be along in 27 minutes", which is the confident-single-ETA
+failure `D-24` was rewritten to avoid — arriving by the same door, wearing a schedule fact
+rather than a forecast.
+
+**Ask a rider what they would do next**, having read it, and note whether the action is
+"wait" or "have a second plan". Do not ask what the number means.
+
 ### Still open from the original framing
 - **U-02's core assumption is untested:** that rerouting is often not a real option in the
   suburbs. It drives the whole "permission to stop refreshing" design in J-02.
@@ -957,3 +968,70 @@ message and the explanations should be somewhere they will actually be found.
 | Q-A | Does a mostly-unknown map build trust or read as broken? | P-03, D-05 | D-08 |
 | Q-B | Is the segment or the corridor the rider's unit? | D-01 | D-08 |
 | Q-C | Does gap-minutes-per-month mean anything to a rider? | D-05 | D-08 · partly addressed by D-28 |
+
+## D-34 — Say what one missed vehicle costs `ACCEPTED · IMPLEMENTED`
+**Cites:** P-02, P-08, P-09, D-05, D-22 · **Personas:** U-02, U-04 · **Journeys:** J-01, J-02 ·
+**Problems:** PR-01, PR-13 · **Evidence:** E-D13, E-D23, E-D24
+
+The step list has shown the wait since `D-22` — "Wait at Danforth Ave at Dawes Rd · 2 min".
+That number is the schedule's promise about one named vehicle, and `PR-08` is the finding
+that riders have already learned not to believe it. Nothing on the screen said what happens
+when it breaks.
+
+Three additions, all facts rather than estimates:
+
+- **The headway, under every wait.** "2 min · 27 min to the next one." What one no-show
+  actually costs, in the place the rider is reading the wait.
+- **A tag when a wait is fragile.** `Runs every 27 min`, in the D-33 tag row, expanding to
+  the route, the stop, the band, and the sentence that matters: *if that one does not come,
+  the wait is 27 min, not 2.*
+- **Minutes outside, on the card.** Two ways to Kennedy Rd measured 60 and 71 minutes and
+  *the same* 1-in-65 risk; one of them stands a rider on a street for 7 minutes and the
+  other for 14. U-02's stated optimisation is "whether the trip is viable at all, **and how
+  long they will be outside**", and the app had never answered the second half.
+
+**Why the schedule and not the archive.** `D-11` measured that mean wait does not persist
+per segment — rho = 0.10, against 0.68 for exposure — so a "typical wait here" from incident
+history would be noise formatted as precision, which `P-08` forbids. The headway is a
+different quantity: a published fact about the timetable, exact for the band it describes,
+and it bounds the cost of a vehicle that never arrives without predicting anything. This is
+the one honest way to put a wait figure on screen given what `D-11` established.
+
+**Why 20 minutes.** Pre-registered in `wait.ts` and then audited (`npm run audit:headway`,
+E-D24). Ten minutes — the TTC's own frequent-service standard, and the obvious candidate —
+turns out to be the **median** headway behind a weekday departure, so a tag there would
+appear on half of all service and carry no information. Twenty fires on 25.0% of departures,
+and on **74.3% of night departures**. `E-D13` is the other anchor: at 20 minutes the
+timetable alone hands a rider something the size of the pooled surface wait once an incident
+occurs (p50 = 24 min) — a bad-day wait with no bad day required.
+
+**This corrects a framing error made while deciding it.** The feature was first proposed as a
+night-safety one, for the solo traveller. `E-D20` had already measured night as the *safest*
+band per trip (0.78× pooled) and `E-D23` measured never-came as flat across the day and
+lowest at night — so a night feature justified on risk would have been built against our own
+evidence. E-D24 found where night is genuinely different, and it is frequency: the same
+failure that costs a peak rider seven minutes costs a night rider half an hour. The feature
+survived; its justification changed completely.
+
+**What it deliberately does not do.**
+- **No buffer advice.** `D-24` refused to recommend a buffer against a rate, because the
+  rider knows the penalty and we do not. The same refusal holds here: we say the headway
+  costs 27 minutes, not that they should leave 27 minutes earlier.
+- **Not folded into risk.** Minutes outside is a duration, not a probability. Blending a
+  comfort cost into a reliability score is the mistake `P-05` refuses for accessibility and
+  `D-11` refuses for severity.
+- **No claim about shelter.** Toronto is installing 100 heated shelter kits over seven years
+  (E-L11) and we do not ingest which stops have one. The app says *outside* and stops there.
+- **No safety grading.** `PR-11` is `OUT`. This says how long you stand, never how the street
+  feels.
+
+**Two defects it took looking to find,** both invisible to typecheck and tests:
+- An in-station transfer — Line 1 to Line 2 at St George — is a footpath in the graph and a
+  corridor in life. Counting it put five minutes of January on a trip that never left the
+  building. A walk between two platforms of the same station is now indoors.
+- `transfers` and `min outside` as separate spans let the separator wrap onto a line by
+  itself once the route chips filled the row. One span, joined.
+
+**Reversed if:** riders read a headway as a promise about the next vehicle rather than as the
+cost of missing one — the failure mode `D-24` was rewritten to avoid. That is a question for
+`D-08`, and it is now on the list as **Q-G**.

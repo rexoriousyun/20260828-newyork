@@ -23,6 +23,7 @@ import { BENCHMARK_PATH, MIN_COMPARABLE_COVERAGE, bucketFor, percentileOf, verdi
 import { buildFootpaths, type Footpaths } from "../domain/footpaths.js";
 import { plan, type Journey } from "../domain/csa.js";
 import { buildFrequency, type SegmentFrequency } from "../domain/frequency.js";
+import { notableWait } from "../domain/wait.js";
 import { buildSegmentIndex, scoreJourney } from "../domain/itinerary.js";
 
 /** GTFS service id for the weekday schedule. */
@@ -656,6 +657,20 @@ export function registerPlanner(app: FastifyInstance): void {
         disruptions: byJourney.get(j) ?? [],
         /** True when nothing the TTC has flagged today touches this way. */
         avoidsDisruption: (byJourney.get(j) ?? []).length === 0,
+        /** What each wait actually costs if the vehicle does not turn up (D-34). */
+        waits: j.waits.map((w) => ({
+          ...w,
+          headwayMinutes: w.headwayMinutes === null ? null : Math.round(w.headwayMinutes),
+        })),
+        outsideMinutes: j.outsideMinutes,
+        /**
+         * The one wait long enough to change the plan when a vehicle does not
+         * turn up, decided on the server so the threshold lives in one place.
+         */
+        notableWait: (() => {
+          const w = notableWait(j.waits);
+          return w === null ? null : { ...w, headwayMinutes: Math.round(w.headwayMinutes!) };
+        })(),
       })),
       /** Stated so a single result is not mistaken for a shortlist. */
       alternativesFound: scored.length - 1,

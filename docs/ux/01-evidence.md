@@ -678,3 +678,53 @@ tool distinguishes these, and riders describe the second one to each other const
 > What the flat night figure does say is that an open-ended wait is no more likely after dark
 > than at noon — the wait itself is what changes meaning at 2am, which is `PR-13`, and the
 > product's job there is to make the wait legible, not to grade the street.
+
+### E-D24 — Night is not riskier; it is emptier, and that is a different problem
+*Measured 2026-08-29 · `npm run audit:headway` · thresholds pre-registered in `src/audit/headway.ts`*
+
+`E-D23` closed by saying an open-ended wait is no more likely after dark than at noon, and
+that what changes at 2am is the wait itself. This measures the wait.
+
+Every segment-band's scheduled headway, weighted by the departures that run on it — so
+frequent service counts for as much as riders use it. Departures stand in for ridership,
+which the open data does not publish; the benchmark makes the same substitution.
+
+**Across the weekday, the median headway behind a departure is exactly 10.0 minutes** — the
+TTC's own frequent-service standard. A quarter of departures are on service running every
+20 minutes or worse; a tenth on service at 27.7 minutes or worse.
+
+| | p25 | p50 | p75 | p90 |
+|---|---|---|---|---|
+| headway behind a departure | 7.7 min | **10.0 min** | 18.9 min | 27.7 min |
+
+**The day is not evenly served, and the gap is not where the risk is.**
+
+| Band | departures | at or above 20 min | share |
+|---|---|---|---|
+| night (00–06) | 152,563 | 113,359 | **74.3%** |
+| am peak (06–09) | 197,387 | 29,394 | 14.9% |
+| midday (09–15) | 339,985 | 66,679 | 19.6% |
+| pm peak (15–19) | 260,596 | 36,978 | 14.2% |
+| evening (19–24) | 250,003 | 53,177 | 21.3% |
+| **all day** | **1,200,534** | **300,587** | **25.0%** |
+
+Three quarters of night service runs at 20 minutes or worse, against roughly one seventh at
+peak — a five-fold difference in what one vehicle failing to arrive costs.
+
+*Why it matters:* it separates two things this project had been running together, and
+corrects a framing error made in this session. `E-D20` measured night as the **safest** band
+per trip (0.78× pooled); `E-D23` measured never-came as **flat** across the day and lowest at
+night (33.1%). Both are about how often something goes wrong. Neither says anything about
+what it costs, and the cost is where night is different: the same failure that costs a peak
+rider seven minutes costs a night rider half an hour. A night feature justified on *risk*
+would have been building against the evidence. One justified on *headway* is building with it.
+
+It also settles `D-34`'s threshold on measurement rather than taste. Ten minutes — the TTC's
+published standard, and the obvious candidate — is the median, so a tag drawn there would
+appear on half of all service and mean nothing. Twenty fires on a quarter, and on three
+quarters of the night.
+
+*Standing caveat:* this is the timetable, not the street. It says what the schedule promises
+between vehicles, which is exactly why it can be stated as a fact — and it is silent on
+whether the stop has a shelter, which Toronto is addressing at a rate of 100 kits over seven
+years (E-L11) and which we do not ingest.

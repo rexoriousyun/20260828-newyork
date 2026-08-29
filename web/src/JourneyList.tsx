@@ -34,6 +34,10 @@ function Journey({
   // next-worst stretch. The share-of-total test this replaced fired on an even
   // two-way split, which pins a rider to an arbitrary half of their trip.
   const worst = rel.dominant;
+  const meta = [
+    ...(j.transfers > 0 ? [`${j.transfers} transfer${j.transfers > 1 ? "s" : ""}`] : []),
+    ...(j.outsideMinutes > 0 ? [`${j.outsideMinutes} min outside`] : []),
+  ];
   return (
     <button className="journey" aria-pressed={selected} onClick={() => onSelect(j.id)}>
       <span className="journey-top">
@@ -57,11 +61,15 @@ function Journey({
             {r}
           </span>
         ))}
-        {j.transfers > 0 && (
-          <span className="journey-meta">
-            {j.transfers} transfer{j.transfers > 1 ? "s" : ""}
-          </span>
-        )}
+        {/* One span, not two. Separate spans let the separator wrap onto a
+            line by itself once the route chips filled the row, which is how it
+            looked on a 390px screen.
+
+            "min outside" is here because U-02 optimises "whether the trip is
+            viable at all, and how long they will be outside". Two trips of the
+            same length can differ by 25 minutes of standing on a street, and
+            until now they read identically (D-34, PR-13). */}
+        {meta.length > 0 && <span className="journey-meta">{meta.join(" · ")}</span>}
       </span>
       <span className="journey-risk">
         {rel.oneInTrips === null ? (

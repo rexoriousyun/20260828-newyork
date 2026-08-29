@@ -331,6 +331,7 @@ select {
   font-size: 12px; font-weight: 600;
 }
 .journey-meta { font-size: 12px; color: var(--ink-3); }
+
 .journey-risk { font-size: 13.5px; color: var(--ink-2); line-height: 1.4; }
 .journey-risk strong { color: var(--ink); font-weight: 600; }
 /* Thin coverage sits on the card, not behind a disclosure: it qualifies the
@@ -373,6 +374,15 @@ select {
 /* Waiting is not a step a rider takes; it is what happens to them. Recessed
    ink and no clock time, so it reads as the gap it is. */
 .leg-wait .leg-what, .leg-wait .leg-dur { color: var(--ink-3); }
+/* What one no-show costs, under the gap the timetable promises. Recessed
+   further than the wait itself: it qualifies that number rather than competing
+   with it, and it takes no colour, because it is a schedule fact and not a
+   position on the risk scale (D-23, D-34). */
+.leg-headway {
+  grid-column: 2; margin-top: 1px;
+  font-size: 12.5px; line-height: 1.4; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
 /* Stated once, under the options it applies to equally. */
 .results-note {
   margin: var(--s3) 0 0; padding-top: var(--s3); border-top: 1px solid var(--rule);

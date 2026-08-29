@@ -133,3 +133,17 @@ export const LINE_TO_ROUTE: Readonly<Record<string, string>> = {
   BD: "2",
   SHP: "4",
 };
+
+/**
+ * Is this GTFS route a subway line?
+ *
+ * Derived from `LINE_TO_ROUTE` so the two cannot drift. Several modules need
+ * the distinction for different reasons — segments key on stations rather than
+ * platforms, severity pools separately, and a wait on a platform is not a wait
+ * outside — and each had grown its own copy of the same three ids.
+ */
+const SUBWAY_ROUTE_IDS: ReadonlySet<string> = new Set(Object.values(LINE_TO_ROUTE));
+
+export function isSubwayRoute(routeId: string): boolean {
+  return SUBWAY_ROUTE_IDS.has(routeId);
+}

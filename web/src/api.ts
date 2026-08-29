@@ -171,8 +171,27 @@ export interface BandReliability extends JourneyReliability {
   conditionedShare: number;
 }
 
+/** One wait on a trip, and the headway behind it (D-34). */
+export interface WaitAtStop {
+  legIndex: number;
+  scheduledMinutes: number;
+  /** Typical gap between vehicles here; null when the band is too thin to say. */
+  headwayMinutes: number | null;
+  bandLabel: string;
+  outdoors: boolean;
+}
+
 export interface ScoredJourney {
   advice: DepartureAdvice | null;
+  /** Every wait on the trip, keyed to the leg boarded after it. */
+  waits: WaitAtStop[];
+  /** Minutes spent at a street stop or walking. */
+  outsideMinutes: number;
+  /**
+   * The one wait long enough that a vehicle not turning up changes the plan,
+   * or null. The threshold is the server's — see `wait.ts`.
+   */
+  notableWait: WaitAtStop | null;
   /** Today's events on this way, one per incident rather than one per route. */
   disruptions: Disruption[];
   /** Nothing the TTC has flagged today touches this way. */

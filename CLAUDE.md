@@ -21,6 +21,7 @@ npm run ingest            # TTC open data + GTFS -> SQLite, builds segments, att
 npm run audit:gap         # M2 gate — is Min Gap trustworthy? (pre-registered thresholds)
 npm run audit:stability   # does segment reliability persist? (rho > 0.5 on exposure)
 npm run audit:coverage    # surface geocoding rate vs the 66.1% baseline
+npm run audit:headway     # is "runs every N min" discriminating, or wallpaper? (D-34)
 npm test                  # vitest
 npm run typecheck
 npm run dev               # API on :3000 — /plan builds a ~6s graph on first request, then 6-12ms
@@ -219,6 +220,17 @@ Departure advice first recommended a buffer above a disruption rate — and told
 leave 58 minutes early for a twice-a-year event. Expected value fails the other way. The fix
 was to stop recommending: state the rate and the price, and let the rider weigh a penalty
 only they know. Kept visible in `D-24`.
+
+**A transfer walk is not necessarily outdoors.** Changing from Line 1 to Line 2 at St George
+is a footpath in the graph and a corridor in life. Summing walk legs to say how long a rider
+is outside added five minutes of January to a trip that never left the building. Both
+endpoints resolving to the same station means indoors.
+
+**A threshold is only as good as the distribution nobody looked at.** The obvious candidate
+for "infrequent service" was the TTC's own 10-minute frequent-service standard — which turns
+out to be the *median* headway behind a weekday departure, so a tag drawn there would have
+appeared on half of all service. Measure the population before picking the line; see
+`audit:headway`.
 
 **Never prettify a name on the path into a lookup.** `displayStopName` runs on the way to
 the screen only. Scoring keys on the raw GTFS name because the segment index was built from

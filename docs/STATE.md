@@ -65,6 +65,7 @@ would reverse it.
 | Route ranking + causes | **done** — costliest routes for riders, and why (D-31) |
 | Vanishing service | **done** — the bus that never comes, separated from the one running late (D-32) |
 | Trip conditions as tags | **done** — several can apply at once, each opens (D-33) |
+| What one missed vehicle costs | **done** — headway under every wait, and minutes outside (D-34) |
 
 ## The numbers that matter
 
@@ -85,6 +86,8 @@ would reverse it.
 | Scarborough transit access score | **20.97** vs 102.8 affluent | E-L10 |
 | Ice/snow incident average duration | **68.8 min** | E-D02 |
 | Rider-waiting where the vehicle never came | **36.1%** | E-D23 |
+| Median headway behind a weekday departure | **10.0 min** | E-D24 |
+| Night departures on service every 20 min or worse | **74.3%** (vs 14.2% at pm peak) | E-D24 |
 | Worst route for vanishing service | **31 Greenwood, 74%** | E-D23 |
 | Downtown vs Scarborough route density | **26 vs 17** routes per box | E-D14 |
 | Worst surface route by rider-wait | **504 King**, 105,302 min | E-D14 |
@@ -141,6 +144,7 @@ a hypothesis; the gaps are deliberate, so existing citations stay valid.
 
 | Q-E | Do riders re-open the list after picking, or is the choice settled? | D-20 |
 | Q-F | Does the two-outcome answer read as honest, or as hedging? | D-24, P-01 |
+| Q-G | Does "runs every 27 min" read as a cost, or as a promise? | D-34, D-24 |
 
 **Known gap:** GTFS-RT trip updates and vehicle positions are **not fetched at all** — only
 the alerts feed is. J-02 (at-stop) and J-03 (mid-trip) both need them.
@@ -161,8 +165,9 @@ npm run audit:gap         # M2 gate — is Min Gap trustworthy?
 npm run audit:stability   # M4 — does segment reliability persist?
 npm run audit:coverage    # M5 — surface geocoding rate
 npm run audit:timeofday   # does pooling across the day misrepresent the risk?
+npm run audit:headway     # is "runs every N min" a discriminating thing to say? (D-34)
 npm run benchmark         # what a typical trip looks like, for the comparison (D-28)
-npm test                  # 154 tests
+npm test                  # 171 tests
 npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
 node scripts/shot.mjs     # screenshot the app, including a downtown street zoom

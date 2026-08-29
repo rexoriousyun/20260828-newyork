@@ -113,6 +113,35 @@ export function TripTags({
     });
   }
 
+  // Where the timetable itself is the risk. The trip's figure describes how
+  // often something goes wrong; this describes what one no-show costs when it
+  // does, which is a different number and the one a rider can act on (D-34).
+  if (journey.notableWait !== null) {
+    const w = journey.notableWait;
+    const at = journey.legs[w.legIndex]?.fromName ?? "the stop";
+    const route = journey.legs[w.legIndex]?.routeId;
+    tags.push({
+      id: "headway",
+      label: `Runs every ${w.headwayMinutes} min`,
+      tone: "warn",
+      body: (
+        <>
+          <p>
+            {route === undefined ? "Service" : <>The {route}</>} through{" "}
+            <strong>{at}</strong> runs about every{" "}
+            <strong>{w.headwayMinutes} min</strong>, {w.bandLabel}. The plan puts you there for{" "}
+            {w.scheduledMinutes} min.
+          </p>
+          <p className="tag-note">
+            If that one does not come, the wait is {w.headwayMinutes} min, not{" "}
+            {w.scheduledMinutes}
+            {w.outdoors && " — and it is outside"}.
+          </p>
+        </>
+      ),
+    });
+  }
+
   if (rel.coverage < 0.5) {
     tags.push({
       id: "thin",

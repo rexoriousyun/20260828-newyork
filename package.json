@@ -17,7 +17,8 @@
     "audit:stability": "tsx src/audit/segment-stability.ts",
     "audit:coverage": "tsx src/audit/surface-coverage.ts",
     "audit:timeofday": "tsx src/audit/time-of-day.ts",
-    "benchmark": "tsx src/benchmark/build.ts"
+    "benchmark": "tsx src/benchmark/build.ts",
+    "audit:headway": "tsx src/audit/headway.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",

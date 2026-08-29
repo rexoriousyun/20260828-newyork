@@ -35,6 +35,11 @@ export function JourneyDetail({
             // would hide the one cost a rider actually feels (D-02).
             const prev = journey.legs[i - 1];
             const wait = prev === undefined ? 0 : Math.round((l.departAt - prev.arriveAt) / 60);
+            // The scheduled gap is what the timetable promises; the headway is
+            // what a vehicle not turning up actually costs. Riders have learned
+            // not to believe the first (PR-08), and nothing on this screen used
+            // to qualify it (D-34).
+            const headway = journey.waits.find((w) => w.legIndex === i)?.headwayMinutes ?? null;
             return (
               <Fragment key={`${l.kind}-${i}`}>
                 {wait >= 2 && (
@@ -44,6 +49,9 @@ export function JourneyDetail({
                       <span className="leg-what">Wait at {prev!.toName}</span>
                       <span className="leg-dur">{wait} min</span>
                     </span>
+                    {headway !== null && (
+                      <span className="leg-headway">{headway} min to the next one</span>
+                    )}
                   </li>
                 )}
                 <li className={`leg leg-${l.kind}`}>
