@@ -161,9 +161,14 @@ months.
 
 - **GTFS-RT trip updates and vehicle positions are not fetched at all** — only the alerts
   feed is. J-02's countdown and J-03 both need them.
-- **The app runs on `localhost`.** A rider needs it on their own phone, and the API carries
-  ~90 MB of data with a ~6 s cold start, which rules out serverless. **This is the single
-  blocking item for testing** — it is an operations task, not a design one.
+- **The app runs on `localhost`.** A rider needs it on their own phone. Measured
+  2026-08-29: **~298 MB of read-only data** (`transit.db` 55 MB, `gtfs.zip` 36 MB,
+  `stop_times.txt` 207 MB — the last is streamed by `buildConnections`, so it is a runtime
+  file, not just an ingest one), **441 MB peak RSS**, and **~12 s to build the graph** on the
+  first `/plan` after a 4 s boot. Warm requests are ~80 ms. Nothing is written at runtime,
+  so the data can be baked into an image and no volume is needed. Those numbers rule out
+  serverless and rule out anything that scales to zero. **This is the single blocking item
+  for testing** — an operations task, not a design one.
 - **No shelter data.** The app says a wait is *outside* and claims nothing about cover,
   because Toronto's 100 heated shelter kits over seven years are not in a dataset we ingest.
 

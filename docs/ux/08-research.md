@@ -217,9 +217,11 @@ expected to do the same.
 
 ## Before the first session
 
-- [ ] The app is reachable on a rider's own phone. It currently runs on `localhost` — the
-      API needs a persistent host (~90 MB of data, ~350 MB RAM, ~6 s cold start), which
-      rules out serverless. This is the only blocking item.
+- [ ] The app is reachable on a rider's own phone. It currently runs on `localhost` and
+      needs a persistent host that does not scale to zero: ~298 MB of read-only data,
+      441 MB peak RSS, and ~12 s to build the graph on the first request. A rider watching
+      a spinner for twelve seconds is a finding about hosting, not about the design, and it
+      would contaminate every question below. This is the only blocking item.
 - [ ] Task 4's trip is chosen from `npm run audit:headway` — a real route where the plan
       puts a rider at a stop for a minute or two on service running every 20+ minutes.
 - [ ] Task 3's route is *their* route, looked up live, not a prepared example.
