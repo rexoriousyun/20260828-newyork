@@ -90,3 +90,53 @@ export function fetchRouteMap(
   const suffix = q.toString() === "" ? "" : `?${q.toString()}`;
   return get(`/routes/${encodeURIComponent(routeId)}/${direction}/map${suffix}`);
 }
+
+export interface JourneyLeg {
+  kind: "ride" | "walk";
+  routeId?: string;
+  departAt: number;
+  arriveAt: number;
+  fromName: string;
+  toName: string;
+}
+
+export interface ScoredJourney {
+  id: string;
+  typicalMinutes: number;
+  disruptedMinutes: number;
+  transfers: number;
+  departAt: number;
+  arriveAt: number;
+  legs: JourneyLeg[];
+  reliability: {
+    disruptionRisk: number;
+    oneInTrips: number | null;
+    minutesWhenDisrupted: number;
+    coverage: number;
+    worst: Array<{ from: string; to: string; risk: number }>;
+  };
+  geojson: {
+    type: "FeatureCollection";
+    features: Array<{
+      type: "Feature";
+      geometry: { type: "LineString"; coordinates: Array<[number, number]> };
+      properties: { kind: "ride" | "walk"; risk: number | null; gapMinutesPerMonth: number | null; from: string; to: string };
+    }>;
+  };
+}
+
+export interface PlanResult {
+  journeys?: ScoredJourney[];
+  alternativesFound?: number;
+  journey?: null;
+  reason?: string;
+}
+
+export interface StopHit { id: string; name: string; lat: number; lon: number }
+
+export const searchStops = (q: string): Promise<{ stops: StopHit[] }> =>
+  get(`/stops/search?q=${encodeURIComponent(q)}`);
+
+export function planTrip(from: string, to: string, departAt: number): Promise<PlanResult> {
+  return get(`/plan?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&departAt=${departAt}`);
+}

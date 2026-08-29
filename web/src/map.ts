@@ -34,6 +34,16 @@ export interface Tokens {
   unknown: string;
   /** Struck-out treatment for a segment a step-free rider cannot use. */
   blocked: string;
+  /** Casing under a planned trip, so it reads as one object over the basemap. */
+  casing: string;
+  /**
+   * Walking legs. Deliberately off the scale: the model has nothing to say
+   * about a footpath, and a green dash would claim "reliable" about a stretch
+   * that was never measured. Grey is otherwise the basemap's alone — the
+   * exception holds because this is trip geometry, not a data state, and it is
+   * darker than any basemap ink so it never reads as a street.
+   */
+  walk: string;
   selection: string;
 }
 
@@ -44,6 +54,8 @@ export const LIGHT: Tokens = {
   // the basemap alone, so it cannot be borrowed to mean "no data".
   unknown: "#1a7f4c",
   blocked: "#2b2b28",
+  casing: "#ffffff",
+  walk: "#4a4a44",
   selection: "#1f6feb",
 };
 
@@ -51,6 +63,8 @@ export const DARK: Tokens = {
   scale: ["#57c78a", "#eda545", "#e35f4e"],
   unknown: "#57c78a",
   blocked: "#d8d8d2",
+  casing: "#0d0d10",
+  walk: "#9c9c94",
   selection: "#6ea8ff",
 };
 

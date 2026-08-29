@@ -55,7 +55,7 @@ would reverse it.
 | M6 segment map | done |
 | M7 routing engine | **done** — Connection Scan, 1.2M connections, 6–12ms |
 | M8 reliability ranking | **done** — disruption rate per journey, 53ms |
-| M9 app shell | not started |
+| M9 app shell | **done** — plan/explore, stop search, results, trip detail on a map |
 | M10 departure advice | not started |
 
 ## The numbers that matter
@@ -129,9 +129,13 @@ a hypothesis; the gaps are deliberate, so existing citations stay valid.
 | Q-5 | Does per-segment severity persist over a longer window? | D-11 |
 | Q-6 | Is the segment or the corridor the rider's unit? | D-01 |
 
-**Known gap:** `D-07` commits to accessibility as a hard routing constraint for U-04, and
-**nothing is implemented** — no elevator data is ingested. The decision stands; the build
-has not honoured it.
+| Q-E | Do riders re-open the list after picking, or is the choice settled? | D-20 |
+
+**Known gap:** `D-07` is half kept. Step-free access is a filter with live elevator outages,
+and blocked stations are marked — but the planner does not yet route *around* them (M12).
+
+**Known gap:** GTFS-RT trip updates and vehicle positions are ingested but unconsumed. J-02
+(at-stop) and J-03 (mid-trip) both need them.
 
 ## Running it
 
@@ -141,9 +145,10 @@ npm run ingest            # downloads TTC open data + GTFS, builds segments, att
 npm run audit:gap         # M2 gate — is Min Gap trustworthy?
 npm run audit:stability   # M4 — does segment reliability persist?
 npm run audit:coverage    # M5 — surface geocoding rate
-npm test                  # 50 tests
+npm test                  # 75 tests
 npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
+node scripts/shot.mjs     # screenshot the app, including a downtown street zoom
 ```
 
 All data is public Toronto Open Data + TTC GTFS. **No API keys.**

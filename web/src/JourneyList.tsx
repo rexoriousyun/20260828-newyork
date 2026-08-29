@@ -1,0 +1,142 @@
+import type { ScoredJourney } from "./api.js";
+
+const hhmm = (s: number): string =>
+  `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
+
+interface Props {
+  journeys: ScoredJourney[];
+  selected: string | null;
+  onSelect: (id: string) => void;
+  /** Peek state: show the chosen answer only, and leave the map the screen. */
+  collapsed: boolean;
+}
+
+function Journey({
+  j,
+  selected,
+  onSelect,
+  showSeverity,
+}: {
+  j: ScoredJourney;
+  selected: boolean;
+  onSelect: (id: string) => void;
+  /** False when every option shares the figure and it is stated once below. */
+  showSeverity: boolean;
+}): JSX.Element {
+  const routes = j.legs.filter((l) => l.kind === "ride").map((l) => l.routeId ?? "?");
+  const thin = j.reliability.coverage < 0.5;
+  // Naming the stretch is only honest when one stretch really does dominate;
+  // below that it is a spurious pin on an evenly-risky trip.
+  const top = j.reliability.worst[0];
+  const worst =
+    top !== undefined && j.reliability.disruptionRisk > 0 &&
+    top.risk / j.reliability.disruptionRisk >= 0.4
+      ? top
+      : null;
+  return (
+    <button className="journey" aria-pressed={selected} onClick={() => onSelect(j.id)}>
+      <span className="journey-top">
+        <span className="journey-time">{j.typicalMinutes} min</span>
+        <span className="journey-clock">
+          {hhmm(j.departAt)} → {hhmm(j.arriveAt)}
+        </span>
+      </span>
+      <span className="journey-routes">
+        {routes.map((r, i) => (
+          <span key={`${r}-${i}`} className="route-chip">
+            {r}
+          </span>
+        ))}
+        {j.transfers > 0 && (
+          <span className="journey-meta">
+            {j.transfers} transfer{j.transfers > 1 ? "s" : ""}
+          </span>
+        )}
+      </span>
+      <span className="journey-risk">
+        {j.reliability.oneInTrips === null ? (
+          <>Not enough data to say how often this goes wrong.</>
+        ) : (
+          <>
+            Goes wrong about <strong>1 trip in {j.reliability.oneInTrips}</strong>
+            {showSeverity ? (
+              <>
+                {" — "}
+                {j.reliability.minutesWhenDisrupted} min longer when it does.
+              </>
+            ) : (
+              "."
+            )}
+          </>
+        )}
+      </span>
+      {worst !== null && (
+        <span className="journey-worst">
+          Most of that sits between <strong>{worst.from}</strong> and <strong>{worst.to}</strong>.
+        </span>
+      )}
+      {thin && (
+        <span className="journey-thin">
+          Based on {Math.round(j.reliability.coverage * 100)}% of this route — treat as rough.
+        </span>
+      )}
+    </button>
+  );
+}
+
+/**
+ * Results.
+ *
+ * Each option leads with how long it usually takes and how often it goes wrong
+ * — stated as a rate, because expected added minutes rounds to zero at a 0.1%
+ * per-trip risk and cannot separate two options (E-D19).
+ *
+ * A single result is presented as an answer, not as a one-item shortlist: where
+ * the network offers no alternative, showing a menu of one is a lie about the
+ * choice a rider has (D-13's surviving insight).
+ *
+ * Collapsed, the list shows the chosen route alone. The map is the retrieval
+ * mechanism (D-14) and cannot do its job through a 230px slot, so once a rider
+ * has picked, the answer stays and the comparison folds away.
+ */
+export function JourneyList({ journeys, selected, onSelect, collapsed }: Props): JSX.Element {
+  const only = journeys.length === 1;
+  const chosen = journeys.find((j) => j.id === selected) ?? journeys[0]!;
+
+  // Severity is pooled across the network, not measured per route (D-11), so on
+  // most trips every option carries the same number. Repeating it on each card
+  // implies it was measured for that option; stated once, it reads as what it
+  // is. It stays on the card whenever the options genuinely differ.
+  const severities = new Set(journeys.map((j) => j.reliability.minutesWhenDisrupted));
+  const shared = severities.size === 1 ? [...severities][0]! : null;
+
+  const shownList = collapsed ? [chosen] : journeys;
+
+  return (
+    <>
+      {!collapsed && (
+        <p className="results-head">
+          {only ? "One way to make this trip" : `${journeys.length} ways to make this trip`}
+        </p>
+      )}
+      <ul className="journeys">
+        {shownList.map((j) => (
+          <li key={j.id}>
+            <Journey
+              j={j}
+              selected={collapsed || selected === j.id}
+              onSelect={onSelect}
+              showSeverity={shared === null}
+            />
+          </li>
+        ))}
+      </ul>
+      {shared !== null && chosen.reliability.oneInTrips !== null && (
+        <p className="results-note">
+          A trip that goes wrong runs about <strong>{shared} min</strong> long. That figure comes
+          from the whole network, not from these routes.
+        </p>
+      )}
+    </>
+  );
+}

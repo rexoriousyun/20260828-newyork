@@ -63,11 +63,25 @@ export interface ScoredJourney extends Journey {
     /** Worst segments on this journey, for "why this number". */
     worst: SegmentRisk[];
   };
+  /** Ordered segments the journey rides, for drawing it on the map. */
+  path: TraversedSegment[];
 }
 
 interface SegmentRow {
   id: string; routeId: string; fromStation: string; toStation: string;
   fromStopId: string | null; toStopId: string | null; mode: string;
+  geometry?: string | null;
+}
+
+/** A segment the journey rides through, with whatever we know about it. */
+export interface TraversedSegment {
+  id: string;
+  geometry: string | null;
+  risk: number | null;
+  /** Same unit the explore map uses, so a trip is coloured by one scale. */
+  gapMinutesPerMonth: number | null;
+  from: string;
+  to: string;
 }
 
 /**
@@ -179,9 +193,20 @@ export async function scoreJourney(
   const disruptionRisk = 1 - clean;
   const expected = disruptionRisk * severity.p50;
 
+  const riskById = new Map(risks.map((r) => [r.segmentId, r.risk]));
+  const exposureById = new Map(risks.map((r) => [r.segmentId, r.gapMinutesPerMonth]));
+
   return {
     ...journey,
     durationMinutes: Math.round((journey.arriveAt - journey.departAt) / 60),
+    path: traversed.map((s) => ({
+      id: s.id,
+      geometry: s.geometry ?? null,
+      risk: riskById.get(s.id) ?? null,
+      gapMinutesPerMonth: exposureById.get(s.id) ?? null,
+      from: s.fromStation,
+      to: s.toStation,
+    })),
     reliability: {
       disruptionRisk: Number(disruptionRisk.toFixed(4)),
       oneInTrips: disruptionRisk > 0 ? Math.round(1 / disruptionRisk) : null,

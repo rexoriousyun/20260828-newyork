@@ -411,6 +411,79 @@ particular two-month window, which is worth re-testing as the archive grows.
 
 ---
 
+## D-20 — The map keeps the screen; the answer peeks `ACCEPTED · IMPLEMENTED`
+**Cites:** P-09, D-14, D-15 · **Problems:** PR-01, PR-04 · **Evidence:** E-L12
+
+Results arrive as a list — where there is real choice, comparison is the point. The moment a
+rider picks one, the sheet folds to a **peek**: the chosen answer stays, the alternatives go
+behind a labelled handle ("2 other ways"), and the map takes the rest of the screen.
+
+*Why:* the first build gave the map 232px of an 844px phone. D-14 calls the map "the retrieval
+mechanism", and a map that small retrieves nothing — a rider cannot see where the route goes,
+which is the one thing a drawn route is for. Vertical space is zero-sum on a phone, so the
+comparison has to yield once it has been used.
+
+The fit is **measured from the live layout**, not from constants: the topbar and sheet both
+change height, and the hardcoded inset that preceded this drew half the route underneath the
+sheet.
+
+**Reversed if:** riders re-open the list on most trips, which would mean the choice is not
+settled by picking and the list should stay.
+
+
+## D-21 — Rider names, not GTFS names `ACCEPTED · IMPLEMENTED`
+**Cites:** P-09, D-18 · **Problems:** PR-02
+
+Search and the step list show the place, not the record: "Sherbourne Station", not
+"Sherbourne Station - Eastbound Platform"; "Jane St at Eglinton Ave West", not the same with
+"North Side" appended. Results are deduplicated on that name, exact-prefix matches rank first,
+and station codes from the incident feed ("BLOOR-YONGE") are cased back for display.
+
+*Why:* raw GTFS filled the top eight hits with the same corner listed once per direction and
+once per platform, and led with the wrong place — searching "Sherbourne" put a stop on The
+Esplanade above Sherbourne Station. The suffixes answer a question nobody asks while choosing
+a destination.
+
+**Scoring still keys on the raw name.** The segment index was built from it, and a prettier
+string at that boundary would silently miss every lookup — the same class of bug that held
+journey coverage at 7.7% until it was found.
+
+**Search offers only stops a rider can board from.** GTFS carries a parent node per station
+with a clean name and no departures; deduplicating on the display name made that node win,
+and picking it returned "no journey found" for a trip that plans fine.
+
+
+## D-22 — Waiting is a step `ACCEPTED · IMPLEMENTED`
+**Cites:** P-09, D-02 · **Problems:** PR-01, PR-03
+
+The step-by-step list shows the gap between arriving and the next departure as its own row —
+"Wait at Eglinton Ave West at Jane St · 5 min" — recessed, and without a clock time, so it
+reads as the gap it is rather than an instruction.
+
+*Why:* `Min Gap` is the metric the whole product is built on (D-02). Folding the wait into the
+adjacent leg would hide the one cost a rider actually feels, in the one screen that lists what
+happens to them minute by minute.
+
+
+## D-23 — Colour on this app means risk, and nothing else `ACCEPTED · IMPLEMENTED`
+**Cites:** P-03, D-16, D-18
+
+Two corrections fell out of building the trip view:
+
+- **Disclosures are monotone.** "Why this number?" and "Step by step" were accent blue. Next
+  to a green-to-red scale, a blue link is a second colour channel competing for the same
+  attention and teaches a rider that colour marks *affordance*. Underline carries "tappable";
+  blue is now focus rings only.
+- **Walking takes no colour from the scale.** A walk leg was drawn in the scale's green, which
+  claims "reliable" about a footpath the model has never measured. It is now a dark neutral
+  dash (`--walk`), off the scale entirely.
+
+The second one bends the rule that greyscale belongs to the basemap alone. The boundary: trip
+*geometry* may take ink; a *data state* may not. `unknown` stays on the scale, dashed and
+thinned, because it is a claim about measurement — walking is not.
+
+---
+
 ## Open questions
 
 | # | Question | Blocks | Owner |

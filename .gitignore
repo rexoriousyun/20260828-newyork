@@ -7,3 +7,4 @@ data/*.db-journal
 .env
 .DS_Store
 src/scratch/
+*.tsbuildinfo

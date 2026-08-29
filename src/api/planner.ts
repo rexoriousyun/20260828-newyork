@@ -10,6 +10,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db/client.js";
 import { buildConnections, type ConnectionSet } from "../domain/connections.js";
+import { displayStopName, displayStationName } from "../domain/stop-names.js";
 import { buildFootpaths, type Footpaths } from "../domain/footpaths.js";
 import { plan, type Journey } from "../domain/csa.js";
 import { buildFrequency, type SegmentFrequency } from "../domain/frequency.js";
@@ -22,15 +23,18 @@ interface Graph {
   connections: ConnectionSet;
   footpaths: Footpaths;
   stopNames: Map<string, string>;
+  stopCoords: Map<string, { lat: number; lon: number }>;
   frequency: SegmentFrequency;
   segmentIndex: Awaited<ReturnType<typeof loadSegmentIndex>>;
+  /** Stops a rider can actually depart from. Parent station nodes are not. */
+  boardable: Set<string>;
 }
 
 async function loadSegmentIndex(): Promise<ReturnType<typeof buildSegmentIndex>> {
   const segments = await prisma.segment.findMany({
     select: {
       id: true, routeId: true, fromStation: true, toStation: true,
-      fromStopId: true, toStopId: true, mode: true,
+      fromStopId: true, toStopId: true, mode: true, geometry: true,
     },
   });
   return buildSegmentIndex(segments);
@@ -52,12 +56,22 @@ async function getGraph(): Promise<Graph> {
       lon[i] = s?.lon ?? 0;
     }
     const stopNamesMap = new Map(stops.map((s) => [s.id, s.name]));
+    // GTFS carries a parent node per station alongside its platforms. It has a
+    // clean name and no departures, so search must not offer it: picking it
+    // would return "no journey found" for a trip that plans fine.
+    const boardable = new Set<string>();
+    for (let i = 0; i < connections.fromStop.length; i++) {
+      boardable.add(connections.stopIds[connections.fromStop[i]!]!);
+    }
+    const coords = new Map(stops.map((s) => [s.id, { lat: s.lat, lon: s.lon }]));
     return {
+      stopCoords: coords,
       connections,
       footpaths: buildFootpaths(lat, lon),
       stopNames: stopNamesMap,
       frequency: buildFrequency(connections, (id) => stopNamesMap.get(id) ?? id),
       segmentIndex: await loadSegmentIndex(),
+      boardable,
     };
   })();
   return graphPromise;
@@ -71,16 +85,46 @@ const planQuery = z.object({
 });
 
 export function registerPlanner(app: FastifyInstance): void {
+  // The graph takes a few seconds to build; warm it now so the first search
+  // does not pay for it.
+  void getGraph();
+
   app.get("/stops/search", async (req, reply) => {
     const q = z.object({ q: z.string().min(2), limit: z.coerce.number().int().max(25).optional() })
       .safeParse(req.query);
     if (!q.success) return reply.code(400).send({ error: q.error.flatten() });
 
-    const stops = await prisma.stop.findMany({
+    const limit = q.data.limit ?? 8;
+    const { boardable } = await getGraph();
+    // Over-fetch, then clean up: the raw GTFS list has a row per platform and
+    // per side of the street, so a naive top-8 is mostly duplicates.
+    const raw = await prisma.stop.findMany({
       where: { name: { contains: q.data.q } },
       select: { id: true, name: true, lat: true, lon: true },
-      take: q.data.limit ?? 8,
+      take: limit * 12,
     });
+
+    const needle = q.data.q.toLowerCase();
+    const seen = new Map<string, { id: string; name: string; lat: number; lon: number }>();
+    for (const s of raw) {
+      if (!boardable.has(s.id)) continue;
+      const name = displayStopName(s.name);
+      // Platforms of one station, and the two sides of one corner, are the same
+      // place to a rider. They sit metres apart, so the footpath graph joins
+      // them and either id plans the same trip.
+      if (!seen.has(name)) seen.set(name, { ...s, name });
+    }
+
+    const stops = [...seen.values()]
+      .sort((a, b) => {
+        const ap = a.name.toLowerCase().startsWith(needle) ? 0 : 1;
+        const bp = b.name.toLowerCase().startsWith(needle) ? 0 : 1;
+        if (ap !== bp) return ap - bp;
+        if (a.name.length !== b.name.length) return a.name.length - b.name.length;
+        return a.name.localeCompare(b.name);
+      })
+      .slice(0, limit);
+
     return { stops };
   });
 
@@ -88,9 +132,13 @@ export function registerPlanner(app: FastifyInstance): void {
     const parsed = planQuery.safeParse(req.query);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
 
-    const { connections, footpaths, stopNames, frequency, segmentIndex } = await getGraph();
+    const { connections, footpaths, stopNames, stopCoords, frequency, segmentIndex } = await getGraph();
     const departAt = parsed.data.departAt ?? 8 * 3600 + 30 * 60;
+    // Scoring keys on the raw GTFS name: the segment index was built from it,
+    // and a prettier string here would silently miss every lookup.
     const nameOf = (id: string): string => stopNames.get(id) ?? id;
+    /** The same stop, named for a rider rather than for the index. */
+    const labelOf = (id: string): string => displayStopName(nameOf(id));
 
     const best = plan(connections, footpaths, parsed.data.from, parsed.data.to, departAt);
     if (best === null) {
@@ -131,13 +179,54 @@ export function registerPlanner(app: FastifyInstance): void {
 
     return {
       journeys: scored.map((j) => ({
+        id: j.legs.map((l) => `${l.kind}:${l.routeId ?? ""}`).join(">"),
         ...j,
+        // GeoJSON for the whole journey: one feature per segment ridden, plus a
+        // straight line per walk. Segments carry their own risk so the map can
+        // colour the trip with the same scale the explore view uses.
+        geojson: {
+          type: "FeatureCollection" as const,
+          features: [
+            ...j.path.flatMap((seg) =>
+              seg.geometry === null
+                ? []
+                : [{
+                    type: "Feature" as const,
+                    geometry: { type: "LineString" as const, coordinates: JSON.parse(seg.geometry) as number[][] },
+                    properties: {
+                      kind: "ride", risk: seg.risk,
+                      gapMinutesPerMonth: seg.gapMinutesPerMonth,
+                      from: seg.from, to: seg.to,
+                    },
+                  }],
+            ),
+            ...j.legs.flatMap((l) => {
+              if (l.kind !== "walk") return [];
+              const a = stopCoords.get(l.fromStop), b = stopCoords.get(l.toStop);
+              if (a === undefined || b === undefined) return [];
+              return [{
+                type: "Feature" as const,
+                geometry: { type: "LineString" as const, coordinates: [[a.lon, a.lat], [b.lon, b.lat]] },
+                properties: {
+                  kind: "walk", risk: null, gapMinutesPerMonth: null,
+                  from: labelOf(l.fromStop), to: labelOf(l.toStop),
+                },
+              }];
+            }),
+          ],
+        },
+        reliability: {
+          ...j.reliability,
+          worst: j.reliability.worst.map((w) => ({
+            ...w, from: displayStationName(w.from), to: displayStationName(w.to),
+          })),
+        },
         typicalMinutes: j.durationMinutes,
         /** What it costs on the trips that do go wrong. */
         disruptedMinutes: j.durationMinutes + j.reliability.minutesWhenDisrupted,
         legs: j.legs.map((l) => ({
           kind: l.kind, routeId: l.routeId, departAt: l.departAt, arriveAt: l.arriveAt,
-          fromName: nameOf(l.fromStop), toName: nameOf(l.toStop),
+          fromName: labelOf(l.fromStop), toName: labelOf(l.toStop),
         })),
       })),
       /** Stated so a single result is not mistaken for a shortlist. */

@@ -1,12 +1,18 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MapView } from "./MapView.js";
+import { StopSearch } from "./StopSearch.js";
+import { JourneyList } from "./JourneyList.js";
+import { JourneyDetail } from "./JourneyDetail.js";
 import { UNRELIABLE_THRESHOLD, stateOf } from "./map.js";
 import {
   fetchRoutes,
   fetchRouteMap,
+  planTrip,
   type RouteSummary,
   type RouteMap,
   type SegmentFeature,
+  type ScoredJourney,
+  type StopHit,
 } from "./api.js";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -100,6 +106,19 @@ export function App(): JSX.Element {
   const [day, setDay] = useState("");
   const [hour, setHour] = useState("");
   const [stepFree, setStepFree] = useState(false);
+
+  // Planning is the product (D-14); exploring a route is a mode within it, not
+  // the home screen.
+  const [mode, setMode] = useState<"plan" | "explore">("plan");
+  const [from, setFrom] = useState<StopHit | null>(null);
+  const [to, setTo] = useState<StopHit | null>(null);
+  const [journeys, setJourneys] = useState<ScoredJourney[] | null>(null);
+  const [chosen, setChosen] = useState<string | null>(null);
+  const [planning, setPlanning] = useState(false);
+  const [planNote, setPlanNote] = useState<string | null>(null);
+  // Results arrive expanded so the choice is real; picking one folds the sheet
+  // back so the map — the retrieval mechanism (D-14) — gets the screen.
+  const [listOpen, setListOpen] = useState(true);
   const [data, setData] = useState<RouteMap | null>(null);
   const [feature, setFeature] = useState<SegmentFeature | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -129,48 +148,132 @@ export function App(): JSX.Element {
 
   const onSelect = useCallback((f: SegmentFeature | null) => setFeature(f), []);
 
+  // The topbar floats over the canvas and changes height with the mode, so the
+  // map's own controls are offset from its measured height rather than a
+  // constant that was right for one of the two.
+  const topbarRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = topbarRef.current;
+    if (el === null) return;
+    const set = (): void =>
+      document.documentElement.style.setProperty("--topbar-h", `${Math.round(el.offsetHeight)}px`);
+    set();
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "plan" || from === null || to === null) return;
+    setPlanning(true);
+    setPlanNote(null);
+    // A weekday morning peak until a time picker exists — stated in the UI
+    // rather than left for a rider to assume.
+    planTrip(from.id, to.id, 8 * 3600 + 30 * 60)
+      .then((r) => {
+        if (r.journeys && r.journeys.length > 0) {
+          setJourneys(r.journeys);
+          setChosen(r.journeys[0]!.id);
+          setListOpen(r.journeys.length > 1);
+        } else {
+          setJourneys(null);
+          setPlanNote(r.reason ?? "No journey found.");
+        }
+      })
+      .catch((e: unknown) => setPlanNote(String(e)))
+      .finally(() => setPlanning(false));
+  }, [mode, from, to]);
+
+  const chosenJourney = journeys?.find((j) => j.id === chosen) ?? null;
+
   return (
     <div className="app">
-      <MapView data={data} onSelect={onSelect} selectedId={feature?.properties.segmentId ?? null} />
+      <MapView
+        data={mode === "explore" ? data : null}
+        journey={mode === "plan" ? (chosenJourney?.geojson ?? null) : null}
+        fitToken={`${mode}|${chosen ?? ""}|${listOpen ? "open" : "peek"}`}
+        onSelect={onSelect}
+        selectedId={feature?.properties.segmentId ?? null}
+      />
 
-      <div className="topbar">
-        <select value={selected} onChange={(e) => setSelected(e.target.value)} aria-label="Route">
-          {routes.map((r) => (
-            <option key={`${r.routeId}|${r.direction}`} value={`${r.routeId}|${r.direction}`}>
-              {r.name} · {r.direction}
-            </option>
-          ))}
-        </select>
-        <div className="filters">
-          <select value={day} onChange={(e) => setDay(e.target.value)} aria-label="Day">
-            <option value="">Any day</option>
-            {DAYS.map((d) => (
-              <option key={d} value={d}>
-                {d.slice(0, 3)}
-              </option>
-            ))}
-          </select>
-          <select value={hour} onChange={(e) => setHour(e.target.value)} aria-label="Hour">
-            <option value="">Any hour</option>
-            {Array.from({ length: 24 }, (_, h) => (
-              <option key={h} value={h}>
-                {String(h).padStart(2, "0")}:00
-              </option>
-            ))}
-          </select>
+      <div className="topbar" ref={topbarRef}>
+        <div className="modes" role="tablist" aria-label="Mode">
+          <button role="tab" aria-selected={mode === "plan"} onClick={() => setMode("plan")}>Plan a trip</button>
+          <button role="tab" aria-selected={mode === "explore"} onClick={() => setMode("explore")}>Explore a route</button>
         </div>
-        <button
-          className="toggle"
-          aria-pressed={stepFree}
-          onClick={() => setStepFree(!stepFree)}
-        >
-          Step-free only
-        </button>
+
+        {mode === "plan" ? (
+          <div className="planner">
+            <StopSearch label="From" value={from} onChange={setFrom} />
+            <StopSearch label="To" value={to} onChange={setTo} />
+          </div>
+        ) : (
+          <>
+            <select value={selected} onChange={(e) => setSelected(e.target.value)} aria-label="Route">
+              {routes.map((r) => (
+                <option key={`${r.routeId}|${r.direction}`} value={`${r.routeId}|${r.direction}`}>
+                  {r.name} · {r.direction}
+                </option>
+              ))}
+            </select>
+            <div className="filters">
+              <select value={day} onChange={(e) => setDay(e.target.value)} aria-label="Day">
+                <option value="">Any day</option>
+                {DAYS.map((d) => <option key={d} value={d}>{d.slice(0, 3)}</option>)}
+              </select>
+              <select value={hour} onChange={(e) => setHour(e.target.value)} aria-label="Hour">
+                <option value="">Any hour</option>
+                {Array.from({ length: 24 }, (_, h) => (
+                  <option key={h} value={h}>{String(h).padStart(2, "0")}:00</option>
+                ))}
+              </select>
+            </div>
+            <button className="toggle" aria-pressed={stepFree} onClick={() => setStepFree(!stepFree)}>
+              Step-free only
+            </button>
+          </>
+        )}
       </div>
 
       {error !== null && <div className="sheet">Could not load: {error}</div>}
 
-      {feature !== null ? (
+      {mode === "plan" ? (
+        <div className={`sheet plan-sheet${journeys !== null && !listOpen ? " peek" : ""}`}>
+          {journeys !== null && journeys.length > 1 && (
+            <button
+              className="grabber"
+              aria-expanded={listOpen}
+              onClick={() => setListOpen(!listOpen)}
+            >
+              <span className="grabber-bar" />
+              <span className="grabber-label">
+                {listOpen ? "Hide other ways" : `${journeys.length - 1} other way${journeys.length > 2 ? "s" : ""}`}
+              </span>
+            </button>
+          )}
+          {from === null || to === null ? (
+            <p className="quiet">Choose where you are starting and where you are going.</p>
+          ) : planning ? (
+            <p className="quiet">Planning…</p>
+          ) : planNote !== null ? (
+            <p className="answer">{planNote}</p>
+          ) : journeys !== null ? (
+            <>
+              <JourneyList
+                journeys={journeys}
+                selected={chosen}
+                collapsed={!listOpen}
+                onSelect={(id) => {
+                  setChosen(id);
+                  setListOpen(false);
+                }}
+              />
+              {!listOpen && chosenJourney !== null && <JourneyDetail journey={chosenJourney} />}
+              <p className="quiet">Departing 08:30 on a weekday.</p>
+            </>
+          ) : null}
+        </div>
+      ) : feature !== null ? (
         <Sheet feature={feature} onClose={() => setFeature(null)} />
       ) : (
         data !== null && (

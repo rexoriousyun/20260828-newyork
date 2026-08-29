@@ -8,13 +8,38 @@ import type { RouteMap, SegmentFeature } from "./api.js";
 const STYLE = "/tiles/style";
 const SRC = "segments";
 
+const JOURNEY_SRC = "journey";
+
+/** Matches the sheet's CSS transition; see .sheet in styles.css. */
+const SHEET_TRANSITION_MS = 240;
+
+/**
+ * How much of the map is covered by chrome, in pixels, measured from the live
+ * layout. The topbar and the sheet float over the canvas, so fitting to the
+ * raw viewport puts the route behind them.
+ */
+function chromePadding(m: MlMap): { top: number; bottom: number; left: number; right: number } {
+  const box = m.getContainer().getBoundingClientRect();
+  const rect = (sel: string): DOMRect | null => document.querySelector(sel)?.getBoundingClientRect() ?? null;
+  const topbar = rect(".topbar");
+  const sheet = rect(".sheet");
+  const gap = 16;
+  const top = Math.min(box.height * 0.4, (topbar ? topbar.bottom - box.top : 0) + gap);
+  const bottom = Math.min(box.height * 0.5, (sheet ? box.bottom - sheet.top : 0) + gap);
+  return { top: Math.max(24, top), bottom: Math.max(24, bottom), left: 28, right: 28 };
+}
+
 interface Props {
   data: RouteMap | null;
+  /** A planned trip's geometry, drawn instead of a route when present. */
+  journey: { type: "FeatureCollection"; features: unknown[] } | null;
+  /** Changes whenever the chrome over the map moves, so the fit is redone. */
+  fitToken: string;
   onSelect: (f: SegmentFeature | null) => void;
   selectedId: string | null;
 }
 
-export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
+export function MapView({ data, journey, fitToken, onSelect, selectedId }: Props): JSX.Element {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MlMap | null>(null);
   const ready = useRef(false);
@@ -76,7 +101,7 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
         layout: { "line-cap": "butt", "line-join": "round" },
         paint: {
           "line-color": tok.blocked,
-          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 4, 14, 8, 17, 13],
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 3.5, 14, 6.5, 17, 11],
           "line-dasharray": [0.6, 0.9],
           "line-opacity": 0.85,
         },
@@ -109,6 +134,47 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
           "line-width": ["interpolate", ["linear"], ["zoom"], 9, 2, 12, 2.8, 14, 3.8, 17, 6],
           "line-dasharray": [1.4, 2.2],
           "line-opacity": UNKNOWN_OPACITY,
+        },
+      });
+
+      // A planned trip. Ride legs use the same scale as the explore map, so the
+      // encoding a rider learns in one view still means the same thing here.
+      m.addSource(JOURNEY_SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      m.addLayer({
+        id: "journey-casing",
+        type: "line",
+        source: JOURNEY_SRC,
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": tok.casing,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 6, 14, 10, 17, 15],
+        },
+      });
+      m.addLayer({
+        id: "journey-ride",
+        type: "line",
+        source: JOURNEY_SRC,
+        filter: ["==", ["get", "kind"], "ride"],
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": lineColorExpression(tok) as never,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 3.5, 14, 6.5, 17, 11],
+        },
+      });
+      m.addLayer({
+        id: "journey-walk",
+        type: "line",
+        source: JOURNEY_SRC,
+        filter: ["==", ["get", "kind"], "walk"],
+        layout: { "line-cap": "butt" },
+        // Walking has no reliability to report, so it takes no colour from the
+        // scale: a green dash would claim "reliable" about a stretch the model
+        // says nothing about. Ink and a dash instead.
+        paint: {
+          "line-color": tok.walk,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 3, 14, 5, 17, 8],
+          "line-dasharray": [1, 1.6],
+          "line-opacity": 0.75,
         },
       });
 
@@ -147,13 +213,52 @@ export function MapView({ data, onSelect, selectedId }: Props): JSX.Element {
             [data.bbox[0], data.bbox[1]],
             [data.bbox[2], data.bbox[3]],
           ],
-          { padding: { top: 96, bottom: 170, left: 26, right: 26 }, maxZoom: 14, duration: 600 },
+          { padding: chromePadding(m), maxZoom: 14, duration: 600 },
         );
       }
     };
     if (ready.current) apply();
     else m.once("load", apply);
   }, [data]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (m === null) return;
+    const apply = (): void => {
+      const src = m.getSource(JOURNEY_SRC) as GeoJSONSource | undefined;
+      if (src === undefined) return;
+      src.setData((journey ?? { type: "FeatureCollection", features: [] }) as never);
+
+      // Route layers are hidden while a trip is shown: two overlapping encodings
+      // on the same streets would be unreadable.
+      const showRoute = journey === null ? "visible" : "none";
+      for (const id of ["segments-known", "segments-unknown", "segments-blocked", "segments-selected"]) {
+        if (m.getLayer(id) !== undefined) m.setLayoutProperty(id, "visibility", showRoute);
+      }
+
+      if (journey !== null && journey.features.length > 0) {
+        const coords = journey.features.flatMap(
+          (f) => (f as { geometry: { coordinates: Array<[number, number]> } }).geometry.coordinates,
+        );
+        const lons = coords.map((c) => c[0]), lats = coords.map((c) => c[1]);
+        const bounds: [[number, number], [number, number]] = [
+          [Math.min(...lons), Math.min(...lats)],
+          [Math.max(...lons), Math.max(...lats)],
+        ];
+        // Measured, not guessed: the search fields and the results sheet both
+        // change height, and a hardcoded inset drew the route underneath them.
+        const fit = (): void => {
+          m.fitBounds(bounds, { padding: chromePadding(m), maxZoom: 15, duration: 600 });
+        };
+        fit();
+        // Re-fit once the sheet has finished sliding, so the final framing
+        // matches where the sheet actually came to rest.
+        window.setTimeout(fit, SHEET_TRANSITION_MS + 40);
+      }
+    };
+    if (ready.current) apply();
+    else m.once("load", apply);
+  }, [journey, fitToken]);
 
   useEffect(() => {
     const m = map.current;

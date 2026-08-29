@@ -110,6 +110,25 @@ select {
   background: var(--panel);
   border-radius: 14px 14px 0 0;
   box-shadow: var(--shadow);
+  transition: max-height 240ms ease;
+}
+@media (prefers-reduced-motion: reduce) { .sheet { transition: none; } }
+
+/* Peeked: the chosen answer stays on screen, the comparison folds away, and
+   the map gets the rest. */
+.plan-sheet { padding-top: var(--s2); }
+.plan-sheet.peek { max-height: 42%; }
+
+/* The handle is also the label — a bare grabber bar tells a rider nothing
+   about what is behind it. */
+.grabber {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 100%; padding: 4px 0 var(--s3);
+  background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 500; color: var(--ink-3);
+}
+.grabber-bar {
+  width: 36px; height: 4px; border-radius: 2px; background: var(--rule);
 }
 .sheet-close {
   position: absolute; top: var(--s2); right: var(--s3);
@@ -153,11 +172,16 @@ select {
   margin: var(--s3) 0 0; padding-top: var(--s3); border-top: 1px solid var(--rule);
   font-size: 13px; color: var(--ink-2);
 }
+/* Disclosures are monotone. On this app colour means risk, and a blue link
+   competing with the green-to-red scale teaches a rider the wrong thing
+   (D-16). Underline carries "tappable"; blue stays for focus only. */
 .why {
   margin-top: var(--s4); padding: 0; border: 0; background: none;
-  color: var(--accent); font: inherit; font-size: 14px; cursor: pointer;
+  color: var(--ink-2); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
   text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px;
+  text-decoration-color: var(--ink-3);
 }
+.why:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; }
 .why-body {
   display: grid; grid-template-columns: auto 1fr; gap: var(--s1) var(--s4);
   margin: var(--s3) 0 0; padding-top: var(--s3);
@@ -196,5 +220,125 @@ select {
   opacity: 0.45; height: 2px; vertical-align: 4px;
 }
 
-.maplibregl-ctrl-top-right { margin-top: 104px; }
+.maplibregl-ctrl-top-right { margin-top: calc(var(--topbar-h, 104px) + 12px); }
 .maplibregl-ctrl-group { border-radius: var(--radius) !important; box-shadow: var(--control-shadow) !important; }
+
+/* ---- Mode switch ---------------------------------------------------------
+   Planning is the product; exploring is a mode within it (D-14). */
+.modes {
+  display: flex; gap: 2px; padding: 3px;
+  background: var(--panel); border: 1px solid var(--rule);
+  border-radius: var(--radius); box-shadow: var(--control-shadow);
+}
+.modes button {
+  flex: 1 1 0; padding: 7px 10px;
+  font: inherit; font-size: 13px; font-weight: 500;
+  color: var(--ink-2); background: transparent;
+  border: 0; border-radius: 7px; cursor: pointer;
+}
+.modes button[aria-selected="true"] { color: var(--panel); background: var(--ink); }
+.modes button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---- Origin / destination ------------------------------------------------ */
+.planner { display: grid; gap: var(--s2); }
+.field { position: relative; }
+.field label { display: flex; align-items: center; gap: var(--s2);
+  background: var(--panel); border: 1px solid var(--rule);
+  border-radius: var(--radius); box-shadow: var(--control-shadow);
+  padding: 0 var(--s3); }
+.field-label {
+  flex: 0 0 auto; width: 2.6rem;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.field input {
+  flex: 1 1 auto; min-width: 0; padding: 11px 0;
+  font: inherit; font-size: 15px; color: var(--ink);
+  background: transparent; border: 0;
+}
+.field input:focus { outline: none; }
+.field label:focus-within { border-color: var(--accent); }
+
+.suggestions {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 5;
+  margin: 0; padding: 4px; list-style: none;
+  max-height: 46vh; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--rule);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.suggestions button {
+  display: block; width: 100%; text-align: left;
+  padding: 9px var(--s3); border: 0; border-radius: 6px;
+  font: inherit; font-size: 14px; color: var(--ink);
+  background: transparent; cursor: pointer;
+}
+.suggestions button:hover, .suggestions button:focus-visible { background: var(--rule); outline: none; }
+
+/* ---- Results -------------------------------------------------------------
+   Each option leads with duration, then how often it fails — as a rate, since
+   expected minutes cannot separate two options at a 0.1% per-trip risk. */
+.results-head {
+  margin: 0 0 var(--s3); font-size: 13px; color: var(--ink-3);
+  font-weight: 500; letter-spacing: 0.02em;
+}
+.journeys { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+.journey {
+  display: grid; gap: var(--s2); width: 100%; text-align: left;
+  padding: var(--s3); font: inherit; cursor: pointer;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+}
+.journey[aria-pressed="true"] { border-color: var(--ink); }
+.journey:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.journey-top { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s3); }
+.journey-time { font-size: 22px; font-weight: 600; letter-spacing: -0.015em; }
+.journey-clock { font-size: 13px; color: var(--ink-3); }
+.journey-routes { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.route-chip {
+  padding: 2px 7px; border-radius: 4px;
+  background: var(--rule); color: var(--ink-2);
+  font-size: 12px; font-weight: 600;
+}
+.journey-meta { font-size: 12px; color: var(--ink-3); }
+.journey-risk { font-size: 13.5px; color: var(--ink-2); line-height: 1.4; }
+.journey-risk strong { color: var(--ink); font-weight: 600; }
+/* Thin coverage sits on the card, not behind a disclosure: it qualifies the
+   claim, and P-09 never defers doubt. */
+.journey-thin {
+  font-size: 12px; color: var(--ink-3);
+  padding-top: var(--s2); border-top: 1px solid var(--rule);
+}
+
+/* ---- Trip detail ---------------------------------------------------------
+   The steps a rider follows once they have chosen. A time column on the left
+   because that is what gets scanned; the route badge carries identity so the
+   line is not read as prose. */
+.detail { margin-top: var(--s2); }
+.legs { list-style: none; margin: var(--s3) 0 0; padding: 0; display: flex; flex-direction: column; }
+.leg {
+  display: flex; gap: var(--s3); align-items: baseline;
+  padding: 9px 0; border-top: 1px solid var(--rule);
+}
+.leg:first-child { border-top: 0; }
+.leg-time {
+  flex: 0 0 44px; font-size: 13px; font-weight: 500; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.leg-body { flex: 1 1 auto; display: flex; gap: var(--s2); align-items: baseline; justify-content: space-between; }
+.leg-what { font-size: 14px; color: var(--ink-1); display: flex; gap: 7px; align-items: baseline; flex-wrap: wrap; }
+.leg-dur { font-size: 13px; color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.leg-walk .leg-what { color: var(--ink-2); }
+.leg-end .leg-what { font-weight: 600; }
+
+/* Where the risk actually is. This is uncertainty, not machinery, so it sits
+   on the card rather than behind the disclosure (P-09). */
+.journey-worst { display: block; margin-top: 5px; font-size: 13px; color: var(--ink-2); }
+/* Waiting is not a step a rider takes; it is what happens to them. Recessed
+   ink and no clock time, so it reads as the gap it is. */
+.leg-wait .leg-what, .leg-wait .leg-dur { color: var(--ink-3); }
+/* Stated once, under the options it applies to equally. */
+.results-note {
+  margin: var(--s3) 0 0; padding-top: var(--s3); border-top: 1px solid var(--rule);
+  font-size: 13px; line-height: 1.45; color: var(--ink-2);
+}
+.results-note strong { color: var(--ink); font-weight: 600; }

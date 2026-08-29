@@ -132,7 +132,29 @@ decompressed; echoing the header makes the browser try to gunzip plain bytes.
 can. Tiles are proxied through the API — which is the right production choice anyway.
 
 **Playwright scripts must run from the project directory** so they resolve the ESM
-`"type": "module"` context. A script in `/tmp` fails to import `playwright`.
+`"type": "module"` context. A script in `/tmp` fails to import `playwright`. If the bundled
+browser build is missing, launch with `executablePath: "/opt/pw-browsers/chromium"` rather
+than running `playwright install`.
+
+**Headless Chromium can composite a stale white band over the map canvas.** After a DOM
+change that grows a scrollable panel above the WebGL canvas, a screenshot may show the top
+of the map blank while the map is drawing correctly. Two independent checks proved it is a
+capture artifact, not a bug: `queryRenderedFeatures` returned every feature, and reading the
+canvas back inside a `render` handler gave identical pixels in both states. **Before
+chasing a blank map, read the canvas back** — `drawImage` the map canvas onto an offscreen
+2D context inside `map.once("render", ...)` and sample it.
+
+**`map.once("idle")` never fires if the map is already idle.** A screenshot script that
+awaits it hangs forever. Race it against a timeout.
+
+**Fit the map to measured chrome, not to constants.** The topbar and the sheet both float
+over the canvas and both change height. `chromePadding()` in `MapView.tsx` reads their live
+rects; the hardcoded insets it replaced drew half of every planned route underneath the
+results sheet.
+
+**Never prettify a name on the path into a lookup.** `displayStopName` runs on the way to
+the screen only. Scoring keys on the raw GTFS name because the segment index was built from
+it — the same shape of mistake that pinned journey coverage at 7.7%.
 
 ---
 
