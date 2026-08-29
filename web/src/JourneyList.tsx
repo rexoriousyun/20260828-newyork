@@ -1,4 +1,5 @@
 import type { ScoredJourney } from "./api.js";
+import { reliabilityFor, type View } from "./view.js";
 
 const hhmm = (s: number): string =>
   `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
@@ -6,6 +7,7 @@ const hhmm = (s: number): string =>
 interface Props {
   journeys: ScoredJourney[];
   selected: string | null;
+  view: View;
   onSelect: (id: string) => void;
   /** Peek state: show the chosen answer only, and leave the map the screen. */
   collapsed: boolean;
@@ -16,19 +18,22 @@ function Journey({
   selected,
   onSelect,
   showSeverity,
+  view,
 }: {
   j: ScoredJourney;
   selected: boolean;
+  view: View;
   onSelect: (id: string) => void;
   /** False when every option shares the figure and it is stated once below. */
   showSeverity: boolean;
 }): JSX.Element {
   const routes = j.legs.filter((l) => l.kind === "ride").map((l) => l.routeId ?? "?");
-  const thin = j.reliability.coverage < 0.5;
+  const rel = reliabilityFor(j, view);
+  const thin = rel.coverage < 0.5;
   // Whether one stretch dominates is decided once, on the server, against the
   // next-worst stretch. The share-of-total test this replaced fired on an even
   // two-way split, which pins a rider to an arbitrary half of their trip.
-  const worst = j.reliability.dominant;
+  const worst = rel.dominant;
   return (
     <button className="journey" aria-pressed={selected} onClick={() => onSelect(j.id)}>
       <span className="journey-top">
@@ -59,15 +64,15 @@ function Journey({
         )}
       </span>
       <span className="journey-risk">
-        {j.reliability.oneInTrips === null ? (
+        {rel.oneInTrips === null ? (
           <>Not enough data to say how often this goes wrong.</>
         ) : (
           <>
-            Goes wrong about <strong>1 trip in {j.reliability.oneInTrips}</strong>
+            Goes wrong about <strong>1 trip in {rel.oneInTrips}</strong>
             {showSeverity ? (
               <>
                 {" — "}
-                {j.reliability.minutesWhenDisrupted} min longer when it does.
+                {rel.minutesWhenDisrupted} min longer when it does.
               </>
             ) : (
               "."
@@ -82,7 +87,7 @@ function Journey({
       )}
       {thin && (
         <span className="journey-thin">
-          Based on {Math.round(j.reliability.coverage * 100)}% of this route — treat as rough.
+          Based on {Math.round(rel.coverage * 100)}% of this route — treat as rough.
         </span>
       )}
     </button>
@@ -104,7 +109,7 @@ function Journey({
  * mechanism (D-14) and cannot do its job through a 230px slot, so once a rider
  * has picked, the answer stays and the comparison folds away.
  */
-export function JourneyList({ journeys, selected, onSelect, collapsed }: Props): JSX.Element {
+export function JourneyList({ journeys, selected, view, onSelect, collapsed }: Props): JSX.Element {
   const only = journeys.length === 1;
   const chosen = journeys.find((j) => j.id === selected) ?? journeys[0]!;
 
@@ -112,7 +117,7 @@ export function JourneyList({ journeys, selected, onSelect, collapsed }: Props):
   // most trips every option carries the same number. Repeating it on each card
   // implies it was measured for that option; stated once, it reads as what it
   // is. It stays on the card whenever the options genuinely differ.
-  const severities = new Set(journeys.map((j) => j.reliability.minutesWhenDisrupted));
+  const severities = new Set(journeys.map((j) => reliabilityFor(j, view).minutesWhenDisrupted));
   const shared = severities.size === 1 ? [...severities][0]! : null;
 
   const shownList = collapsed ? [chosen] : journeys;
@@ -132,11 +137,12 @@ export function JourneyList({ journeys, selected, onSelect, collapsed }: Props):
               selected={collapsed || selected === j.id}
               onSelect={onSelect}
               showSeverity={shared === null}
+              view={view}
             />
           </li>
         ))}
       </ul>
-      {shared !== null && chosen.reliability.oneInTrips !== null && (
+      {shared !== null && reliabilityFor(chosen, view).oneInTrips !== null && (
         <p className="results-note">
           A trip that goes wrong runs about <strong>{shared} min</strong> long. That figure comes
           from the whole network, not from these routes.

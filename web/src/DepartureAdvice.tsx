@@ -1,4 +1,5 @@
 import type { ScoredJourney } from "./api.js";
+import { reliabilityFor, type View } from "./view.js";
 
 const hhmm = (s: number): string =>
   `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
@@ -20,13 +21,20 @@ const hhmm = (s: number): string =>
  * outcomes are on screen — the normal morning and the one that goes wrong —
  * and the buffer that would cover the bad one is priced, never prescribed.
  */
-export function DepartureAdvice({ journey }: { journey: ScoredJourney }): JSX.Element | null {
+export function DepartureAdvice({
+  journey,
+  view,
+}: {
+  journey: ScoredJourney;
+  view: View;
+}): JSX.Element | null {
   const a = journey.advice;
   if (a === null) return null;
 
   const late = a.slackMinutes < 0;
   const routes = journey.legs.filter((l) => l.kind === "ride").map((l) => l.routeId ?? "?");
-  const thin = journey.reliability.coverage < 0.5;
+  const rel = reliabilityFor(journey, view);
+  const thin = rel.coverage < 0.5;
 
   return (
     <div className={`advice${late ? " advice-late" : ""}`}>
@@ -58,10 +66,10 @@ export function DepartureAdvice({ journey }: { journey: ScoredJourney }): JSX.El
         </span>
       </p>
 
-      {a.disrupted !== null && a.disrupted.oneInTrips !== null && (
+      {a.disrupted !== null && rel.oneInTrips !== null && (
         <p className="advice-risk">
-          About <strong>1 morning in {a.disrupted.oneInTrips}</strong> this runs long — you would
-          arrive {hhmm(a.disrupted.arriveAt)}.
+          About <strong>1 morning in {rel.oneInTrips}</strong> this runs long — you would arrive{" "}
+          {hhmm(a.disrupted.arriveAt)}.
         </p>
       )}
 
@@ -77,7 +85,7 @@ export function DepartureAdvice({ journey }: { journey: ScoredJourney }): JSX.El
       {/* Low confidence sits with the claim, never behind a tap (P-09, J-01). */}
       {thin && (
         <p className="advice-thin">
-          Based on {Math.round(journey.reliability.coverage * 100)}% of this route — treat as
+          Based on {Math.round(rel.coverage * 100)}% of this route — treat as
           rough.
         </p>
       )}

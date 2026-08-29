@@ -6,6 +6,8 @@ import { JourneyDetail } from "./JourneyDetail.js";
 import { WhenControl } from "./WhenControl.js";
 import { DepartureAdvice } from "./DepartureAdvice.js";
 import { RouteKey } from "./RouteKey.js";
+import { ViewToggle } from "./ViewToggle.js";
+import { bandLabel, exposureProperty, type View } from "./view.js";
 import { UNRELIABLE_THRESHOLD, stateOf } from "./map.js";
 import {
   fetchRoutes,
@@ -19,6 +21,16 @@ import {
 } from "./api.js";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+/**
+ * The rider is going somewhere, not planning to leave this instant. Rounding up
+ * to the next quarter hour gives a target that is still true by the time they
+ * have finished typing, and reads as a decision rather than a stopwatch.
+ */
+function nextQuarterHour(now: Date): number {
+  const s = now.getHours() * 3600 + now.getMinutes() * 60;
+  return Math.min(24 * 3600 - 60, Math.ceil((s + 15 * 60) / (15 * 60)) * 15 * 60);
+}
 
 const hhmm = (s: number): string =>
   `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
@@ -120,10 +132,13 @@ export function App(): JSX.Element {
   const [to, setTo] = useState<StopHit | null>(null);
   // Arrive-by is the default: the rider this is built for knows their arrival
   // time, not their departure time (J-01).
-  const [when, setWhen] = useState<{ mode: "arriveBy" | "departAt"; seconds: number }>({
+  const [when, setWhen] = useState<{ mode: "arriveBy" | "departAt"; seconds: number }>(() => ({
     mode: "arriveBy",
-    seconds: 9 * 3600,
-  });
+    // Now, not a hardcoded morning peak: a rider opening the app is usually
+    // travelling now, and the time they are travelling in is what the figures
+    // are conditioned on.
+    seconds: nextQuarterHour(new Date()),
+  }));
   const [journeys, setJourneys] = useState<ScoredJourney[] | null>(null);
   const [chosen, setChosen] = useState<string | null>(null);
   const [planning, setPlanning] = useState(false);
@@ -135,6 +150,10 @@ export function App(): JSX.Element {
   // the map gets the height back — three input rows is 195px of an 844px phone,
   // and the map is the retrieval mechanism, not the form (D-20).
   const [formOpen, setFormOpen] = useState(true);
+  // Defaults to the rider's own travel window. The all-day figure is the one to
+  // compare against, not the one to be quoted by default — it misstates a
+  // morning commute by around 20% (E-D20).
+  const [view, setView] = useState<View>("atTime");
   const [data, setData] = useState<RouteMap | null>(null);
   const [feature, setFeature] = useState<SegmentFeature | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -207,6 +226,7 @@ export function App(): JSX.Element {
         data={mode === "explore" ? data : null}
         journey={mode === "plan" ? (chosenJourney?.geojson ?? null) : null}
         fitToken={`${mode}|${chosen ?? ""}|${listOpen ? "open" : "peek"}`}
+        exposureProperty={exposureProperty(view)}
         onSelect={onSelect}
         selectedId={feature?.properties.segmentId ?? null}
       />
@@ -290,16 +310,21 @@ export function App(): JSX.Element {
             <p className="answer">{planNote}</p>
           ) : journeys !== null ? (
             <>
-              {/* Directly under the map, because that is what it decodes. */}
+              {/* Both sit directly under the map: one says which measurement
+                  is on screen, the other decodes its colours. */}
+              {!listOpen && chosenJourney !== null && (
+                <ViewToggle journey={chosenJourney} view={view} onChange={setView} />
+              )}
               {!listOpen && chosenJourney !== null && <RouteKey journey={chosenJourney} />}
               {/* With a deadline the advice *is* the answer card; without one
                   the journey card is. Never both — they restate one trip. */}
               {!listOpen && chosenJourney?.advice != null ? (
-                <DepartureAdvice journey={chosenJourney} />
+                <DepartureAdvice journey={chosenJourney} view={view} />
               ) : (
                 <JourneyList
                   journeys={journeys}
                   selected={chosen}
+                  view={view}
                   collapsed={!listOpen}
                   onSelect={(id) => {
                     setChosen(id);
@@ -307,11 +332,21 @@ export function App(): JSX.Element {
                   }}
                 />
               )}
-              {!listOpen && chosenJourney !== null && <JourneyDetail journey={chosenJourney} />}
+              {!listOpen && chosenJourney !== null && <JourneyDetail journey={chosenJourney} view={view} />}
               {!listOpen && chosenJourney?.advice != null && (
                 <p className="advice-basis">
                   An estimate from recorded disruptions — not a promise about today&rsquo;s
                   vehicle.
+                  {view === "atTime" &&
+                    chosenJourney?.atTime != null &&
+                    chosenJourney.atTime.conditionedShare < 1 && (
+                      <>
+                        {" "}
+                        {Math.round(chosenJourney.atTime.conditionedShare * 100)}% of this trip has
+                        enough history for {bandLabel(chosenJourney)} on its own; the rest uses the
+                        all-day figure.
+                      </>
+                    )}
                 </p>
               )}
               <p className="quiet">

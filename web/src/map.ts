@@ -88,7 +88,7 @@ export function tokensFor(dark: boolean): Tokens {
  * channel — segments above the threshold render 45% heavier — and the legend
  * names each state in words.
  */
-export function lineColorExpression(t: Tokens): unknown {
+export function lineColorExpression(t: Tokens, property = "gapMinutesPerMonth"): unknown {
   return [
     "case",
     ["==", ["get", "confidence"], "unknown"],
@@ -96,7 +96,10 @@ export function lineColorExpression(t: Tokens): unknown {
     [
       "interpolate",
       ["linear"],
-      ["coalesce", ["get", "gapMinutesPerMonth"], 0],
+      // Never `coalesce(..., 0)` on its own: a missing value would land on the
+      // reliable end of the ramp and absence of data would read as good news
+      // (P-03). The unknown case above is what keeps that honest.
+      ["coalesce", ["get", property], 0],
       0, t.scale[0],
       UNRELIABLE_THRESHOLD, t.scale[1],
       RAMP_MAX, t.scale[2],
@@ -110,10 +113,10 @@ export function lineColorExpression(t: Tokens): unknown {
  * `zoom` may only feed a top-level `step` or `interpolate`, so the per-feature
  * factor cannot wrap the ramp — it goes inside each stop's output instead.
  */
-export function lineWidthExpression(): unknown {
+export function lineWidthExpression(property = "gapMinutesPerMonth"): unknown {
   const heavier = (base: number): unknown => [
     "case",
-    [">=", ["coalesce", ["get", "gapMinutesPerMonth"], 0], UNRELIABLE_THRESHOLD],
+    [">=", ["coalesce", ["get", property], 0], UNRELIABLE_THRESHOLD],
     Number((base * 1.45).toFixed(2)),
     base,
   ];

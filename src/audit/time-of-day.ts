@@ -26,6 +26,9 @@ import { buildConnections } from "../domain/connections.js";
 import { buildFrequency, key } from "../domain/frequency.js";
 import { recencyWeight, effectiveMonths, confidenceFor } from "../domain/score.js";
 import { stationFromPlatform } from "../domain/stations.js";
+// Shared with the scorer, so the evidence and the product cannot disagree
+// about where the day is cut.
+import { BANDS, bandOf, bandOfSeconds, MIN_EXPECTED_IN_BAND } from "../domain/time-bands.js";
 
 /* ---- Pre-registered thresholds -------------------------------------------
    Fixed before any number was looked at, so the verdict cannot be argued into
@@ -58,7 +61,7 @@ const MATERIAL_SHARE = 0.25;
  * keeps the quiet bands, and an observed zero where three were predicted is
  * evidence of lower risk rather than an absence of evidence.
  */
-const MIN_EXPECTED = 3;
+const MIN_EXPECTED = MIN_EXPECTED_IN_BAND;
 
 /** Weekday service days in an average month — matches buildFrequency. */
 const WEEKDAYS_PER_MONTH = 21.7;
@@ -85,21 +88,6 @@ const WINDOW_MONTHS = 19;
 /** GTFS service id for weekday service — the same one the planner builds on. */
 const WEEKDAY_SERVICE = "1";
 
-/**
- * Bands a rider would recognise, not equal slices of the clock. The split
- * points are the TTC's own peak periods; "night" is separated because service
- * changes shape there rather than merely thinning.
- */
-const BANDS = [
-  { name: "am peak", from: 6, to: 9 },
-  { name: "midday", from: 9, to: 15 },
-  { name: "pm peak", from: 15, to: 19 },
-  { name: "evening", from: 19, to: 24 },
-  { name: "night", from: 0, to: 6 },
-] as const;
-
-const bandOf = (hour: number): string =>
-  BANDS.find((b) => hour >= b.from && hour < b.to)?.name ?? "night";
 
 const SUBWAY_ROUTES = new Set(["1", "2", "4"]);
 
@@ -140,7 +128,7 @@ async function main(): Promise<void> {
   for (let i = 0; i < connections.count; i++) {
     // GTFS times run past midnight; the band a trip belongs to is the hour a
     // rider would call it, so 25:10 is 01:10.
-    const band = bandOf(Math.floor(connections.depTime[i]! / 3600) % 24);
+    const band = bandOfSeconds(connections.depTime[i]!).id;
     const route = connections.tripRoute[connections.trip[i]!]!;
     const fromId = connections.stopIds[connections.fromStop[i]!]!;
     const toId = connections.stopIds[connections.toStop[i]!]!;
@@ -172,7 +160,7 @@ async function main(): Promise<void> {
   const weighted = new Map<string, Map<string, number>>();
   for (const r of rows) {
     const w = recencyWeight(r.occurredAt, now);
-    const band = bandOf(r.hour);
+    const band = bandOf(r.hour).id;
     let byBand = weighted.get(r.segmentId!);
     if (byBand === undefined) { byBand = new Map(); weighted.set(r.segmentId!, byBand); }
     byBand.set(band, (byBand.get(band) ?? 0) + w);
@@ -198,17 +186,17 @@ async function main(): Promise<void> {
     const pooled = (total / denominator) / tripsAllDay;
 
     for (const b of BANDS) {
-      const trips = tripsInBand.get(`${segKey}|${b.name}`);
+      const trips = tripsInBand.get(`${segKey}|${b.id}`);
       if (trips === undefined || trips <= 0) continue;
       // Would the pooled rate predict enough incidents here to notice their
       // absence? If not, this band cannot distinguish "quiet" from "unobserved".
       if (pooled * trips * denominator < MIN_EXPECTED) continue;
-      bandSurvivors.set(b.name, (bandSurvivors.get(b.name) ?? 0) + 1);
+      bandSurvivors.set(b.id, (bandSurvivors.get(b.id) ?? 0) + 1);
 
-      const incidents = byBand.get(b.name) ?? 0;
+      const incidents = byBand.get(b.id) ?? 0;
       const bandRisk = (incidents / denominator) / trips;
       comparisons.push({
-        segmentId, band: b.name, pooled, band_: bandRisk,
+        segmentId, band: b.id, pooled, band_: bandRisk,
         ratio: pooled > 0 ? bandRisk / pooled : 0,
       });
     }
@@ -222,7 +210,7 @@ async function main(): Promise<void> {
   const halves: Array<Map<string, Map<string, number>>> = [new Map(), new Map()];
   for (const r of rows) {
     const half = r.occurredAt < split ? 0 : 1;
-    const band = bandOf(r.hour);
+    const band = bandOf(r.hour).id;
     let byBand = halves[half]!.get(r.segmentId!);
     if (byBand === undefined) { byBand = new Map(); halves[half]!.set(r.segmentId!, byBand); }
     // Unweighted inside a half: recency decay across a 9-month window would
@@ -270,16 +258,16 @@ async function main(): Promise<void> {
   console.log("Per band, against the pooled figure for the same segment:");
   console.log("band      segments  median ratio   >1.5x    <0.67x");
   for (const b of BANDS) {
-    const inBand = comparisons.filter((c) => c.band === b.name);
+    const inBand = comparisons.filter((c) => c.band === b.id);
     if (inBand.length === 0) {
-      console.log(`${b.name.padEnd(9)} ${String(0).padStart(8)}   — too few incidents to say`);
+      console.log(`${b.id.padEnd(9)} ${String(0).padStart(8)}   — too few incidents to say`);
       continue;
     }
     const ratios = inBand.map((c) => c.ratio);
     const hi = ratios.filter((r) => r >= MATERIAL_RATIO).length;
     const lo = ratios.filter((r) => r <= 1 / MATERIAL_RATIO).length;
     console.log(
-      `${b.name.padEnd(9)} ${String(inBand.length).padStart(8)}   ` +
+      `${b.id.padEnd(9)} ${String(inBand.length).padStart(8)}   ` +
       `${median(ratios).toFixed(2).padStart(10)}   ` +
       `${pct(hi / inBand.length).padStart(6)}   ${pct(lo / inBand.length).padStart(6)}`,
     );
@@ -292,7 +280,7 @@ async function main(): Promise<void> {
     `${conditionable} of ${scorablePooled} (${pct(scorablePooled === 0 ? 0 : conditionable / scorablePooled)})`);
   console.log("Bands scorable per segment (how much of the day survives slicing):");
   for (const b of BANDS) {
-    console.log(`  ${b.name.padEnd(9)} ${String(bandSurvivors.get(b.name) ?? 0).padStart(6)} segments`);
+    console.log(`  ${b.id.padEnd(9)} ${String(bandSurvivors.get(b.id) ?? 0).padStart(6)} segments`);
   }
 
   // ---- Verdict -------------------------------------------------------------

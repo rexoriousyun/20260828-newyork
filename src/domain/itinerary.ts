@@ -23,6 +23,7 @@ import { prisma } from "../db/client.js";
 import type { Journey, Leg } from "./csa.js";
 import { key, type SegmentFrequency } from "./frequency.js";
 import { stationFromPlatform } from "./stations.js";
+import { bandOf, bandOfSeconds, BANDS, MIN_EXPECTED_IN_BAND, type Band } from "./time-bands.js";
 
 /** Subway route ids, whose segments key on station names rather than stop ids. */
 const SUBWAY_ROUTES = new Set(["1", "2", "4"]);
@@ -47,33 +48,57 @@ export interface SegmentRisk {
   confidence: string;
 }
 
+/** A journey's reliability, computed either across the day or within a band. */
+export interface JourneyReliability {
+  /** Probability this journey meets at least one logged incident. */
+  disruptionRisk: number;
+  /** The same figure as riders actually think about it: 1 trip in N. */
+  oneInTrips: number | null;
+  /** Typical added wait *when* disrupted — pooled per mode (D-11). */
+  minutesWhenDisrupted: number;
+  /**
+   * Added wait on a bad disruption rather than a typical one. Departure
+   * advice buys buffer against this, not against the median: a rider with a
+   * deadline has asymmetric tolerance and plans by the tail (E-L03).
+   */
+  minutesWhenBad: number;
+  /** risk x severity. Small by nature; used for ranking, not for display. */
+  expectedAddedMinutes: number;
+  /** Share of the journey's segments we could score. */
+  coverage: number;
+  /** Worst segments on this journey, for "why this number". */
+  worst: SegmentRisk[];
+  /**
+   * The one stretch that genuinely dominates, or null when the risk is
+   * spread — naming a stretch anyway sends the rider to the wrong place.
+   */
+  dominant: SegmentRisk | null;
+}
+
+export interface BandReliability extends JourneyReliability {
+  /** The band this view is measured in — one per leg, in trip order. */
+  bands: Array<{ id: string; label: string }>;
+  /**
+   * Share of the scored stretches that used their own band's figure rather
+   * than falling back to the all-day one. Stated on screen: a rider told
+   * "at this time" deserves to know how much of it really is (P-09).
+   */
+  conditionedShare: number;
+}
+
 export interface ScoredJourney extends Journey {
   durationMinutes: number;
-  reliability: {
-    /** Probability this journey meets at least one logged incident. */
-    disruptionRisk: number;
-    /** The same figure as riders actually think about it: 1 trip in N. */
-    oneInTrips: number | null;
-    /** Typical added wait *when* disrupted — pooled per mode (D-11). */
-    minutesWhenDisrupted: number;
-    /**
-     * Added wait on a bad disruption rather than a typical one. Departure
-     * advice buys buffer against this, not against the median: a rider with a
-     * deadline has asymmetric tolerance and plans by the tail (E-L03).
-     */
-    minutesWhenBad: number;
-    /** risk x severity. Small by nature; used for ranking, not for display. */
-    expectedAddedMinutes: number;
-    /** Share of the journey's segments we could score. */
-    coverage: number;
-    /** Worst segments on this journey, for "why this number". */
-    worst: SegmentRisk[];
-    /**
-     * The one stretch that genuinely dominates, or null when the risk is
-     * spread — naming a stretch anyway sends the rider to the wrong place.
-     */
-    dominant: SegmentRisk | null;
-  };
+  /** Across the whole service day, as every figure was before E-D20. */
+  reliability: JourneyReliability;
+  /**
+   * The same journey measured only in the bands it actually runs in, or null
+   * when no stretch of it carries enough exposure in its band to say anything.
+   *
+   * Not a replacement for the pooled figure: only about a third of scorable
+   * segments can be conditioned at all (E-D20), so this view falls back to the
+   * all-day number wherever a band is too thin, and reports how much of it did.
+   */
+  atTime: BandReliability | null;
   /** Ordered segments the journey rides, for drawing it on the map. */
   path: TraversedSegment[];
   /**
@@ -84,6 +109,8 @@ export interface ScoredJourney extends Journey {
    * trip carries, and the rider needs both.
    */
   legRisks: Array<LegRisk | null>;
+  /** The same, on the band view. Null when nothing could be conditioned. */
+  legRisksAtTime: Array<LegRisk | null> | null;
 }
 
 interface SegmentRow {
@@ -109,6 +136,14 @@ export interface TraversedSegment {
   risk: number | null;
   /** Same unit the explore map uses, so a trip is coloured by one scale. */
   gapMinutesPerMonth: number | null;
+  /**
+   * The band view of the same figure, rescaled to the all-day trip volume so
+   * it lands on the same ramp. Falls back to `gapMinutesPerMonth` where the
+   * band is too thin, so a stretch never disappears when the rider toggles.
+   */
+  gapMinutesPerMonthAtTime: number | null;
+  /** True when the band figure above is genuinely this band's, not a fallback. */
+  conditioned: boolean;
   from: string;
   to: string;
 }
@@ -220,6 +255,13 @@ export async function scoreJourney(
   // two legs of one journey, so this is a set rather than a single index.
   const legsOfSegment = new Map<string, Set<number>>();
   const expectedPerLeg = new Map<number, number>();
+  /**
+   * The band a segment is ridden in, taken from its leg's departure. A long leg
+   * can cross a boundary; we do not have per-segment traversal times, and
+   * splitting a leg on an estimate would invent precision the schedule does not
+   * carry. The leg's own departure is the band the rider chose.
+   */
+  const bandOfSegment = new Map<string, string>();
   for (const leg of rides) {
     const legIndex = journey.legs.indexOf(leg);
     for (let i = 0; i < leg.stopIds.length - 1; i++) {
@@ -228,6 +270,7 @@ export async function scoreJourney(
       const seg = lookup(index, leg.routeId!, leg.stopIds[i]!, leg.stopIds[i + 1]!, stopName);
       if (seg === undefined) continue;
       traversed.push(seg);
+      if (!bandOfSegment.has(seg.id)) bandOfSegment.set(seg.id, bandOfSeconds(leg.departAt).id);
       const set = legsOfSegment.get(seg.id);
       if (set === undefined) legsOfSegment.set(seg.id, new Set([legIndex]));
       else set.add(legIndex);
@@ -253,6 +296,7 @@ export async function scoreJourney(
   }
 
   const risks: SegmentRisk[] = [];
+  const bandRisks: SegmentRisk[] = [];
   for (const [segId, rows] of bySegment) {
     const seg = traversed.find((t) => t.id === segId)!;
     const weights = rows.map((r) => recencyWeight(r.occurredAt, now));
@@ -269,13 +313,43 @@ export async function scoreJourney(
     // would invent the number the whole conversion exists to avoid.
     if (trips === undefined || trips <= 0) continue;
 
+    const risk = Math.min(1, incidentsPerMonth / trips);
     risks.push({
       segmentId: segId,
       from: seg.fromStation,
       to: seg.toStation,
-      risk: Math.min(1, incidentsPerMonth / trips),
+      risk,
       gapMinutesPerMonth: Number(gapPerMonth.toFixed(1)),
       confidence,
+    });
+
+    // The same segment, measured only in the band this trip rides it in.
+    const bandId = bandOfSegment.get(segId);
+    const bandTrips = bandId === undefined
+      ? undefined
+      : frequency.tripsPerMonthInBand.get(`${key(seg.routeId, seg.fromStopId ?? seg.fromStation, seg.toStopId ?? seg.toStation)}|${bandId}`);
+    // Would the all-day rate predict enough incidents across the trips that
+    // actually run in this band to notice their absence? Gating on observed
+    // incidents instead keeps only the bad bands (E-D20).
+    if (bandId === undefined || bandTrips === undefined || bandTrips <= 0) continue;
+    if (risk * bandTrips * denominator < MIN_EXPECTED_IN_BAND) continue;
+
+    const inBand = rows.filter((r) => bandOf(r.occurredAt.getHours()).id === bandId);
+    const bandWeights = inBand.map((r) => recencyWeight(r.occurredAt, now));
+    const bandSample = bandWeights.reduce((t, w) => t + w, 0);
+    const bandGap = inBand.reduce((t, r, i) => t + r.minGap * bandWeights[i]!, 0) / denominator;
+
+    bandRisks.push({
+      segmentId: segId,
+      from: seg.fromStation,
+      to: seg.toStation,
+      risk: Math.min(1, (bandSample / denominator) / bandTrips),
+      // Rescaled to the all-day trip volume so it stays on the same colour
+      // ramp: "if the whole month ran at this band's rate". Band minutes as-is
+      // are smaller simply because a band is shorter, and every stretch would
+      // slide toward the reliable end for the wrong reason.
+      gapMinutesPerMonth: Number((bandGap * (trips / bandTrips)).toFixed(1)),
+      confidence: confidenceFor(bandSample),
     });
   }
 
@@ -283,41 +357,81 @@ export async function scoreJourney(
   const modes = new Set(traversed.map((s) => (s.mode === "subway" ? "subway" : "surface")));
   const severity = await pooledSeverityFor([...modes]);
 
-  const disruptionRisk = composeRisk(risks.map((r) => r.risk));
-  const expected = disruptionRisk * severity.p50;
+  // One assembly, run twice: once over the all-day figures and once over the
+  // band-conditioned ones. Two code paths would eventually disagree about how a
+  // leg composes into a trip, and the whole point of the second view is that a
+  // rider can compare it with the first.
+  const assemble = (
+    from: readonly SegmentRisk[],
+  ): { reliability: JourneyReliability; legRisks: Array<LegRisk | null> } => {
+    const disruptionRisk = composeRisk(from.map((r) => r.risk));
+
+    const perLeg = new Map<number, number[]>();
+    for (const r of from) {
+      for (const li of legsOfSegment.get(r.segmentId) ?? []) {
+        const list = perLeg.get(li);
+        if (list === undefined) perLeg.set(li, [r.risk]);
+        else list.push(r.risk);
+      }
+    }
+    const legRisks: Array<LegRisk | null> = journey.legs.map((leg, i) => {
+      if (leg.kind !== "ride") return null;
+      const scored = perLeg.get(i) ?? [];
+      const expectedHere = expectedPerLeg.get(i) ?? 0;
+      if (scored.length === 0 || expectedHere === 0) {
+        // A ride we could not score is a ride we cannot speak for. It is shown
+        // as unknown rather than folded into the trip's figure (P-03).
+        return { risk: 0, oneInTrips: null, coverage: 0, isWorst: false };
+      }
+      const legRisk = composeRisk(scored);
+      return {
+        risk: Number(legRisk.toFixed(5)),
+        oneInTrips: legRisk > 0 ? Math.round(1 / legRisk) : null,
+        coverage: Number((scored.length / expectedHere).toFixed(2)),
+        isWorst: false,
+      };
+    });
+    const worst = worstLegIndex(legRisks);
+    if (worst !== null) legRisks[worst]!.isWorst = true;
+
+    const ranked = [...from].sort((a, b) => b.risk - a.risk);
+    return {
+      reliability: {
+        disruptionRisk: Number(disruptionRisk.toFixed(4)),
+        oneInTrips: disruptionRisk > 0 ? Math.round(1 / disruptionRisk) : null,
+        minutesWhenDisrupted: severity.p50,
+        minutesWhenBad: severity.p90,
+        expectedAddedMinutes: Number((disruptionRisk * severity.p50).toFixed(2)),
+        coverage: expectedSegments === 0 ? 0 : Number((from.length / expectedSegments).toFixed(2)),
+        dominant: dominantStretch(from),
+        worst: ranked.slice(0, 3),
+      },
+      legRisks,
+    };
+  };
+
+  const pooled = assemble(risks);
+
+  // The band view is the conditioned figure where a band carries enough
+  // exposure, and the all-day figure everywhere else. Dropping the stretches
+  // that cannot be conditioned would quietly shorten the trip and make it look
+  // safer; substituting them keeps the trip whole and the shortfall is reported
+  // as conditionedShare rather than hidden.
+  const bandById = new Map(bandRisks.map((r) => [r.segmentId, r]));
+  const blended = risks.map((r) => bandById.get(r.segmentId) ?? r);
+  const atTimeView = bandRisks.length === 0 ? null : assemble(blended);
 
   const riskById = new Map(risks.map((r) => [r.segmentId, r.risk]));
   const exposureById = new Map(risks.map((r) => [r.segmentId, r.gapMinutesPerMonth]));
+  const blendedExposure = new Map(blended.map((r) => [r.segmentId, r.gapMinutesPerMonth]));
+  const legRisks = pooled.legRisks;
 
-  // Per-leg risk, composed the same way as the journey's: one minus the chance
-  // every segment of that leg behaves.
-  const perLeg = new Map<number, number[]>();
-  for (const r of risks) {
-    for (const li of legsOfSegment.get(r.segmentId) ?? []) {
-      const list = perLeg.get(li);
-      if (list === undefined) perLeg.set(li, [r.risk]);
-      else list.push(r.risk);
-    }
+  const bandsRidden: Array<{ id: string; label: string }> = [];
+  for (const leg of journey.legs) {
+    if (leg.kind !== "ride") continue;
+    const b = bandOfSeconds(leg.departAt);
+    if (!bandsRidden.some((x) => x.id === b.id)) bandsRidden.push({ id: b.id, label: b.label });
   }
-  const legRisks: Array<LegRisk | null> = journey.legs.map((leg, i) => {
-    if (leg.kind !== "ride") return null;
-    const scored = perLeg.get(i) ?? [];
-    const expected = expectedPerLeg.get(i) ?? 0;
-    if (scored.length === 0 || expected === 0) {
-      // A ride we could not score is a ride we cannot speak for. It is shown
-      // as unknown rather than folded into the trip's figure (P-03).
-      return { risk: 0, oneInTrips: null, coverage: 0, isWorst: false };
-    }
-    const legRisk = composeRisk(scored);
-    return {
-      risk: Number(legRisk.toFixed(5)),
-      oneInTrips: legRisk > 0 ? Math.round(1 / legRisk) : null,
-      coverage: Number((scored.length / expected).toFixed(2)),
-      isWorst: false,
-    };
-  });
-  const worst = worstLegIndex(legRisks);
-  if (worst !== null) legRisks[worst]!.isWorst = true;
 
   return {
     ...journey,
@@ -327,20 +441,26 @@ export async function scoreJourney(
       geometry: s.geometry ?? null,
       risk: riskById.get(s.id) ?? null,
       gapMinutesPerMonth: exposureById.get(s.id) ?? null,
+      // The same stretch on the band view. Falls back to the all-day figure
+      // where the band is too thin, so the drawn route never loses a stretch
+      // when the rider flips the toggle — it would read as the trip changing.
+      gapMinutesPerMonthAtTime: blendedExposure.get(s.id) ?? null,
+      conditioned: bandById.has(s.id),
       from: s.fromStation,
       to: s.toStation,
     })),
-    reliability: {
-      disruptionRisk: Number(disruptionRisk.toFixed(4)),
-      oneInTrips: disruptionRisk > 0 ? Math.round(1 / disruptionRisk) : null,
-      minutesWhenDisrupted: severity.p50,
-      minutesWhenBad: severity.p90,
-      expectedAddedMinutes: Number(expected.toFixed(2)),
-      coverage: expectedSegments === 0 ? 0 : Number((risks.length / expectedSegments).toFixed(2)),
-      dominant: dominantStretch(risks),
-      worst: risks.sort((a, b) => b.risk - a.risk).slice(0, 3),
-    },
+    reliability: pooled.reliability,
+    atTime:
+      atTimeView === null
+        ? null
+        : {
+            ...atTimeView.reliability,
+            bands: bandsRidden,
+            conditionedShare:
+              risks.length === 0 ? 0 : Number((bandRisks.length / risks.length).toFixed(2)),
+          },
     legRisks,
+    legRisksAtTime: atTimeView?.legRisks ?? null,
   };
 }
 

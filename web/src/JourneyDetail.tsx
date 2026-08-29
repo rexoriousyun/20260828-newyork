@@ -1,5 +1,6 @@
 import { Fragment, useState } from "react";
 import type { ScoredJourney } from "./api.js";
+import { legReliabilityFor, type View } from "./view.js";
 
 const hhmm = (s: number): string =>
   `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
@@ -14,7 +15,13 @@ const mins = (a: number, b: number): number => Math.max(1, Math.round((b - a) / 
  * steps are the thing they will actually follow, so they open in place rather
  * than on another screen (P-09).
  */
-export function JourneyDetail({ journey }: { journey: ScoredJourney }): JSX.Element {
+export function JourneyDetail({
+  journey,
+  view,
+}: {
+  journey: ScoredJourney;
+  view: View;
+}): JSX.Element {
   const [open, setOpen] = useState(false);
   return (
     <div className="detail">
@@ -54,20 +61,20 @@ export function JourneyDetail({ journey }: { journey: ScoredJourney }): JSX.Elem
                     </span>
                     <span className="leg-dur">{mins(l.departAt, l.arriveAt)} min</span>
                   </span>
-                  {l.reliability !== null && (
+                  {legReliabilityFor(l, view) !== null && (
                     <span className="leg-risk">
-                      {l.reliability.oneInTrips === null ? (
+                      {legReliabilityFor(l, view)!.oneInTrips === null ? (
                         // Never folded into the trip's figure and never left
                         // to look like the reliable end of the scale (P-03).
                         "Not enough data on this stretch"
                       ) : (
                         <>
-                          Goes wrong 1 in {l.reliability.oneInTrips}
-                          {l.reliability.isWorst && (
+                          Goes wrong 1 in {legReliabilityFor(l, view)!.oneInTrips}
+                          {legReliabilityFor(l, view)!.isWorst && (
                             <strong> — most of this trip&rsquo;s risk</strong>
                           )}
-                          {l.reliability.coverage < 0.5 &&
-                            `, measured on ${Math.round(l.reliability.coverage * 100)}% of it`}
+                          {legReliabilityFor(l, view)!.coverage < 0.5 &&
+                            `, measured on ${Math.round(legReliabilityFor(l, view)!.coverage * 100)}% of it`}
                         </>
                       )}
                     </span>

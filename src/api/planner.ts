@@ -12,6 +12,7 @@ import { prisma } from "../db/client.js";
 import { buildConnections, type ConnectionSet } from "../domain/connections.js";
 import { displayStopName, displayStationName } from "../domain/stop-names.js";
 import { departureAdvice, latestDeparture } from "../domain/departure.js";
+import { inServiceDay, DAY_SECONDS } from "../domain/time-bands.js";
 import { buildFootpaths, type Footpaths } from "../domain/footpaths.js";
 import { plan, type Journey } from "../domain/csa.js";
 import { buildFrequency, type SegmentFrequency } from "../domain/frequency.js";
@@ -29,6 +30,13 @@ interface Graph {
   segmentIndex: Awaited<ReturnType<typeof loadSegmentIndex>>;
   /** Stops a rider can actually depart from. Parent station nodes are not. */
   boardable: Set<string>;
+  /**
+   * Earliest and latest departure the loaded service covers, in seconds since
+   * midnight. Only weekday service is ingested, so overnight Blue Night routes
+   * are absent — and a rider asking at 2am must be told the data stops there,
+   * not that the network does (P-03).
+   */
+  serviceWindow: { from: number; to: number };
 }
 
 async function loadSegmentIndex(): Promise<ReturnType<typeof buildSegmentIndex>> {
@@ -65,7 +73,15 @@ async function getGraph(): Promise<Graph> {
       boardable.add(connections.stopIds[connections.fromStop[i]!]!);
     }
     const coords = new Map(stops.map((s) => [s.id, { lat: s.lat, lon: s.lon }]));
+    let earliest = Infinity, latest = -Infinity;
+    for (let i = 0; i < connections.count; i++) {
+      const t = connections.depTime[i]!;
+      if (t < earliest) earliest = t;
+      if (t > latest) latest = t;
+    }
+
     return {
+      serviceWindow: { from: earliest, to: latest },
       stopCoords: coords,
       connections,
       footpaths: buildFootpaths(lat, lon),
@@ -92,6 +108,37 @@ const planQuery = z.object({
 
 /** How far back from a deadline to look for a departure. */
 const ARRIVE_BY_WINDOW_S = 3 * 3600;
+
+/** Station codes come out of the incident feed upper-cased; riders read signs. */
+function named<T extends { worst: Array<{ from: string; to: string }>; dominant: { from: string; to: string } | null }>(r: T): T {
+  return {
+    ...r,
+    worst: r.worst.map((w) => ({ ...w, from: displayStationName(w.from), to: displayStationName(w.to) })),
+    dominant:
+      r.dominant === null
+        ? null
+        : { ...r.dominant, from: displayStationName(r.dominant.from), to: displayStationName(r.dominant.to) },
+  };
+}
+
+/**
+ * Why we found nothing, when the reason is us rather than the network.
+ *
+ * Only weekday service is loaded, so some hours are missing from the data and
+ * not from Toronto. Saying "no journey" there would be absence of data dressed
+ * as absence of service — the exact confusion P-03 forbids.
+ */
+function outsideService(atSeconds: number, window: { from: number; to: number }): string | null {
+  if (atSeconds >= window.from && atSeconds <= window.to) return null;
+  const hh = (s: number): string => {
+    const t = `${String(Math.floor(s / 3600) % 24).padStart(2, "0")}:${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}`;
+    return s >= DAY_SECONDS ? `${t} the next morning` : t;
+  };
+  return (
+    `We only have weekday service loaded, from ${hh(window.from)} to ${hh(window.to)}. ` +
+    "The TTC runs Blue Night routes outside that — we just do not have them yet."
+  );
+}
 
 export function registerPlanner(app: FastifyInstance): void {
   // The graph takes a few seconds to build; warm it now so the first search
@@ -141,7 +188,8 @@ export function registerPlanner(app: FastifyInstance): void {
     const parsed = planQuery.safeParse(req.query);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
 
-    const { connections, footpaths, stopNames, stopCoords, frequency, segmentIndex } = await getGraph();
+    const { connections, footpaths, stopNames, stopCoords, frequency, segmentIndex, serviceWindow } =
+      await getGraph();
     const departAt = parsed.data.departAt ?? 8 * 3600 + 30 * 60;
     // Scoring keys on the raw GTFS name: the segment index was built from it,
     // and a prettier string here would silently miss every lookup.
@@ -152,17 +200,16 @@ export function registerPlanner(app: FastifyInstance): void {
     // Working backwards from a deadline is a search, not a single plan: earliest
     // arrival is monotone in departure time, so the latest departure that still
     // makes it is found by bisection over the planner.
-    let searchFrom = departAt;
+    let searchFrom = inServiceDay(departAt, serviceWindow);
     if (parsed.data.arriveBy !== undefined) {
-      const found = latestDeparture(parsed.data.arriveBy, ARRIVE_BY_WINDOW_S, (t) => {
+      const arriveBy = inServiceDay(parsed.data.arriveBy, serviceWindow);
+      const found = latestDeparture(arriveBy, ARRIVE_BY_WINDOW_S, (t) => {
         const j = plan(connections, footpaths, parsed.data.from, parsed.data.to, t);
         return j === null ? null : j.arriveAt;
       });
       if (found === null) {
-        return {
-          journey: null,
-          reason: "No journey arrives by then, starting from up to three hours before.",
-        };
+        return { journey: null, reason: outsideService(arriveBy, serviceWindow)
+          ?? "No journey arrives by then, starting from up to three hours before." };
       }
       searchFrom = found.departAt;
     }
@@ -171,10 +218,8 @@ export function registerPlanner(app: FastifyInstance): void {
     if (best === null) {
       // A failed plan is a real answer, not an error: no service in the window
       // is exactly what a rider at 3am needs to be told.
-      return {
-        journey: null,
-        reason: "No journey found within 3 hours of the requested departure.",
-      };
+      return { journey: null, reason: outsideService(searchFrom, serviceWindow)
+        ?? "No journey found within 3 hours of the requested departure." };
     }
 
     // Alternatives by banning one route at a time from the best journey. It is
@@ -223,11 +268,13 @@ export function registerPlanner(app: FastifyInstance): void {
                     properties: {
                       kind: "ride", risk: seg.risk,
                       gapMinutesPerMonth: seg.gapMinutesPerMonth,
+                      gapMinutesPerMonthAtTime: seg.gapMinutesPerMonthAtTime,
                       // Without this the map's colour ramp coalesces a missing
                       // exposure to zero and paints an unmeasured stretch in
                       // the *most reliable* colour — absence of data reading as
                       // good news, which P-03 exists to forbid.
                       confidence: seg.risk === null ? "unknown" : "known",
+                      conditioned: seg.conditioned,
                       from: seg.from, to: seg.to,
                     },
                   }],
@@ -241,6 +288,7 @@ export function registerPlanner(app: FastifyInstance): void {
                 geometry: { type: "LineString" as const, coordinates: [[a.lon, a.lat], [b.lon, b.lat]] },
                 properties: {
                   kind: "walk", risk: null, gapMinutesPerMonth: null,
+                  gapMinutesPerMonthAtTime: null, conditioned: false,
                   confidence: "none",
                   from: labelOf(l.fromStop), to: labelOf(l.toStop),
                 },
@@ -248,20 +296,9 @@ export function registerPlanner(app: FastifyInstance): void {
             }),
           ],
         },
-        reliability: {
-          ...j.reliability,
-          worst: j.reliability.worst.map((w) => ({
-            ...w, from: displayStationName(w.from), to: displayStationName(w.to),
-          })),
-          dominant:
-            j.reliability.dominant === null
-              ? null
-              : {
-                  ...j.reliability.dominant,
-                  from: displayStationName(j.reliability.dominant.from),
-                  to: displayStationName(j.reliability.dominant.to),
-                },
-        },
+        reliability: named(j.reliability),
+        atTime: j.atTime === null ? null : { ...named(j.atTime), bands: j.atTime.bands,
+          conditionedShare: j.atTime.conditionedShare },
         // Only present when the rider gave a deadline: without one there is
         // nothing to work backwards from, and inventing a target would be
         // answering a question they did not ask.
@@ -271,7 +308,7 @@ export function registerPlanner(app: FastifyInstance): void {
             : departureAdvice({
                 departAt: j.departAt,
                 arriveAt: j.arriveAt,
-                arriveBy: parsed.data.arriveBy,
+                arriveBy: inServiceDay(parsed.data.arriveBy, serviceWindow),
                 disruptionRisk: j.reliability.disruptionRisk,
                 oneInTrips: j.reliability.oneInTrips,
                 severityCoveredMinutes: j.reliability.minutesWhenBad,
@@ -284,6 +321,7 @@ export function registerPlanner(app: FastifyInstance): void {
           kind: l.kind, routeId: l.routeId, departAt: l.departAt, arriveAt: l.arriveAt,
           fromName: labelOf(l.fromStop), toName: labelOf(l.toStop),
           reliability: j.legRisks[i] ?? null,
+          reliabilityAtTime: j.legRisksAtTime?.[i] ?? null,
         })),
       })),
       /** Stated so a single result is not mistaken for a shortlist. */

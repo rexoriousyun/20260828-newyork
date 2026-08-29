@@ -599,6 +599,59 @@ on screen said what its colours meant. Three changes:
 
 ---
 
+## D-27 — Condition on time of day, and let the rider see the other figure `ACCEPTED · IMPLEMENTED`
+**Cites:** P-01, P-03, P-09 · **Journeys:** J-01 · **Problems:** PR-01, PR-08 · **Evidence:** E-D20, E-D18
+
+Every rate the app showed was pooled across the service day, so an 08:30 departure was quoted
+a number that included 23:00 running. E-D20 measured it: the variation is real and persists
+(rho = 0.406), and it misstates a morning commute by around 20%.
+
+**One toggle, defaulted to the rider's own travel window.** "6 to 9am" or "All day". It
+governs the numbers *and* the colours on the map, because a route coloured on one basis
+beside a rate written for another is worse than either alone. The all-day figure stays
+because it is the right thing to *compare* against — it is the same number for the route at
+every hour — but it is not the one to quote by default.
+
+The trip form now defaults to the current time rather than a hardcoded morning peak, so a
+rider who opens the app gets figures conditioned on when they are actually travelling.
+
+**Conditioned where the evidence reaches, pooled everywhere else, and the mix is stated.**
+Only about a third of scorable segments carry enough exposure in a band (E-D20), so the band
+view substitutes the all-day figure for the rest. Dropping those stretches instead would
+quietly shorten the trip and make it look safer. The share that is genuinely conditioned is
+reported on screen — a rider told "at this time" deserves to know how much of it is (P-09).
+
+**Both sides of the ratio are sliced the same way.** Peak-hour incidents over all-day trips
+would understate peak by roughly the factor peak service exceeds the daily mean, and that
+error is most of why the intuition "peak is much worse" does not survive measurement.
+
+**The map's band figure is rescaled to the all-day trip volume** — "if the whole month ran at
+this band's rate" — so it lands on the same ramp. Raw band minutes are smaller merely because
+a band is shorter, and every stretch would slide toward the reliable end for the wrong reason.
+
+**The toggle only appears when there is something to switch to.** On a trip where no stretch
+can be conditioned there is no second view, and a control with one working setting is a
+promise the data cannot keep.
+
+### Two defects this surfaced
+
+> **The planner refused trips that exist.** GTFS runs a service day past midnight — this
+> feed's weekday service spans 03:28 to 30:35, meaning 06:35 the next morning. Comparing a
+> wall-clock 01:45 against that window directly, the planner reported "no journey" for a
+> 01:14 departure sitting in its own data. Found only because defaulting the time control to
+> *now* ran the app at 01:34. `inServiceDay` now places a wall-clock time in the service day
+> the schedule uses.
+>
+> **And "no journey" was hiding a data gap.** Outside the loaded window the app said no
+> journey exists, when what is missing is our ingest: only weekday service is loaded, and the
+> TTC's Blue Night routes are a different GTFS service id we have not taken. It now says
+> which, because absence of data reading as absence of service is exactly what P-03 forbids.
+
+**Reversed if:** riders find two numbers for one trip confusing rather than clarifying, in
+which case the band figure stands alone and the all-day one moves behind "why this number".
+
+---
+
 ## Open questions
 
 | # | Question | Blocks | Owner |

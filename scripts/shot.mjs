@@ -16,6 +16,10 @@ async function run(name, fromText, toText, opts = {}) {
     await p.waitForTimeout(700);
     await p.locator(".suggestions li").first().click();
   };
+  // Pinned, not "now": the app defaults to the rider's current time, and a
+  // capture that moves with the clock cannot be compared with the last one.
+  await p.locator('.when-field input[type="time"]').fill(opts.at ?? "09:00");
+  await p.waitForTimeout(300);
   await pick("From", fromText);
   await pick("To", toText);
   await p.waitForTimeout(3500);
@@ -27,6 +31,16 @@ async function run(name, fromText, toText, opts = {}) {
   await p.evaluate(() => new Promise((r) => { const t = setTimeout(r, 6000); window.__map.once("idle", () => { clearTimeout(t); r(); }); }));
   await p.waitForTimeout(400);
   await p.screenshot({ path: `/tmp/${name}-peek.png` });
+
+  // the other side of the toggle, so the two can be compared
+  const allDay = p.locator('.view-toggle button:text-is("All day")');
+  if (await allDay.count()) {
+    await allDay.click();
+    await p.waitForTimeout(1200);
+    await p.screenshot({ path: `/tmp/${name}-allday.png` });
+    await p.locator(".view-toggle button").first().click();
+    await p.waitForTimeout(1000);
+  }
 
   // open the step-by-step detail
   const steps = p.locator('.detail button.why');
@@ -48,9 +62,11 @@ async function run(name, fromText, toText, opts = {}) {
 }
 
 await run("long", "Jane St at Eglinton", "Union Station", {
+  at: "09:00",
   zoom: { center: [-79.383, 43.650], zoom: 14.5 },
 });
 await run("dt", "Spadina Ave At Queen", "Sherbourne Station", {
+  at: "09:00",
   zoom: { center: [-79.383, 43.653], zoom: 14.5 },
 });
 await b.close();

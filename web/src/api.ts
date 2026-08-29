@@ -109,6 +109,8 @@ export interface JourneyLeg {
   toName: string;
   /** Null on a walk: a footpath has no reliability to report. */
   reliability: LegRisk | null;
+  /** The same leg on the band view. Null when it could not be conditioned. */
+  reliabilityAtTime: LegRisk | null;
 }
 
 export interface DepartureAdvice {
@@ -119,8 +121,27 @@ export interface DepartureAdvice {
   covered: { leaveAt: number; extraMinutes: number } | null;
 }
 
+export interface JourneyReliability {
+  disruptionRisk: number;
+  oneInTrips: number | null;
+  minutesWhenDisrupted: number;
+  minutesWhenBad: number;
+  coverage: number;
+  worst: Array<{ from: string; to: string; risk: number }>;
+  /** The one stretch that dominates, or null when the risk is spread. */
+  dominant: { from: string; to: string; risk: number } | null;
+}
+
+export interface BandReliability extends JourneyReliability {
+  bands: Array<{ id: string; label: string }>;
+  /** Share of scored stretches using their own band rather than the all-day figure. */
+  conditionedShare: number;
+}
+
 export interface ScoredJourney {
   advice: DepartureAdvice | null;
+  /** Measured only in the bands this trip runs in, or null when none could be. */
+  atTime: BandReliability | null;
   id: string;
   typicalMinutes: number;
   disruptedMinutes: number;
@@ -128,16 +149,7 @@ export interface ScoredJourney {
   departAt: number;
   arriveAt: number;
   legs: JourneyLeg[];
-  reliability: {
-    disruptionRisk: number;
-    oneInTrips: number | null;
-    minutesWhenDisrupted: number;
-    minutesWhenBad: number;
-    coverage: number;
-    worst: Array<{ from: string; to: string; risk: number }>;
-    /** The one stretch that dominates, or null when the risk is spread. */
-    dominant: { from: string; to: string; risk: number } | null;
-  };
+  reliability: JourneyReliability;
   geojson: {
     type: "FeatureCollection";
     features: Array<{
@@ -147,6 +159,8 @@ export interface ScoredJourney {
         kind: "ride" | "walk";
         risk: number | null;
         gapMinutesPerMonth: number | null;
+        gapMinutesPerMonthAtTime: number | null;
+        conditioned: boolean;
         confidence: "known" | "unknown" | "none";
         from: string;
         to: string;

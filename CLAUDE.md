@@ -152,6 +152,22 @@ over the canvas and both change height. `chromePadding()` in `MapView.tsx` reads
 rects; the hardcoded insets it replaced drew half of every planned route underneath the
 results sheet.
 
+**GTFS service days run past midnight.** This feed's weekday service spans 03:28 to 30:35 —
+06:35 the next morning. Comparing a wall-clock 01:45 against that window made the planner
+report "no journey" for a 01:14 departure sitting in its own data. Put a wall-clock time in
+the service day first (`inServiceDay`). Found only because the time control was defaulted to
+*now* and the app happened to run at 01:34.
+
+**Slice both sides of a ratio, or neither.** Peak-hour incidents over all-day trips
+understates peak by the factor peak service exceeds the daily mean. Risk is incidents per
+trip; if the numerator is conditioned the denominator must be too. See `frequency.ts`.
+
+**A band gated on observed events keeps only the bad bands.** The first time-of-day audit
+gated each band on incidents it had accumulated, so quiet bands vanished and every survivor
+looked worse than the pooled figure — a median above 1.0 in all five bands, which is
+impossible for a trip-weighted decomposition and was the tell. Gate on *expected* events
+instead; an observed zero where three were predicted is evidence, not absence of it.
+
 **`coalesce(get(x), 0)` in a colour ramp turns missing data into the best possible value.**
 A planned trip drew its unmeasured stretches at the green end of the scale for a whole
 milestone — valid expression, correct data, invisible to typecheck and tests. Any feature fed

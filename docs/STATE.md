@@ -58,6 +58,7 @@ would reverse it.
 | M9 app shell | **done** — plan/explore, stop search, results, trip detail on a map |
 | M10 departure advice | **done** — arrive-by search, both outcomes, buffer priced |
 | Per-leg risk and route key | **done** — which part of the trip, and what the colours mean |
+| Time-of-day conditioning | **done** — one toggle, defaulted to the rider's own window (D-27) |
 
 ## The numbers that matter
 
@@ -139,6 +140,10 @@ and blocked stations are marked — but the planner does not yet route *around* 
 **Known gap:** GTFS-RT trip updates and vehicle positions are ingested but unconsumed. J-02
 (at-stop) and J-03 (mid-trip) both need them.
 
+**Known gap:** only weekday GTFS service is loaded. Blue Night routes are a different service
+id, so the app correctly reports no *data* between roughly 06:35 and 03:28 — and says so
+rather than implying the network stops.
+
 ## Running it
 
 ```bash
@@ -147,7 +152,8 @@ npm run ingest            # downloads TTC open data + GTFS, builds segments, att
 npm run audit:gap         # M2 gate — is Min Gap trustworthy?
 npm run audit:stability   # M4 — does segment reliability persist?
 npm run audit:coverage    # M5 — surface geocoding rate
-npm test                  # 99 tests
+npm run audit:timeofday   # does pooling across the day misrepresent the risk?
+npm test                  # 106 tests
 npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
 node scripts/shot.mjs     # screenshot the app, including a downtown street zoom

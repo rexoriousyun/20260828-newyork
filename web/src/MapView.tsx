@@ -35,11 +35,17 @@ interface Props {
   journey: { type: "FeatureCollection"; features: unknown[] } | null;
   /** Changes whenever the chrome over the map moves, so the fit is redone. */
   fitToken: string;
+  /**
+   * Which exposure figure colours the trip. The map and the text have to agree:
+   * a route coloured on the all-day basis beside a rate written for the morning
+   * peak is worse than either measurement alone.
+   */
+  exposureProperty: string;
   onSelect: (f: SegmentFeature | null) => void;
   selectedId: string | null;
 }
 
-export function MapView({ data, journey, fitToken, onSelect, selectedId }: Props): JSX.Element {
+export function MapView({ data, journey, fitToken, exposureProperty, onSelect, selectedId }: Props): JSX.Element {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MlMap | null>(null);
   const ready = useRef(false);
@@ -157,7 +163,7 @@ export function MapView({ data, journey, fitToken, onSelect, selectedId }: Props
         filter: ["all", ["==", ["get", "kind"], "ride"], ["!=", ["get", "confidence"], "unknown"]],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          "line-color": lineColorExpression(tok) as never,
+          "line-color": lineColorExpression(tok, exposureProperty) as never,
           "line-width": ["interpolate", ["linear"], ["zoom"], 9, 3.5, 14, 6.5, 17, 11],
         },
       });
@@ -275,6 +281,21 @@ export function MapView({ data, journey, fitToken, onSelect, selectedId }: Props
     if (ready.current) apply();
     else m.once("load", apply);
   }, [journey, fitToken]);
+
+  useEffect(() => {
+    const m = map.current;
+    if (m === null || !ready.current) return;
+    if (m.getLayer("journey-ride") !== undefined) {
+      m.setPaintProperty(
+        "journey-ride",
+        "line-color",
+        lineColorExpression(
+          tokensFor(window.matchMedia("(prefers-color-scheme: dark)").matches),
+          exposureProperty,
+        ) as never,
+      );
+    }
+  }, [exposureProperty]);
 
   useEffect(() => {
     const m = map.current;
