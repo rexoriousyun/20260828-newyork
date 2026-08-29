@@ -74,7 +74,13 @@ function Sheet({ feature, onClose }: { feature: SegmentFeature; onClose: () => v
         {p.isTerminalApproach && <span className="flag">terminal</span>}
       </div>
 
-      {p.blockedBy !== null && (
+      {/* Loose, deliberately. The server sends `blockedBy: null`, but MapLibre
+          strips null properties on the way through its source, so what arrives
+          here is `undefined` — which passes a `!== null` guard and then throws
+          on `.state`, unmounting the whole app. Tapping any segment in explore
+          mode white-screened it. Anything read off `queryRenderedFeatures` has
+          to treat absent and null as the same thing. */}
+      {p.blockedBy != null && (
         <div className="blocked">
           <strong>
             {p.blockedBy.state === "outage"

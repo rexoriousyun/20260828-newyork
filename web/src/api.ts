@@ -67,7 +67,7 @@ export interface SegmentFeature {
     isTerminalApproach: boolean;
     drawnOnStreets: boolean;
     /** Set only when step-free routing is on and an endpoint blocks this segment. */
-    blockedBy: { station: string; state: string; note?: string } | null;
+    blockedBy: { station: string; state: string; note?: string } | null | undefined;
   };
 }
 
