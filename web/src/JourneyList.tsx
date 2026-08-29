@@ -25,14 +25,10 @@ function Journey({
 }): JSX.Element {
   const routes = j.legs.filter((l) => l.kind === "ride").map((l) => l.routeId ?? "?");
   const thin = j.reliability.coverage < 0.5;
-  // Naming the stretch is only honest when one stretch really does dominate;
-  // below that it is a spurious pin on an evenly-risky trip.
-  const top = j.reliability.worst[0];
-  const worst =
-    top !== undefined && j.reliability.disruptionRisk > 0 &&
-    top.risk / j.reliability.disruptionRisk >= 0.4
-      ? top
-      : null;
+  // Whether one stretch dominates is decided once, on the server, against the
+  // next-worst stretch. The share-of-total test this replaced fired on an even
+  // two-way split, which pins a rider to an arbitrary half of their trip.
+  const worst = j.reliability.dominant;
   return (
     <button className="journey" aria-pressed={selected} onClick={() => onSelect(j.id)}>
       <span className="journey-top">

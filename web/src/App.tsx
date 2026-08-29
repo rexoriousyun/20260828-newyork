@@ -5,6 +5,7 @@ import { JourneyList } from "./JourneyList.js";
 import { JourneyDetail } from "./JourneyDetail.js";
 import { WhenControl } from "./WhenControl.js";
 import { DepartureAdvice } from "./DepartureAdvice.js";
+import { RouteKey } from "./RouteKey.js";
 import { UNRELIABLE_THRESHOLD, stateOf } from "./map.js";
 import {
   fetchRoutes,
@@ -289,6 +290,8 @@ export function App(): JSX.Element {
             <p className="answer">{planNote}</p>
           ) : journeys !== null ? (
             <>
+              {/* Directly under the map, because that is what it decodes. */}
+              {!listOpen && chosenJourney !== null && <RouteKey journey={chosenJourney} />}
               {/* With a deadline the advice *is* the answer card; without one
                   the journey card is. Never both — they restate one trip. */}
               {!listOpen && chosenJourney?.advice != null ? (

@@ -8,6 +8,8 @@
   --scale-3: #c33f2b;
   --unknown: #1a7f4c;
   --blocked: #2b2b28;
+  /* Walking: off the scale by design — see the Tokens comment in map.ts. */
+  --walk: #4a4a44;
 
   /* Surfaces and ink. One elevation only: the map is the ground, the sheet
      sits on it. Nothing else floats. */
@@ -31,6 +33,7 @@
     --scale-3: #e35f4e;
     --unknown: #57c78a;
     --blocked: #d8d8d2;
+    --walk: #9c9c94;
     --panel: #1c1c20;
     --ink: #f0f0ea;
     --ink-2: #a8a8a0;
@@ -338,16 +341,22 @@ select {
    line is not read as prose. */
 .detail { margin-top: var(--s2); }
 .legs { list-style: none; margin: var(--s3) 0 0; padding: 0; display: flex; flex-direction: column; }
+/* Time in a fixed column, everything about the leg in the second — including
+   the risk line, which has to align under the leg it describes rather than
+   under the clock. */
 .leg {
-  display: flex; gap: var(--s3); align-items: baseline;
+  display: grid; grid-template-columns: 44px 1fr; gap: 2px var(--s3);
+  align-items: baseline;
   padding: 9px 0; border-top: 1px solid var(--rule);
 }
+.leg-risk { grid-column: 2; font-size: 12.5px; line-height: 1.4; color: var(--ink-3); }
+.leg-risk strong { color: var(--ink-2); font-weight: 600; }
 .leg:first-child { border-top: 0; }
 .leg-time {
-  flex: 0 0 44px; font-size: 13px; font-weight: 500; color: var(--ink-3);
+  font-size: 13px; font-weight: 500; color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
-.leg-body { flex: 1 1 auto; display: flex; gap: var(--s2); align-items: baseline; justify-content: space-between; }
+.leg-body { display: flex; gap: var(--s2); align-items: baseline; justify-content: space-between; }
 .leg-what { font-size: 14px; color: var(--ink-1); display: flex; gap: 7px; align-items: baseline; flex-wrap: wrap; }
 .leg-dur { font-size: 13px; color: var(--ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .leg-walk .leg-what { color: var(--ink-2); }
@@ -417,3 +426,15 @@ select {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .trip-when { flex: 0 0 auto; font-size: 13px; color: var(--ink-3); }
+
+/* The route key in plan mode. One row under the grabber, sized so it reads as
+   a caption on the map rather than a section of the answer. */
+.route-key {
+  gap: var(--s2) var(--s4); margin-bottom: var(--s3);
+  padding-bottom: var(--s3); border-bottom: 1px solid var(--rule);
+  font-size: 11.5px; color: var(--ink-3);
+}
+.legend i.k-walk {
+  background: repeating-linear-gradient(90deg, var(--walk) 0 3px, transparent 3px 5px);
+  height: 4px; vertical-align: 3px; opacity: 0.75;
+}

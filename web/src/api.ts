@@ -91,6 +91,15 @@ export function fetchRouteMap(
   return get(`/routes/${encodeURIComponent(routeId)}/${direction}/map${suffix}`);
 }
 
+export interface LegRisk {
+  risk: number;
+  /** Null when this leg could not be scored at all — unknown, not fine. */
+  oneInTrips: number | null;
+  coverage: number;
+  /** This leg carries the largest single share of the trip's risk. */
+  isWorst: boolean;
+}
+
 export interface JourneyLeg {
   kind: "ride" | "walk";
   routeId?: string;
@@ -98,6 +107,8 @@ export interface JourneyLeg {
   arriveAt: number;
   fromName: string;
   toName: string;
+  /** Null on a walk: a footpath has no reliability to report. */
+  reliability: LegRisk | null;
 }
 
 export interface DepartureAdvice {
@@ -124,13 +135,22 @@ export interface ScoredJourney {
     minutesWhenBad: number;
     coverage: number;
     worst: Array<{ from: string; to: string; risk: number }>;
+    /** The one stretch that dominates, or null when the risk is spread. */
+    dominant: { from: string; to: string; risk: number } | null;
   };
   geojson: {
     type: "FeatureCollection";
     features: Array<{
       type: "Feature";
       geometry: { type: "LineString"; coordinates: Array<[number, number]> };
-      properties: { kind: "ride" | "walk"; risk: number | null; gapMinutesPerMonth: number | null; from: string; to: string };
+      properties: {
+        kind: "ride" | "walk";
+        risk: number | null;
+        gapMinutesPerMonth: number | null;
+        confidence: "known" | "unknown" | "none";
+        from: string;
+        to: string;
+      };
     }>;
   };
 }

@@ -57,6 +57,7 @@ would reverse it.
 | M8 reliability ranking | **done** — disruption rate per journey, 53ms |
 | M9 app shell | **done** — plan/explore, stop search, results, trip detail on a map |
 | M10 departure advice | **done** — arrive-by search, both outcomes, buffer priced |
+| Per-leg risk and route key | **done** — which part of the trip, and what the colours mean |
 
 ## The numbers that matter
 
@@ -146,7 +147,7 @@ npm run ingest            # downloads TTC open data + GTFS, builds segments, att
 npm run audit:gap         # M2 gate — is Min Gap trustworthy?
 npm run audit:stability   # M4 — does segment reliability persist?
 npm run audit:coverage    # M5 — surface geocoding rate
-npm test                  # 86 tests
+npm test                  # 99 tests
 npm run dev               # API on :3000
 cd web && npm install && npm run dev   # UI on :5173
 node scripts/shot.mjs     # screenshot the app, including a downtown street zoom

@@ -152,6 +152,16 @@ over the canvas and both change height. `chromePadding()` in `MapView.tsx` reads
 rects; the hardcoded insets it replaced drew half of every planned route underneath the
 results sheet.
 
+**`coalesce(get(x), 0)` in a colour ramp turns missing data into the best possible value.**
+A planned trip drew its unmeasured stretches at the green end of the scale for a whole
+milestone — valid expression, correct data, invisible to typecheck and tests. Any feature fed
+to `lineColorExpression` must carry `confidence`, and unknown is drawn as a separate dashed
+layer, never as a stop on the ramp. See `D-26`.
+
+**A "share of the total" threshold fires on an even split.** Two equal legs each carry just
+over half a journey's risk, so any share threshold at or below 50% names one of them as the
+worst. Dominance is a ratio against the runner-up (`WORST_DOMINANCE`), not a share of the sum.
+
 **A threshold that produces absurd advice is the wrong shape of answer, not a wrong number.**
 Departure advice first recommended a buffer above a disruption rate — and told riders to
 leave 58 minutes early for a twice-a-year event. Expected value fails the other way. The fix

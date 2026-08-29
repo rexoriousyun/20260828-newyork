@@ -154,11 +154,27 @@ export function MapView({ data, journey, fitToken, onSelect, selectedId }: Props
         id: "journey-ride",
         type: "line",
         source: JOURNEY_SRC,
-        filter: ["==", ["get", "kind"], "ride"],
+        filter: ["all", ["==", ["get", "kind"], "ride"], ["!=", ["get", "confidence"], "unknown"]],
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
           "line-color": lineColorExpression(tok) as never,
           "line-width": ["interpolate", ["linear"], ["zoom"], 9, 3.5, 14, 6.5, 17, 11],
+        },
+      });
+      // A stretch of the trip we cannot speak for, drawn as the same distinct
+      // kind the explore map uses — dashed and thinned, never a paler shade of
+      // fine (P-03). The encoding a rider learns in one view holds in the other.
+      m.addLayer({
+        id: "journey-unknown",
+        type: "line",
+        source: JOURNEY_SRC,
+        filter: ["all", ["==", ["get", "kind"], "ride"], ["==", ["get", "confidence"], "unknown"]],
+        layout: { "line-cap": "butt", "line-join": "round" },
+        paint: {
+          "line-color": tok.unknown,
+          "line-width": ["interpolate", ["linear"], ["zoom"], 9, 3.5, 14, 6.5, 17, 11],
+          "line-dasharray": [1.4, 1.6],
+          "line-opacity": UNKNOWN_OPACITY,
         },
       });
       m.addLayer({

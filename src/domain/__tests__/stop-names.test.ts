@@ -8,6 +8,12 @@ describe("displayStopName", () => {
     expect(displayStopName("Bloor-Yonge Station - Southbound Platform")).toBe("Bloor-Yonge Station");
   });
 
+  it("drops the platform when the feed omits the dash", () => {
+    expect(displayStopName("Cedarvale Station Eastbound Platform")).toBe("Cedarvale Station");
+    expect(displayStopName("Eglinton West Station Northbound Platform Towards Vaughan"))
+      .toBe("Eglinton West Station");
+  });
+
   it("drops the side of the street", () => {
     expect(displayStopName("Jane St at Eglinton Ave West North Side")).toBe("Jane St at Eglinton Ave West");
   });

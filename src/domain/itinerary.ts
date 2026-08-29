@@ -68,9 +68,22 @@ export interface ScoredJourney extends Journey {
     coverage: number;
     /** Worst segments on this journey, for "why this number". */
     worst: SegmentRisk[];
+    /**
+     * The one stretch that genuinely dominates, or null when the risk is
+     * spread — naming a stretch anyway sends the rider to the wrong place.
+     */
+    dominant: SegmentRisk | null;
   };
   /** Ordered segments the journey rides, for drawing it on the map. */
   path: TraversedSegment[];
+  /**
+   * Per-leg reliability, indexed by position in `legs`. Null on a walk, and on
+   * a ride we could not score at all — which is shown as unknown, never as
+   * fine (P-03). Variance compounds across transfers on a long trip (PR-05),
+   * so which leg carries the risk is a different question from how much the
+   * trip carries, and the rider needs both.
+   */
+  legRisks: Array<LegRisk | null>;
 }
 
 interface SegmentRow {
@@ -80,6 +93,16 @@ interface SegmentRow {
 }
 
 /** A segment the journey rides through, with whatever we know about it. */
+export interface LegRisk {
+  /** Probability this leg alone meets a logged incident. */
+  risk: number;
+  oneInTrips: number | null;
+  /** Share of this leg's segments we could score. */
+  coverage: number;
+  /** True when this leg carries the largest single share of the trip's risk. */
+  isWorst: boolean;
+}
+
 export interface TraversedSegment {
   id: string;
   geometry: string | null;
@@ -124,6 +147,64 @@ function lookup(
   );
 }
 
+/**
+ * How far ahead of the runner-up a leg or stretch must be before it is named
+ * as carrying the trip's risk. Pre-registered so the label cannot be loosened
+ * after seeing a trip that looked like it ought to have one.
+ *
+ * **This was first written as a share of the trip's total risk, and that rule
+ * was wrong.** On a two-leg trip with equal legs each carries just over half
+ * the total, so any threshold at or below 50% fires on a perfectly even split
+ * and points the rider at an arbitrary half of their journey. Dominance is a
+ * comparison with the next-worst, not with the sum.
+ */
+export const WORST_DOMINANCE = 2;
+
+/**
+ * Probability at least one of these independent chances fires: one minus the
+ * chance every one of them behaves.
+ *
+ * Summing them instead would exceed 1 on a long trip and imply a certainty
+ * that does not exist. Used for both a leg and the whole journey, so a leg's
+ * figures compose into the trip's rather than being a separate estimate of it.
+ */
+export function composeRisk(risks: readonly number[]): number {
+  return 1 - risks.reduce((p, r) => p * (1 - r), 1);
+}
+
+/**
+ * Which leg to name as carrying the trip's risk, or none.
+ *
+ * Only meaningful with something to compare against, and only when one leg
+ * genuinely dominates: below WORST_LEG_SHARE the risk is spread, and naming a
+ * leg anyway points the rider at the wrong part of their trip.
+ */
+export function worstLegIndex(
+  legRisks: ReadonlyArray<{ risk: number; oneInTrips: number | null } | null>,
+): number | null {
+  const ranked = legRisks
+    .map((l, i) => ({ l, i }))
+    .filter((x): x is { l: { risk: number; oneInTrips: number | null }; i: number } =>
+      x.l !== null && x.l.oneInTrips !== null)
+    .sort((a, b) => b.l.risk - a.l.risk);
+  if (ranked.length < 2) return null;
+  const second = ranked[1]!.l.risk;
+  if (second <= 0) return ranked[0]!.l.risk > 0 ? ranked[0]!.i : null;
+  return ranked[0]!.l.risk / second >= WORST_DOMINANCE ? ranked[0]!.i : null;
+}
+
+/**
+ * The one stretch worth naming on a journey, or none. Same rule as the legs,
+ * one level finer — a rider who wants to know *where* on the leg.
+ */
+export function dominantStretch(risks: readonly SegmentRisk[]): SegmentRisk | null {
+  const ranked = [...risks].sort((a, b) => b.risk - a.risk);
+  if (ranked.length < 2) return null;
+  const second = ranked[1]!.risk;
+  if (second <= 0) return ranked[0]!.risk > 0 ? ranked[0]! : null;
+  return ranked[0]!.risk / second >= WORST_DOMINANCE ? ranked[0]! : null;
+}
+
 export async function scoreJourney(
   journey: Journey,
   index: Map<string, SegmentRow>,
@@ -135,11 +216,21 @@ export async function scoreJourney(
 
   const traversed: SegmentRow[] = [];
   let expectedSegments = 0;
+  // Which leg each segment belongs to. A segment can in principle be ridden by
+  // two legs of one journey, so this is a set rather than a single index.
+  const legsOfSegment = new Map<string, Set<number>>();
+  const expectedPerLeg = new Map<number, number>();
   for (const leg of rides) {
+    const legIndex = journey.legs.indexOf(leg);
     for (let i = 0; i < leg.stopIds.length - 1; i++) {
       expectedSegments++;
+      expectedPerLeg.set(legIndex, (expectedPerLeg.get(legIndex) ?? 0) + 1);
       const seg = lookup(index, leg.routeId!, leg.stopIds[i]!, leg.stopIds[i + 1]!, stopName);
-      if (seg !== undefined) traversed.push(seg);
+      if (seg === undefined) continue;
+      traversed.push(seg);
+      const set = legsOfSegment.get(seg.id);
+      if (set === undefined) legsOfSegment.set(seg.id, new Set([legIndex]));
+      else set.add(legIndex);
     }
   }
 
@@ -192,15 +283,41 @@ export async function scoreJourney(
   const modes = new Set(traversed.map((s) => (s.mode === "subway" ? "subway" : "surface")));
   const severity = await pooledSeverityFor([...modes]);
 
-  // Probability the journey meets at least one incident: one minus the chance
-  // every segment behaves. Summing per-segment risks would exceed 1 on a long
-  // trip and imply certainty that does not exist.
-  const clean = risks.reduce((p, r) => p * (1 - r.risk), 1);
-  const disruptionRisk = 1 - clean;
+  const disruptionRisk = composeRisk(risks.map((r) => r.risk));
   const expected = disruptionRisk * severity.p50;
 
   const riskById = new Map(risks.map((r) => [r.segmentId, r.risk]));
   const exposureById = new Map(risks.map((r) => [r.segmentId, r.gapMinutesPerMonth]));
+
+  // Per-leg risk, composed the same way as the journey's: one minus the chance
+  // every segment of that leg behaves.
+  const perLeg = new Map<number, number[]>();
+  for (const r of risks) {
+    for (const li of legsOfSegment.get(r.segmentId) ?? []) {
+      const list = perLeg.get(li);
+      if (list === undefined) perLeg.set(li, [r.risk]);
+      else list.push(r.risk);
+    }
+  }
+  const legRisks: Array<LegRisk | null> = journey.legs.map((leg, i) => {
+    if (leg.kind !== "ride") return null;
+    const scored = perLeg.get(i) ?? [];
+    const expected = expectedPerLeg.get(i) ?? 0;
+    if (scored.length === 0 || expected === 0) {
+      // A ride we could not score is a ride we cannot speak for. It is shown
+      // as unknown rather than folded into the trip's figure (P-03).
+      return { risk: 0, oneInTrips: null, coverage: 0, isWorst: false };
+    }
+    const legRisk = composeRisk(scored);
+    return {
+      risk: Number(legRisk.toFixed(5)),
+      oneInTrips: legRisk > 0 ? Math.round(1 / legRisk) : null,
+      coverage: Number((scored.length / expected).toFixed(2)),
+      isWorst: false,
+    };
+  });
+  const worst = worstLegIndex(legRisks);
+  if (worst !== null) legRisks[worst]!.isWorst = true;
 
   return {
     ...journey,
@@ -220,8 +337,10 @@ export async function scoreJourney(
       minutesWhenBad: severity.p90,
       expectedAddedMinutes: Number(expected.toFixed(2)),
       coverage: expectedSegments === 0 ? 0 : Number((risks.length / expectedSegments).toFixed(2)),
+      dominant: dominantStretch(risks),
       worst: risks.sort((a, b) => b.risk - a.risk).slice(0, 3),
     },
+    legRisks,
   };
 }
 

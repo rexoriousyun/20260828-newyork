@@ -54,6 +54,24 @@ export function JourneyDetail({ journey }: { journey: ScoredJourney }): JSX.Elem
                     </span>
                     <span className="leg-dur">{mins(l.departAt, l.arriveAt)} min</span>
                   </span>
+                  {l.reliability !== null && (
+                    <span className="leg-risk">
+                      {l.reliability.oneInTrips === null ? (
+                        // Never folded into the trip's figure and never left
+                        // to look like the reliable end of the scale (P-03).
+                        "Not enough data on this stretch"
+                      ) : (
+                        <>
+                          Goes wrong 1 in {l.reliability.oneInTrips}
+                          {l.reliability.isWorst && (
+                            <strong> — most of this trip&rsquo;s risk</strong>
+                          )}
+                          {l.reliability.coverage < 0.5 &&
+                            `, measured on ${Math.round(l.reliability.coverage * 100)}% of it`}
+                        </>
+                      )}
+                    </span>
+                  )}
                 </li>
               </Fragment>
             );

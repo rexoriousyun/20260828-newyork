@@ -10,7 +10,11 @@
  */
 export function displayStopName(name: string): string {
   return name
+    // Two forms in the feed: "Sherbourne Station - Eastbound Platform" and
+    // "Cedarvale Station Eastbound Platform". Only the first has the dash, and
+    // matching on it alone let the second through onto the screen.
     .replace(/\s*-\s*[^-]*\bPlatform\b.*$/i, "")
+    .replace(/\s+(North|South|East|West)bound\s+Platform\b.*$/i, "")
     .replace(/\s+(North|South|East|West)\s+Side$/i, "")
     .trim();
 }

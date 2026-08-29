@@ -223,6 +223,11 @@ export function registerPlanner(app: FastifyInstance): void {
                     properties: {
                       kind: "ride", risk: seg.risk,
                       gapMinutesPerMonth: seg.gapMinutesPerMonth,
+                      // Without this the map's colour ramp coalesces a missing
+                      // exposure to zero and paints an unmeasured stretch in
+                      // the *most reliable* colour — absence of data reading as
+                      // good news, which P-03 exists to forbid.
+                      confidence: seg.risk === null ? "unknown" : "known",
                       from: seg.from, to: seg.to,
                     },
                   }],
@@ -236,6 +241,7 @@ export function registerPlanner(app: FastifyInstance): void {
                 geometry: { type: "LineString" as const, coordinates: [[a.lon, a.lat], [b.lon, b.lat]] },
                 properties: {
                   kind: "walk", risk: null, gapMinutesPerMonth: null,
+                  confidence: "none",
                   from: labelOf(l.fromStop), to: labelOf(l.toStop),
                 },
               }];
@@ -247,6 +253,14 @@ export function registerPlanner(app: FastifyInstance): void {
           worst: j.reliability.worst.map((w) => ({
             ...w, from: displayStationName(w.from), to: displayStationName(w.to),
           })),
+          dominant:
+            j.reliability.dominant === null
+              ? null
+              : {
+                  ...j.reliability.dominant,
+                  from: displayStationName(j.reliability.dominant.from),
+                  to: displayStationName(j.reliability.dominant.to),
+                },
         },
         // Only present when the rider gave a deadline: without one there is
         // nothing to work backwards from, and inventing a target would be
@@ -266,9 +280,10 @@ export function registerPlanner(app: FastifyInstance): void {
         typicalMinutes: j.durationMinutes,
         /** What it costs on the trips that do go wrong. */
         disruptedMinutes: j.durationMinutes + j.reliability.minutesWhenDisrupted,
-        legs: j.legs.map((l) => ({
+        legs: j.legs.map((l, i) => ({
           kind: l.kind, routeId: l.routeId, departAt: l.departAt, arriveAt: l.arriveAt,
           fromName: labelOf(l.fromStop), toName: labelOf(l.toStop),
+          reliability: j.legRisks[i] ?? null,
         })),
       })),
       /** Stated so a single result is not mistaken for a shortlist. */

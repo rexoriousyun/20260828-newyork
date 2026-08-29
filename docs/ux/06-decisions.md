@@ -553,6 +553,52 @@ share it deliberately, because to a rider scanning three options they mean the s
 
 ---
 
+## D-26 — Say which part of the trip, not just how much `ACCEPTED · IMPLEMENTED`
+**Cites:** P-03, P-09 · **Journeys:** J-01, J-04 · **Problems:** PR-02, PR-05 · **Evidence:** E-D12
+
+Before this, the drawn route was the only thing that said *where* the risk was, and nothing
+on screen said what its colours meant. Three changes:
+
+1. **Every ride leg carries its own rate** in the step list — "Goes wrong 1 in 486", or "Not
+   enough data on this stretch". Variance compounds across transfers on a long trip (PR-05),
+   so which leg is fragile is a different question from how much the trip carries. The legs
+   compose into the trip figure by the same formula, so the two screens cannot disagree:
+   1 in 486 with 1 in 382 is exactly the 1 in 214 on the card, and there is a test asserting it.
+2. **A one-line key under the map**, listing only the states actually drawn. A legend is
+   machinery and P-09 defers machinery — but an undecoded colour is not hidden method, it is
+   a claim the rider cannot read. Walking is deliberately left out: of the three states it is
+   the one readable from position alone, and three entries wrapped to two lines.
+3. **Unmeasured stretches of a planned trip are drawn as unknown** — see below.
+
+### The defect this uncovered
+
+> **A planned trip drew its unmeasured stretches in the most reliable colour**, from M9 until
+> now. The journey features never carried `confidence`, so the map's colour ramp coalesced a
+> missing exposure to zero and painted it at the green end. On one Jane–Union itinerary that
+> was 8 of 18 ride segments rendered as "as good as it gets".
+>
+> This is the exact failure P-03 exists to forbid, and neither the typecheck nor the tests
+> could see it — the expression was valid and the data was correct. It was found by adding
+> the per-leg numbers and noticing a leg reading "not enough data" under a solid green line.
+> Journey rides now split into a known layer and a dashed unknown layer, the same two kinds
+> the explore map uses, so the encoding a rider learns in one view holds in the other.
+
+### Dominance is a comparison with the runner-up, not with the total
+
+> **Reversed during implementation.** "Which leg carries the risk" was first decided by the
+> leg's share of the trip's total, at 50%. On a two-leg trip with equal legs each carries
+> just over half the total, so the rule fired on a perfectly even split and pinned the rider
+> to an arbitrary half of their journey. A unit test written before the numbers were looked
+> at caught it.
+>
+> The rule is now `WORST_DOMINANCE = 2`, pre-registered in `src/domain/itinerary.ts`: a leg
+> or a stretch is named only when it carries twice the risk of the next one. It fires far
+> less often, which is the honest outcome — on most Toronto trips the risk really is spread.
+> The same rule replaced the equivalent threshold on the results card, and the decision now
+> happens once on the server rather than twice with two different constants.
+
+---
+
 ## Open questions
 
 | # | Question | Blocks | Owner |

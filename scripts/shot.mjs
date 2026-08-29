@@ -30,7 +30,7 @@ async function run(name, fromText, toText, opts = {}) {
 
   // open the step-by-step detail
   const steps = p.locator('.detail button.why');
-  if (await steps.count()) { await steps.click(); await p.waitForTimeout(1600); await p.screenshot({ path: `/tmp/${name}-steps.png` }); await steps.click(); await p.waitForTimeout(300); }
+  if (await steps.count()) { await steps.click(); await p.waitForTimeout(1600); await p.evaluate(() => { const s = document.querySelector(".sheet"); s.scrollTop = s.scrollHeight; }); await p.waitForTimeout(400); await p.screenshot({ path: `/tmp/${name}-steps.png` }); await steps.click(); await p.waitForTimeout(300); }
 
   if (opts.zoom) {
     await p.evaluate((z) => window.__map.easeTo({ center: z.center, zoom: z.zoom, duration: 0 }), opts.zoom);
