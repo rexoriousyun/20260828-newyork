@@ -1,4 +1,5 @@
 import Fastify from "fastify";
+import compress from "@fastify/compress";
 import { z } from "zod";
 import { scoreSegment, scoreRoute } from "../domain/score.js";
 import { prisma } from "../db/client.js";
@@ -6,10 +7,61 @@ import { rankRoutes } from "../domain/route-ranking.js";
 import { neverCame } from "../domain/vanishing.js";
 import { recencyWeight, effectiveMonths } from "../domain/score.js";
 import { registerTiles } from "./tiles.js";
-import { registerPlanner } from "./planner.js";
+import { registerPlanner, warmGraph } from "./planner.js";
 import { stationAccessMap, endpointState, isUsable } from "../domain/accessibility.js";
 
 const app = Fastify({ logger: true });
+
+/**
+ * Compress every response.
+ *
+ * Nothing was compressed at all, and the cost fell hardest on the rider this
+ * product is for. Measured on the production bundle through a throttled
+ * browser: **7.1 s to first paint on slow 4G, 20.9 s on 3G**, against 2.2 s and
+ * 5.9 s once gzipped. A `/plan` response goes 185 KB -> 20 KB; the route
+ * ranking 120 KB -> 12 KB; the map style 43 KB -> 3.8 KB.
+ *
+ * Two reasons this is not merely a speed fix:
+ *
+ * - `U-02` is standing at a stop, in winter, on whatever signal the shelter
+ *   gets. Seven seconds of blank screen is the difference between an app they
+ *   use and one they close.
+ * - `PR-14` records that this product excludes part of the audience it claims
+ *   to serve — 66.6% of TTC riders are equity-deserving, and lower-income
+ *   riders pay per ride because they cannot front a monthly pass. Sending a
+ *   quarter of a megabyte where twenty kilobytes would do spends *their* data.
+ *
+ * Brotli is not enabled. It compresses a little better and costs noticeably
+ * more CPU per response on a shared vCPU, and the gain over gzip here is
+ * single-digit percent on payloads already reduced tenfold.
+ */
+await app.register(compress, {
+  global: true,
+  encodings: ["gzip", "deflate"],
+  // Below about a kilobyte the header overhead and the CPU are not repaid — a
+  // stop-search response is 681 bytes.
+  threshold: 1024,
+  /**
+   * Vector tiles have to be named explicitly.
+   *
+   * The plugin decides what to compress from `mime-db`'s `compressible` flag,
+   * and `application/vnd.mapbox-vector-tile` carries no such flag — so tiles
+   * were silently passing through uncompressed, which is easy to mistake for a
+   * deliberate exemption.
+   *
+   * They are worth compressing, but far less than the JSON: a measured tile
+   * goes 78.8 KB -> 57.4 KB, 27%, because protobuf is already compact. On a
+   * map-first app tiles are still the dominant bandwidth cost, so 27% off the
+   * largest number is the biggest absolute saving here — for about a
+   * millisecond of zlib, once per tile, against a 24-hour client cache.
+   *
+   * The upstream host has almost certainly gzipped these already and `fetch`
+   * decompressed them on the way in (`tiles.ts`). Re-doing that work is the
+   * price of using `fetch`, which always decompresses; avoiding it would mean
+   * dropping to a lower-level HTTP client for a millisecond.
+   */
+  customTypes: /^application\/vnd\.mapbox-vector-tile$/,
+});
 
 const query = z.object({
   dayOfWeek: z.string().optional(),
@@ -47,7 +99,22 @@ app.get("/accessibility", async () => {
 registerTiles(app);
 registerPlanner(app);
 
-app.get("/health", async () => ({ ok: true }));
+/**
+ * Ready, not merely listening.
+ *
+ * The two expensive things this API does once — building the journey graph
+ * (~12 s) and the route ranking (~1.1 s) — used to be built on the first
+ * request that needed them, so a rider paid for them. `/health` now reports
+ * `ok` only when both are done, so a platform health check holds traffic off
+ * until the process can actually answer quickly.
+ *
+ * `warming` is reported rather than hidden: during a deploy it is the honest
+ * state, and a 503 that says why is easier to read in a log than a slow 200.
+ */
+let ready = false;
+
+app.get("/health", async (_req, reply) =>
+  ready ? { ok: true } : reply.code(503).send({ ok: false, status: "warming" }));
 
 /**
  * Routes that have enough attributed data to be worth opening.
@@ -78,7 +145,15 @@ const WINDOW_MONTHS = 19;
  */
 let rankingCache: unknown = null;
 
-app.get("/routes/ranking", async () => {
+/**
+ * Built once, at boot rather than on the first rider to open explore mode.
+ *
+ * Measured: 1.09 s cold, ~3 ms once cached. That second is small next to the
+ * graph build, and it lands on exactly the moment `J-04` is trying to earn
+ * trust — the first screen a rider sees when they ask "is this route always
+ * like this?".
+ */
+async function buildRanking(): Promise<unknown> {
   if (rankingCache !== null) return rankingCache;
   const [segments, routes, codes, latest] = await Promise.all([
     prisma.segment.findMany({ select: { id: true, routeId: true, mode: true } }),
@@ -143,7 +218,9 @@ app.get("/routes/ranking", async () => {
 
   rankingCache = { modes: Object.fromEntries(ranked) };
   return rankingCache;
-});
+}
+
+app.get("/routes/ranking", async () => buildRanking());
 
 app.get("/routes", async () => {
   const rows = await prisma.$queryRawUnsafe<
@@ -337,7 +414,22 @@ app.get("/routes/:routeId/:direction/map", async (req, reply) => {
 });
 
 const port = Number(process.env["PORT"] ?? 3000);
-app.listen({ port, host: "0.0.0.0" }).catch((err: unknown) => {
-  app.log.error(err);
-  process.exit(1);
-});
+
+/**
+ * Listen first, then warm.
+ *
+ * The other order would leave the port closed for twelve seconds, which most
+ * platforms read as a failed deploy and retry. Listening immediately and
+ * failing the health check is the state they are built to wait through.
+ */
+app.listen({ port, host: "0.0.0.0" })
+  .then(async () => {
+    const t = Date.now();
+    await Promise.all([warmGraph(), buildRanking()]);
+    ready = true;
+    app.log.info({ ms: Date.now() - t }, "warm — accepting traffic");
+  })
+  .catch((err: unknown) => {
+    app.log.error(err);
+    process.exit(1);
+  });

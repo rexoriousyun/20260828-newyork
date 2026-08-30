@@ -235,6 +235,16 @@ out to be the *median* headway behind a weekday departure, so a tag drawn there 
 appeared on half of all service. Measure the population before picking the line; see
 `audit:headway`.
 
+**Warming one cache moves the cliff; it does not remove it.** The journey graph was built
+lazily, so the first rider after a deploy waited 12.3 s. Warming it at boot left the first
+`/plan` at 2.89 s, because pooled severity and the latest-observation lookup are lazy too.
+The cheap check is in `warmScoring`: time the first `/plan` after a boot against the second.
+More than a few milliseconds apart means something lazy is missing.
+
+**A spread hides what you ship.** `...j` on a scored journey put `path` on the wire — 74 KB
+of a 185 KB response that the client does not declare, does not read, and already has in
+another encoding as `geojson`. Name the fields you mean to send.
+
 **Never prettify a name on the path into a lookup.** `displayStopName` runs on the way to
 the screen only. Scoring keys on the raw GTFS name because the segment index was built from
 it — the same shape of mistake that pinned journey coverage at 7.7%.

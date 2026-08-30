@@ -59,6 +59,23 @@ async function loadSegmentIndex(): Promise<ReturnType<typeof buildSegmentIndex>>
 
 let graphPromise: Promise<Graph> | null = null;
 
+/**
+ * Build the graph before the server takes traffic.
+ *
+ * `getGraph` is lazy, which meant the ~12 s build landed on **the first rider
+ * to plan a trip after a deploy** — twelve seconds of spinner, once, for
+ * whoever happened to be first. During a rider session that is a finding about
+ * the hosting contaminating a question about the design.
+ *
+ * Doing it at boot moves the wait onto the platform, which is what platforms
+ * are for: a health check that stays unhealthy until this resolves means the
+ * load balancer simply does not send anyone here yet.
+ */
+export async function warmGraph(): Promise<void> {
+  const { warmScoring } = await import("../domain/itinerary.js");
+  await Promise.all([getGraph(), warmScoring()]);
+}
+
 async function getGraph(): Promise<Graph> {
   graphPromise ??= (async (): Promise<Graph> => {
     const connections = await buildConnections(WEEKDAY_SERVICE);
@@ -306,6 +323,26 @@ function outsideService(atSeconds: number, window: { from: number; to: number })
     `We have no scheduled service loaded outside ${hh(window.from)} to ${hh(window.to)}, ` +
     "so we cannot answer for that hour."
   );
+}
+
+/**
+ * Coordinates, at the precision a map can actually use.
+ *
+ * Stored geometry carries full float precision — `-79.44447489404904`, fourteen
+ * decimal places, which is sub-micron. Six places is about 0.11 m at this
+ * latitude: finer than a GPS fix, finer than the width of the line drawn on top
+ * of it, and roughly half the bytes.
+ *
+ * Applied on the way out only. The stored value keeps its precision, because
+ * rounding a number other code divides is how `disruptionRisk` ended up ranked
+ * on one figure and displayed as another.
+ */
+const PLACES = 1e6;
+function thin(coordinates: number[][]): number[][] {
+  return coordinates.map(([lon, lat]) => [
+    Math.round(lon! * PLACES) / PLACES,
+    Math.round(lat! * PLACES) / PLACES,
+  ]);
 }
 
 export function registerPlanner(app: FastifyInstance): void {
@@ -557,8 +594,22 @@ export function registerPlanner(app: FastifyInstance): void {
             changedNothing: costStations.length === 0,
           }
         : null,
-      journeys: scored.map((j) => ({
-        id: j.legs.map((l) => `${l.kind}:${l.routeId ?? ""}`).join(">"),
+      /**
+       * `path` and `legs` are pulled out of the spread deliberately.
+       *
+       * `...j` used to spread the whole scored journey, which shipped `path`
+       * — 18.5 KB per journey, four journeys, **74 KB of a 185 KB response**
+       * that the browser never reads: it is not even declared in the client's
+       * own `ScoredJourney` type. Worse, `geojson` below is *built from*
+       * `path`, so the same geometry went out twice in two encodings.
+       *
+       * A spread is exactly how that hides. Both fields are now named, used to
+       * build what the client does read, and left out of the wire.
+       */
+      journeys: scored.map((journey) => {
+        const { path, legs, ...j } = journey;
+        return {
+        id: legs.map((l) => `${l.kind}:${l.routeId ?? ""}`).join(">"),
         ...j,
         // GeoJSON for the whole journey: one feature per segment ridden, plus a
         // straight line per walk. Segments carry their own risk so the map can
@@ -566,12 +617,12 @@ export function registerPlanner(app: FastifyInstance): void {
         geojson: {
           type: "FeatureCollection" as const,
           features: [
-            ...j.path.flatMap((seg) =>
+            ...path.flatMap((seg) =>
               seg.geometry === null
                 ? []
                 : [{
                     type: "Feature" as const,
-                    geometry: { type: "LineString" as const, coordinates: JSON.parse(seg.geometry) as number[][] },
+                    geometry: { type: "LineString" as const, coordinates: thin(JSON.parse(seg.geometry) as number[][]) },
                     properties: {
                       kind: "ride", risk: seg.risk,
                       gapMinutesPerMonth: seg.gapMinutesPerMonth,
@@ -586,13 +637,13 @@ export function registerPlanner(app: FastifyInstance): void {
                     },
                   }],
             ),
-            ...j.legs.flatMap((l) => {
+            ...legs.flatMap((l) => {
               if (l.kind !== "walk") return [];
               const a = stopCoords.get(l.fromStop), b = stopCoords.get(l.toStop);
               if (a === undefined || b === undefined) return [];
               return [{
                 type: "Feature" as const,
-                geometry: { type: "LineString" as const, coordinates: [[a.lon, a.lat], [b.lon, b.lat]] },
+                geometry: { type: "LineString" as const, coordinates: thin([[a.lon, a.lat], [b.lon, b.lat]]) },
                 properties: {
                   kind: "walk", risk: null, gapMinutesPerMonth: null,
                   gapMinutesPerMonthAtTime: null, conditioned: false,
@@ -636,7 +687,7 @@ export function registerPlanner(app: FastifyInstance): void {
         typicalMinutes: j.durationMinutes,
         /** What it costs on the trips that do go wrong. */
         disruptedMinutes: j.durationMinutes + j.reliability.minutesWhenDisrupted,
-        legs: j.legs.map((l, i) => ({
+        legs: legs.map((l, i) => ({
           kind: l.kind, routeId: l.routeId, departAt: l.departAt, arriveAt: l.arriveAt,
           fromName: labelOf(l.fromStop), toName: labelOf(l.toStop),
           reliability: j.legRisks[i] ?? null,
@@ -654,9 +705,9 @@ export function registerPlanner(app: FastifyInstance): void {
          * for them with a number we do not have — the same call D-24 makes
          * about the departure buffer.
          */
-        disruptions: byJourney.get(j) ?? [],
+        disruptions: byJourney.get(journey) ?? [],
         /** True when nothing the TTC has flagged today touches this way. */
-        avoidsDisruption: (byJourney.get(j) ?? []).length === 0,
+        avoidsDisruption: (byJourney.get(journey) ?? []).length === 0,
         /** What each wait actually costs if the vehicle does not turn up (D-34). */
         waits: j.waits.map((w) => ({
           ...w,
@@ -671,7 +722,8 @@ export function registerPlanner(app: FastifyInstance): void {
           const w = notableWait(j.waits);
           return w === null ? null : { ...w, headwayMinutes: Math.round(w.headwayMinutes!) };
         })(),
-      })),
+        };
+      }),
       /** Stated so a single result is not mistaken for a shortlist. */
       alternativesFound: scored.length - 1,
     };

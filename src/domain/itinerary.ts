@@ -506,6 +506,32 @@ export async function scoreJourney(
  */
 const severityCache = new Map<string, { p50: number; p90: number }>();
 
+/**
+ * Fill the caches a scored journey needs, before a rider needs them.
+ *
+ * Warming the *graph* at boot was not enough, and the gap is instructive:
+ * with a warm graph the first `/plan` still took **2.89 s** against 80 ms for
+ * every one after it, because the pooled-severity scan and the
+ * latest-observation lookup are lazy too. One warmed cache simply moved the
+ * cliff rather than removing it.
+ *
+ * Both modes are primed, not just the one a first request happens to use —
+ * otherwise the first *subway-only* trip pays the scan even though a surface
+ * trip has already been planned.
+ *
+ * **This list has to track what `scoreJourney` actually touches.** It is short
+ * and stable, and the check is cheap: time the first `/plan` after a boot
+ * against the second. If they differ by more than a few milliseconds,
+ * something lazy is missing from here.
+ */
+export async function warmScoring(): Promise<void> {
+  await Promise.all([
+    latestObservation(),
+    pooledSeverityFor(["surface"]),
+    pooledSeverityFor(["subway"]),
+  ]);
+}
+
 async function pooledSeverityFor(modes: string[]): Promise<{ p50: number; p90: number }> {
   const cacheKey = modes.includes("surface") ? "surface" : "subway";
   const hit = severityCache.get(cacheKey);

@@ -1093,3 +1093,38 @@ product's name.
 
 **Reversed if:** a different name is chosen. Nothing downstream depends on this one — it is a
 placeholder that is merely correct, not a naming decision.
+
+## D-36 — Compress everything, and warm before serving `ACCEPTED · IMPLEMENTED`
+**Cites:** P-06 · **Personas:** U-02 · **Problems:** PR-13, PR-14 · **Evidence:** E-D25
+
+Three changes, all delivery rather than design:
+
+- **Every response is gzipped.** Nothing was. First paint on slow 4G goes 7.1 s → 2.2 s, on
+  3G 20.9 s → 5.9 s; `/plan` goes 185 KB → 20 KB.
+- **`/plan` stopped shipping what nobody reads.** `path` was leaving in a spread — 74 KB of
+  185 KB — and geometry was duplicated between it and `geojson`. Coordinates are rounded to
+  six places on the way out, which is 0.11 m. Combined with compression the response is
+  **13.6× smaller**.
+- **The graph, the scoring caches and the route ranking are built at boot**, and `/health`
+  returns 503 until they are. The first `/plan` after a deploy goes **12.3 s → 116 ms**.
+
+**Why this is a product decision and not a chore.** `PR-14` is marked `OUT` because we cannot
+fix the fact that an app excludes people without data plans — but we can stop making it
+worse. Sending a rider a quarter of a megabyte where twenty kilobytes would do spends *their*
+money, and 66.6% of TTC riders are equity-deserving (E-L10). `PR-13` compounds it: `U-02` is
+reading this at a stop, in winter, on shelter signal. Seven seconds of blank screen is not a
+performance metric, it is whether the app gets used.
+
+**The instructive failure.** Warming the graph at boot was the obvious fix and it was not
+enough — the first plan still took 2.89 s because two more caches were lazy. One warmed cache
+moved the cliff rather than removing it. The check that catches this is cheap and is written
+into `warmScoring`: time the first `/plan` after a boot against the second, and if they differ
+by more than a few milliseconds something lazy is missing.
+
+**Not done here, and named so it is not assumed:** the 3.2× first-paint gain only lands once
+something gzips the **bundle**. Nothing serves `web/dist` yet — that arrives with the
+deployment work, along with precomputing the connection set, which is 74% of a boot that is
+still 8.9 s.
+
+**Reversed if:** compression shows up as a CPU bottleneck under real load — unlikely at test
+scale, and measurable before it matters.

@@ -70,6 +70,7 @@ would reverse it.
 | Trip conditions as tags | **done** — several can apply at once, each opens (D-33) |
 | What one missed vehicle costs | **done** — headway under every wait, and minutes outside (D-34) |
 | Identity and mobile metadata | **done** — named, mark, home-screen title, theme colour (D-35) |
+| Responsiveness | **done** — gzip everywhere, 74 KB of dead payload dropped, warm before serving (D-36) |
 
 ## The numbers that matter
 
@@ -91,6 +92,9 @@ would reverse it.
 | Ice/snow incident average duration | **68.8 min** | E-D02 |
 | Rider-waiting where the vehicle never came | **36.1%** | E-D23 |
 | Median headway behind a weekday departure | **10.0 min** | E-D24 |
+| First paint on slow 4G, gzipped | **2.2 s** (was 7.1 s) | E-D25 |
+| `/plan` on the wire | **13.6 KB** (was 185 KB) | E-D25 |
+| First `/plan` after a deploy | **116 ms** (was 12.3 s) | E-D25 |
 | Night departures on service every 20 min or worse | **74.3%** (vs 14.2% at pm peak) | E-D24 |
 | Worst route for vanishing service | **31 Greenwood, 74%** | E-D23 |
 | Downtown vs Scarborough route density | **26 vs 17** routes per box | E-D14 |
@@ -164,11 +168,17 @@ months.
 - **The app runs on `localhost`.** A rider needs it on their own phone. Measured
   2026-08-29: **~298 MB of read-only data** (`transit.db` 55 MB, `gtfs.zip` 36 MB,
   `stop_times.txt` 207 MB — the last is streamed by `buildConnections`, so it is a runtime
-  file, not just an ingest one), **441 MB peak RSS**, and **~12 s to build the graph** on the
-  first `/plan` after a 4 s boot. Warm requests are ~80 ms. Nothing is written at runtime,
-  so the data can be baked into an image and no volume is needed. Those numbers rule out
-  serverless and rule out anything that scales to zero. **This is the single blocking item
-  for testing** — an operations task, not a design one.
+  file, not just an ingest one) and **441 MB peak RSS**. Nothing is written at runtime, so
+  the data can be baked into an image and no volume is needed. Since `D-36` the process
+  warms at boot and reports 503 until ready: **8.9 s from start to healthy**, then ~80 ms a
+  request. That rules out serverless and anything that scales to zero. **This is the single
+  blocking item for testing** — an operations task, not a design one.
+- **Nothing serves `web/dist`.** The API answers `/plan` and `/tiles`; the built frontend is
+  served by Vite in dev and by nothing in production. Until that changes, `D-36`'s gzip
+  reaches the API but not the 1.16 MB bundle, which is the larger half of first paint.
+- **74% of an 8.9 s boot is parsing a 207 MB CSV** (E-D25). Precomputing the connection set
+  as typed-array buffers would cut it to ~5 s and drop `stop_times.txt` from the runtime
+  image entirely — 298 MB to ~115 MB.
 - **No shelter data.** The app says a wait is *outside* and claims nothing about cover,
   because Toronto's 100 heated shelter kits over seven years are not in a dataset we ingest.
 

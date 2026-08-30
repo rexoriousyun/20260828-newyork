@@ -728,3 +728,54 @@ quarters of the night.
 between vehicles, which is exactly why it can be stated as a fact — and it is silent on
 whether the stop has a shelter, which Toronto is addressing at a rate of 100 kits over seven
 years (E-L11) and which we do not ingest.
+
+### E-D25 — The computation was fast; the delivery was not
+*Measured 2026-08-29 · Chromium under CDP network throttling, and per-endpoint on the API*
+
+Responsiveness had never been measured. Every number below is from the built app, not an
+estimate.
+
+**Nothing was compressed.** No compression plugin was registered, so every response —
+including the 1.16 MB JavaScript bundle — went out raw. Serving the production bundle through
+a throttled browser, both ways:
+
+| Connection | as shipped | with gzip |
+|---|---|---|
+| fast 4G (8 Mbps) | 1,491 ms | **494 ms** |
+| slow 4G (1.5 Mbps) | 7,116 ms | **2,192 ms** |
+| 3G (0.5 Mbps) | 20,897 ms | **5,942 ms** |
+
+Per endpoint: `/plan` 185 KB → 20 KB, `/routes/ranking` 120 KB → 12 KB, the map style
+43 KB → 3.8 KB, a vector tile 78.8 KB → 56.9 KB.
+
+**A third of the `/plan` response was never read.** The handler spread the whole scored
+journey, which carried `path` — 18.5 KB per journey, four journeys, **74 KB of 185 KB** that
+the browser ignores; it is not even declared in the client's own type. `geojson` is built
+*from* `path`, so the same geometry shipped twice in two encodings. Coordinates also carried
+fourteen decimal places, which is sub-micron.
+
+**Two cold starts landed on riders, not on the platform.** The journey graph built lazily on
+the first `/plan`, so the first rider after a deploy waited **12.3 s**. Warming the graph
+alone moved the cliff rather than removing it — the first plan still took **2.89 s**, because
+the pooled-severity scan (85,000 rows) and the latest-observation lookup are lazy too. The
+route ranking was a third: 1.09 s cold, 3 ms after.
+
+Where the cold start goes:
+
+| phase | ms | share |
+|---|---|---|
+| `buildConnections` (1.2 M connections from a 207 MB CSV) | 13,898 | **74%** |
+| `buildFrequency` | 2,100 | 11% |
+| `prisma.segment.findMany` | 1,843 | 10% |
+| `prisma.stop.findMany` | 934 | 5% |
+| `buildFootpaths` | 41 | 0.2% |
+
+**What was already fast, and stayed:** warm `/plan` 72–95 ms, stop search 8–13 ms, route
+ranking 3 ms cached, the routing scan itself 6–12 ms.
+
+*Why it matters:* the engine was never the problem. Every cost a rider actually felt was in
+delivery — bytes on a wire and work deferred onto the first person to ask for it. `U-02` is
+standing at a stop in winter on whatever signal the shelter gets, and `PR-14` records that
+66.6% of TTC riders are equity-deserving and pay per ride because they cannot front a monthly
+pass. Seven seconds of blank screen, and a quarter-megabyte of their data, are product
+failures rather than engineering details.
