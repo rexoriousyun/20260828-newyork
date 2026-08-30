@@ -23,6 +23,8 @@ npm run audit:stability   # does segment reliability persist? (rho > 0.5 on expo
 npm run audit:coverage    # surface geocoding rate vs the 66.1% baseline
 npm run audit:headway     # is "runs every N min" discriminating, or wallpaper? (D-34)
 npm run check:diagrams    # every mermaid block parses — GitHub fails one silently
+npm run data              # ingest -> precompute -> benchmark. Re-run all three together
+npm run build && npm start  # production shape: compiled server serving web/dist
 npm test                  # vitest
 npm run typecheck
 npm run dev               # API on :3000 — /plan builds a ~6s graph on first request, then 6-12ms
@@ -240,6 +242,11 @@ lazily, so the first rider after a deploy waited 12.3 s. Warming it at boot left
 `/plan` at 2.89 s, because pooled severity and the latest-observation lookup are lazy too.
 The cheap check is in `warmScoring`: time the first `/plan` after a boot against the second.
 More than a few milliseconds apart means something lazy is missing.
+
+**`mtime` is not a content identity.** The connection cache keyed on the GTFS archive's size
+and mtime, which a Docker `COPY`, a git checkout and an `rsync` all change while preserving
+the bytes — so it would have been refused in exactly the environment it exists for, and the
+only symptom would be a slower boot nobody investigates. Hash the content; 36 MB costs 34 ms.
 
 **A spread hides what you ship.** `...j` on a scored journey put `path` on the wire — 74 KB
 of a 185 KB response that the client does not declare, does not read, and already has in

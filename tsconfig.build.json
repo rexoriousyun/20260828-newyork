@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // `moduleResolution: bundler` is right for tsx and vitest, which resolve
+    // like a bundler. Node does not: it needs the explicit `.js` specifiers the
+    // source already uses, and NodeNext is what checks them.
+    "module": "NodeNext",
+    "moduleResolution": "nodenext"
+  },
+  "exclude": ["src/scratch", "src/**/__tests__/**"]
+}

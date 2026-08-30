@@ -773,6 +773,22 @@ Where the cold start goes:
 **What was already fast, and stayed:** warm `/plan` 72–95 ms, stop search 8–13 ms, route
 ranking 3 ms cached, the routing scan itself 6–12 ms.
 
+**After the fixes (D-36, D-37), measured the same way:**
+
+| | before | after |
+|---|---|---|
+| first paint, slow 4G | 7,116 ms | **2,138 ms** |
+| first paint, 3G | 20,897 ms | **5,941 ms** |
+| `/plan` on the wire | 185,137 B | **13,590 B** |
+| first `/plan` after a deploy | 12.3 s | **102 ms** |
+| boot → healthy | 4 s, then a rider paid 12.3 s | **3.1 s**, paid by the platform |
+| runtime data | 298 MB | **113 MB** |
+
+The cold start was attacked at its cause: serialising the connection set as typed-array
+buffers turns 13.9 s of CSV parsing into a 0.15 s file read, and removes `stop_times.txt`
+from the runtime image entirely. The cached set was verified byte-identical to the parsed one
+across all ten fields.
+
 *Why it matters:* the engine was never the problem. Every cost a rider actually felt was in
 delivery — bytes on a wire and work deferred onto the first person to ask for it. `U-02` is
 standing at a stop in winter on whatever signal the shelter gets, and `PR-14` records that

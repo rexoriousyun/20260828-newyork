@@ -1128,3 +1128,47 @@ still 8.9 s.
 
 **Reversed if:** compression shows up as a CPU bottleneck under real load — unlikely at test
 scale, and measurable before it matters.
+
+## D-37 — One image, and the data is built before it `ACCEPTED · IMPLEMENTED`
+**Cites:** P-06, D-09 · **Problems:** PR-14 · **Evidence:** E-D25 · **Extends:** D-36
+
+The app, the API and the tile proxy are one process behind one origin, deployed as one
+container to Fly in Toronto. `docs/architecture/DEPLOY.md` is the operating detail; this
+records the four decisions inside it.
+
+**One origin, because the code already assumed it.** `tiles.ts` builds absolute sprite URLs
+from the request origin, and `vite.config.ts` carried the comment "in production both are
+the same origin" long before anything served them that way. Fastify now serves `web/dist`
+and strips `/api` before routing, so development and production take the identical path —
+the difference between them was its own class of bug. It is also what finally lets `D-36`'s
+compression reach the 1.16 MB bundle, which is the larger half of first paint: **slow 4G
+7.1 s → 2.1 s**.
+
+**Toronto, and never scaling to zero.** Every basemap tile is proxied through this API, so
+region latency is felt on every pan of the map — and "the map feels slow" is exactly the
+noise that would contaminate `Q-A`. A machine that has scaled to zero makes a rider pay the
+3 s warm-up that `D-36` moved onto the platform, so `min_machines_running = 1`.
+
+**The data is built before the image, not inside it.** Ingesting during the build would pull
+a fresh TTC feed on every deploy, so the schedule underneath a rider session could change
+between deploys and the benchmark would no longer describe the data it was drawn from. For a
+study, deterministic beats self-contained: the image ships exactly the data the app was
+verified against.
+
+**The connection cache is refused rather than repaired.** `connections.bin` turns 13.9 s of
+CSV parsing into a 0.15 s read and removes 207 MB from the image — but a cache that outlived
+its feed would have the planner quietly routing riders on a retired timetable, which is the
+invisible wrongness `P-03` exists to prevent. It is keyed on a **content hash** of the GTFS
+archive, not on size and mtime: a Docker `COPY`, a git checkout and an `rsync` all preserve
+the bytes and change the timestamp, so an mtime check would fail in exactly the environment
+the cache exists for, and the only symptom would be a slower boot nobody investigates.
+Hashing 36 MB costs 34 ms against the 13.9 s it protects.
+
+**Three things this is deliberately not sized for**, named so they are not discovered later:
+SQLite lives in the image, so a data update is a deploy (`D-09` already names Postgres as the
+migration); there is one machine; and the tile proxy is unmetered, which is the first thing
+that would need a cache in front of it. All three are correct for a rider study and wrong for
+traffic.
+
+**Reversed if:** the study turns into a product. Every one of the three above becomes a
+defect at that point.

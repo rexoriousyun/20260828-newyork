@@ -11,7 +11,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": { target: "http://localhost:3000", rewrite: (p) => p.replace(/^\/api/, "") },
+      // No rewrite: the server strips `/api` itself (see `rewriteUrl` in
+      // server.ts), so dev and production take the identical path.
+      "/api": { target: "http://localhost:3000" },
       // The tile proxy rewrites style URLs to absolute paths under /tiles, so dev
       // has to forward that prefix too. In production both are the same origin.
       "/tiles": { target: "http://localhost:3000" },

@@ -13,6 +13,8 @@
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
 import AdmZip from "adm-zip";
+import { readFile, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { parse } from "csv-parse/sync";
 import { GTFS_CACHE } from "../ingest/gtfs.js";
 
@@ -57,7 +59,155 @@ function readCsv(zip: AdmZip, entry: string): Array<Record<string, string>> {
  * A service id is a calendar pattern — "1" is the weekday schedule. Scanning all
  * services at once would put Sunday trips in a Tuesday journey.
  */
-export async function buildConnections(serviceId: string): Promise<ConnectionSet> {
+/**
+ * The parsed connection set, cached as raw buffers.
+ *
+ * Parsing `stop_times.txt` is **74% of the entire cold start** (E-D25) — 13.9 s
+ * of a 18.8 s build, spent reading 207 MB of CSV to produce five typed arrays
+ * that never change between deploys. Writing them out once and reading them
+ * back turns that into a file read.
+ *
+ * It also removes `stop_times.txt` from the runtime image entirely. That single
+ * file is 207 MB of the ~298 MB the app has to ship.
+ */
+const CONNECTIONS_CACHE = "data/connections.bin";
+
+const MAGIC = 0x54544343; // "TTCC"
+const FORMAT_VERSION = 1;
+
+interface CacheHeader {
+  version: number;
+  serviceId: string;
+  /** Content hash of the archive this was built from — see `readCache`. */
+  source: string;
+  count: number;
+  stopIds: string[];
+  tripIds: string[];
+  tripRoute: string[];
+}
+
+/**
+ * Which feed a cache was built from, by content.
+ *
+ * **Not mtime.** The obvious identity is size and modification time, and it is
+ * wrong here: a `COPY` in a Dockerfile, a git checkout and an `rsync` all
+ * preserve the bytes and change the timestamp. The cache would be silently
+ * refused in exactly the environment it exists for, and the only symptom would
+ * be a deploy that boots five seconds slower — nobody would notice, and the
+ * 207 MB of CSV would have to stay in the image to make the fallback possible.
+ *
+ * Hashing the whole 36 MB archive costs ~34 ms, once, against the 13.9 s it
+ * protects. It is also the honest test: the question is whether the schedule
+ * changed, and only the bytes answer that.
+ */
+async function sourceIdentity(): Promise<string> {
+  return createHash("sha256").update(await readFile(GTFS_CACHE)).digest("hex");
+}
+
+/**
+ * Read the cache, or null if there is not a usable one.
+ *
+ * **A stale cache is refused, never repaired.** If the GTFS archive has changed
+ * since this was written, the cached connections describe last month's
+ * schedule — and a planner quietly routing riders on a retired timetable is
+ * exactly the kind of invisible wrongness `P-03` exists to prevent. Version,
+ * service id and the archive's own size and mtime all have to match; anything
+ * else falls back to parsing, which is slow and correct.
+ */
+async function readCache(serviceId: string): Promise<ConnectionSet | null> {
+  let buf: Buffer;
+  try {
+    buf = await readFile(CONNECTIONS_CACHE);
+  } catch {
+    return null;
+  }
+  if (buf.length < 12 || buf.readUInt32BE(0) !== MAGIC) return null;
+
+  const headerLength = buf.readUInt32BE(8);
+  if (buf.length < 12 + headerLength) return null;
+
+  let header: CacheHeader;
+  try {
+    header = JSON.parse(buf.subarray(12, 12 + headerLength).toString("utf8")) as CacheHeader;
+  } catch {
+    return null;
+  }
+  if (header.version !== FORMAT_VERSION || header.serviceId !== serviceId) return null;
+
+  if (header.source !== await sourceIdentity()) return null;
+
+  const { count } = header;
+  const bytes = count * 4;
+  let offset = 12 + headerLength;
+  if (buf.length < offset + bytes * 5) return null;
+
+  // Copied rather than viewed onto the file buffer: `subarray` shares memory,
+  // so five views would pin all 25 MB of it alive for the life of the process
+  // on top of the arrays themselves.
+  const column = (): Int32Array => {
+    const out = new Int32Array(count);
+    Buffer.from(out.buffer).set(buf.subarray(offset, offset + bytes));
+    offset += bytes;
+    return out;
+  };
+
+  const depTime = column(), arrTime = column();
+  const fromStop = column(), toStop = column(), trip = column();
+
+  const stopIndex = new Map<string, number>();
+  for (let i = 0; i < header.stopIds.length; i++) stopIndex.set(header.stopIds[i]!, i);
+
+  return {
+    depTime, arrTime, fromStop, toStop, trip, count,
+    stopIds: header.stopIds, stopIndex,
+    tripIds: header.tripIds, tripRoute: header.tripRoute,
+  };
+}
+
+/**
+ * Write the cache. Called by `npm run precompute`, after ingestion.
+ *
+ * Little-endian is assumed on both ends because it is written and read by the
+ * same build on the same architecture, and the file is a build artifact rather
+ * than something shipped between machines.
+ */
+export async function writeConnectionCache(c: ConnectionSet, serviceId: string): Promise<number> {
+  const header: CacheHeader = {
+    version: FORMAT_VERSION,
+    serviceId,
+    source: await sourceIdentity(),
+    count: c.count,
+    stopIds: c.stopIds,
+    tripIds: c.tripIds,
+    tripRoute: c.tripRoute,
+  };
+  const headerBuf = Buffer.from(JSON.stringify(header), "utf8");
+  const prelude = Buffer.alloc(12);
+  prelude.writeUInt32BE(MAGIC, 0);
+  prelude.writeUInt32BE(FORMAT_VERSION, 4);
+  prelude.writeUInt32BE(headerBuf.length, 8);
+
+  const cols = [c.depTime, c.arrTime, c.fromStop, c.toStop, c.trip].map((a) =>
+    Buffer.from(a.buffer, a.byteOffset, c.count * 4));
+
+  const out = Buffer.concat([prelude, headerBuf, ...cols]);
+  await writeFile(CONNECTIONS_CACHE, out);
+  return out.length;
+}
+
+/**
+ * The connection set for one service id, from the cache when it is current.
+ *
+ * Every caller goes through here — planner, audits, benchmark — so none of them
+ * has to know whether a cache exists.
+ */
+export async function loadConnections(serviceId: string): Promise<ConnectionSet> {
+  const cached = await readCache(serviceId);
+  if (cached !== null) return cached;
+  return parseConnections(serviceId);
+}
+
+export async function parseConnections(serviceId: string): Promise<ConnectionSet> {
   const zip = new AdmZip(GTFS_CACHE);
 
   const tripRouteById = new Map<string, string>();

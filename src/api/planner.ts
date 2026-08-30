@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db/client.js";
-import { buildConnections, type ConnectionSet } from "../domain/connections.js";
+import { loadConnections, type ConnectionSet } from "../domain/connections.js";
 import { displayStopName, displayStationName } from "../domain/stop-names.js";
 import { departureAdvice, latestDeparture } from "../domain/departure.js";
 import { inServiceDay, serviceDayTimes, DAY_SECONDS } from "../domain/time-bands.js";
@@ -78,7 +78,7 @@ export async function warmGraph(): Promise<void> {
 
 async function getGraph(): Promise<Graph> {
   graphPromise ??= (async (): Promise<Graph> => {
-    const connections = await buildConnections(WEEKDAY_SERVICE);
+    const connections = await loadConnections(WEEKDAY_SERVICE);
     const stops = await prisma.stop.findMany({ select: { id: true, name: true, lat: true, lon: true } });
     const byId = new Map(stops.map((s) => [s.id, s]));
 

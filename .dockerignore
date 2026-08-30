@@ -1,0 +1,13 @@
+node_modules
+web/node_modules
+dist
+web/dist
+.git
+*.log
+docs
+scripts
+
+# 207 MB, and needed only to build data/connections.bin. Excluding it here keeps
+# it out of the build context as well as out of the image — otherwise every
+# deploy uploads it.
+data/raw/stop_times.txt

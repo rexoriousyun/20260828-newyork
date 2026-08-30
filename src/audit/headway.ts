@@ -35,7 +35,7 @@
  * population on screen.
  */
 
-import { buildConnections } from "../domain/connections.js";
+import { loadConnections } from "../domain/connections.js";
 import { buildFrequency, key, WEEKDAYS_PER_MONTH } from "../domain/frequency.js";
 import { prisma, disconnect } from "../db/client.js";
 import { BANDS, bandOfSeconds } from "../domain/time-bands.js";
@@ -61,7 +61,7 @@ const MAX_SHARE = 0.5;
 const WEEKDAY_SERVICE = "1";
 
 async function main(): Promise<void> {
-  const connections = await buildConnections(WEEKDAY_SERVICE);
+  const connections = await loadConnections(WEEKDAY_SERVICE);
   const stops = await prisma.stop.findMany({ select: { id: true, name: true } });
   const stopNames = new Map(stops.map((s) => [s.id, s.name]));
   const frequency = buildFrequency(connections, (id) => stopNames.get(id) ?? id);

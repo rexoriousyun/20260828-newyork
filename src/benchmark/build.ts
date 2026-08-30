@@ -28,7 +28,7 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { prisma, disconnect } from "../db/client.js";
-import { buildConnections } from "../domain/connections.js";
+import { loadConnections } from "../domain/connections.js";
 import { buildFootpaths } from "../domain/footpaths.js";
 import { buildFrequency } from "../domain/frequency.js";
 import { plan } from "../domain/csa.js";
@@ -79,7 +79,7 @@ function mulberry32(seed: number): () => number {
 }
 
 async function main(): Promise<void> {
-  const connections = await buildConnections(WEEKDAY_SERVICE);
+  const connections = await loadConnections(WEEKDAY_SERVICE);
   const stops = await prisma.stop.findMany({ select: { id: true, name: true, lat: true, lon: true } });
   const byId = new Map(stops.map((s) => [s.id, s]));
   const stopNames = new Map(stops.map((s) => [s.id, s.name]));

@@ -2,6 +2,8 @@ node_modules/
 dist/
 data/raw/
 data/*.db
+# Build artifact: 24 MB, rebuilt by `npm run precompute` after every ingest.
+data/connections.bin
 data/*.db-journal
 *.log
 .env

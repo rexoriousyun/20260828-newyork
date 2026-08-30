@@ -1,5 +1,8 @@
 import Fastify from "fastify";
 import compress from "@fastify/compress";
+import fastifyStatic from "@fastify/static";
+import { existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { z } from "zod";
 import { scoreSegment, scoreRoute } from "../domain/score.js";
 import { prisma } from "../db/client.js";
@@ -10,7 +13,27 @@ import { registerTiles } from "./tiles.js";
 import { registerPlanner, warmGraph } from "./planner.js";
 import { stationAccessMap, endpointState, isUsable } from "../domain/accessibility.js";
 
-const app = Fastify({ logger: true });
+/**
+ * The browser calls `/api/plan`; the routes below are declared as `/plan`.
+ *
+ * In development Vite proxied `/api` to this server and stripped the prefix, so
+ * the server never saw it. In production there is no proxy — one origin serves
+ * the app, the API and the tiles, which is what `tiles.ts` has always assumed
+ * when it builds absolute sprite URLs from the request origin.
+ *
+ * Stripping it here rather than re-declaring every route under a prefix keeps
+ * one definition of each route, and `rewriteUrl` runs before routing, which an
+ * `onRequest` hook does not. The dev proxy no longer rewrites either, so both
+ * environments now take the same path through this function — the difference
+ * between them was its own class of bug.
+ */
+const app = Fastify({
+  logger: true,
+  rewriteUrl: (req) => {
+    const url = req.url ?? "/";
+    return url === "/api" || url.startsWith("/api/") ? url.slice(4) || "/" : url;
+  },
+});
 
 /**
  * Compress every response.
@@ -98,6 +121,45 @@ app.get("/accessibility", async () => {
 
 registerTiles(app);
 registerPlanner(app);
+
+/**
+ * The built frontend, served by the same process.
+ *
+ * `E-D25` measured first paint at 7.1 s on slow 4G and 20.9 s on 3G, and gzip
+ * takes those to 2.2 s and 5.9 s — but only if something compresses the
+ * bundle, and until now nothing served it at all outside Vite's dev server.
+ * Serving it here puts it behind the same compression as everything else, on
+ * one origin, with no CORS and no second thing to deploy.
+ *
+ * Skipped when `web/dist` is absent, so `npm run dev` still works without a
+ * build and the API can run headless for the audits.
+ */
+const WEB_DIST = resolve(process.cwd(), "web/dist");
+if (existsSync(WEB_DIST)) {
+  await app.register(fastifyStatic, {
+    root: WEB_DIST,
+    // Vite fingerprints every asset, so the bundle can be cached for a year and
+    // a deploy invalidates it by changing the filename. `index.html` is the one
+    // file whose name never changes, so it must never be cached — otherwise a
+    // rider keeps the old page and it keeps asking for assets that are gone.
+    maxAge: "1y",
+    immutable: true,
+    setHeaders: (res, path) => {
+      if (path.endsWith("index.html")) {
+        res.header("cache-control", "no-cache");
+      }
+    },
+  });
+
+  // Anything that is not a file and not an API route is the app. There is no
+  // client-side router today, but a reload on a deep link should not 404.
+  app.setNotFoundHandler(async (req, reply) => {
+    if (req.method !== "GET" || req.headers.accept?.includes("text/html") !== true) {
+      return reply.code(404).send({ error: "Not Found" });
+    }
+    return reply.header("cache-control", "no-cache").sendFile("index.html");
+  });
+}
 
 /**
  * Ready, not merely listening.

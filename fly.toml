@@ -1,0 +1,45 @@
+# Reliable Transit on Fly.
+#
+#     fly launch --no-deploy --copy-config
+#     npm run data
+#     fly deploy
+#
+# Toronto is not an aesthetic choice. Every basemap tile is proxied through this
+# API (see tiles.ts), so region latency is felt on every pan of the map — and
+# "the map feels slow" is exactly the noise that would contaminate Q-A.
+
+app = "reliable-transit"
+primary_region = "yyz"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+
+  # Never scale to zero. A cold machine costs a rider ~3 s of warm-up before it
+  # answers, and the whole point of warming at boot was to stop a rider paying
+  # for it. Keeping one machine alive is a few dollars a month.
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "15s"
+    timeout = "5s"
+    method = "GET"
+    path = "/api/health"
+    # /api/health returns 503 until the graph and the scoring caches are built,
+    # so this check is what holds traffic off a machine that is not ready.
+
+[[vm]]
+  # 441 MB peak RSS measured (E-D25); 1 GB leaves room for concurrent requests
+  # and the gzip buffers without paging.
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1
